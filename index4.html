@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corner BBQ — Админ</title>
+<style>
+:root{
+  --bg:#0e0f10; --soft:#ffffff1a; --accent:#ff7a00; --text:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.wrap{max-width:1200px;margin:0 auto;padding:18px}
+.header{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap}
+.title{font-weight:900;font-size:20px;color:var(--accent)}
+.header-right{display:flex;gap:10px;align-items:center}
+.small{font-size:12px;opacity:.75}
+.stat{padding:6px 10px;border-radius:10px;background:#121316;border:1px solid var(--soft);font-weight:800}
+.filter{display:flex;gap:6px;align-items:center}
+.filter select, .filter input{
+  background:#121316;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:6px 10px;outline:none
+}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media (max-width:1024px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){.grid{grid-template-columns:1fr}}
+
+.card{
+  background:#121316;border:1px solid var(--soft);border-radius:16px;padding:14px;box-shadow:0 8px 28px rgba(0,0,0,.28);
+  position:relative;overflow:hidden
+}
+.card.new::after{
+  content:'';position:absolute;inset:0;border-radius:16px;pointer-events:none;
+  box-shadow:0 0 0 2px var(--accent),0 0 24px 6px rgba(255,122,0,.35);animation:glow 1.8s ease-in-out 2
+}
+@keyframes glow{0%,100%{opacity:0}50%{opacity:1}}
+.row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+.badge{padding:4px 8px;border-radius:999px;background:#1a1c20;border:1px solid var(--soft);font-size:12px;font-weight:800}
+.status{padding:4px 10px;border-radius:10px;font-size:12px;font-weight:900;background:#1a1c20;border:1px solid var(--soft)}
+.status[data-s='ПРЕГЛЕД']{color:#f0f0f0}
+.status[data-s='ПРИГОТВЯ СЕ']{background:#1e2a18;color:#95ff6b;border-color:#2c4a23}
+.status[data-s='ДОСТАВЯ СЕ']{background:#262017;color:#ffcf7a;border-color:#554125}
+.items{margin-top:8px;border-top:1px dashed var(--soft);padding-top:8px}
+.item{display:flex;justify-content:space-between;margin:4px 0;font-size:14px}
+.total{margin-top:10px;font-weight:900;display:flex;justify-content:flex-end}
+.addr{margin-top:6px;font-size:14px;opacity:.95}
+.btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{
+  background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;font-weight:800;
+  cursor:pointer
+}
+.btn:hover{border-color:#ffffff33}
+.muted{opacity:.7}
+.empty{padding:20px;text-align:center;border:1px dashed var(--soft);border-radius:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="title">Админ панел — Поръчки</div>
+    <div class="header-right">
+      <div class="filter">
+        <select id="statusFilter" title="Филтър по статус">
+          <option value="ALL">Всички</option>
+          <option value="ПРЕГЛЕД">ПРЕГЛЕД</option>
+          <option value="ПРИГОТВЯ СЕ">ПРИГОТВЯ СЕ</option>
+          <option value="ДОСТАВЯ СЕ">ДОСТАВЯ СЕ</option>
+        </select>
+        <input id="searchBox" type="search" placeholder="Търси по име/телефон/адрес…" />
+      </div>
+      <div class="stat"><span id="count">0</span> поръчки</div>
+      <div class="stat">Общо: <span id="sum">0,00 лв.</span></div>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div id="emptyState" class="empty" style="display:none">Няма поръчки.</div>
+</div>
+
+<script type="module">
+/* ===== 0) Лека защита: изисквай админ флаг от index.html ===== */
+(function enforceAdmin(){
+  try{
+    const ok = sessionStorage.getItem('bbq_is_admin') === '1';
+    if(!ok){
+      // ако нямаме флаг – върни към логина/началото
+      const target = (location.protocol === 'file:') ? 'file:///E:/BBQ_SITE/index.html' : 'index.html';
+      // можеш да закоментираш следния ред, ако тестваш без логин:
+      // window.location.href = target;
+    }
+  }catch(_){}
+})();
+
+/* ===== 1) Помощни ===== */
+const lv = n => (Number(n)||0).toFixed(2).replace('.',',')+' лв.';
+const fmtWhen = ts => {
+  try{
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleString();
+  }catch(_){ return ''; }
+};
+
+const grid   = document.getElementById('grid');
+const countE = document.getElementById('count');
+const sumE   = document.getElementById('sum');
+const emptyE = document.getElementById('emptyState');
+const selStatus = document.getElementById('statusFilter');
+const searchBox = document.getElementById('searchBox');
+
+/* ===== 2) Firebase ===== */
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
+import {
+  getFirestore, collection, query, orderBy, onSnapshot,
+  doc, updateDoc
+} from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
+  authDomain: "corner-bbq.firebaseapp.com",
+  projectId: "corner-bbq",
+  storageBucket: "corner-bbq.firebasestorage.app",
+  messagingSenderId: "878314744141",
+  appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
+  measurementId: "G-FWBDL96GN0"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+/* ===== 3) Реално време: поръчки ===== */
+let orders = []; // пълен списък от Firestore
+const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
+
+onSnapshot(q, (snap)=>{
+  // merge-наме локално с флаг "new" за добавени
+  const next = [];
+  const seenIds = new Set(orders.map(o=>o.id));
+  snap.docChanges().forEach(ch=>{
+    if (ch.type === 'added' && !seenIds.has(ch.doc.id)){
+      // маркирай „new“ само при първото влизане/пристигнали нови
+      next.push({ id: ch.doc.id, ...ch.doc.data(), _new: true });
+    }
+  });
+
+  orders = snap.docs.map(d => {
+    const wasNew = next.find(x=>x.id===d.id)?._new;
+    return { id: d.id, _new: !!wasNew, ...d.data() };
+  });
+
+  render();
+});
+
+/* ===== 4) Рендер + филтри/търсене ===== */
+selStatus.addEventListener('change', render);
+searchBox.addEventListener('input', render);
+
+function render(){
+  // филтър
+  const fStatus = selStatus.value;
+  const query = (searchBox.value || '').trim().toLowerCase();
+
+  let filtered = orders.slice();
+  if (fStatus !== 'ALL'){
+    filtered = filtered.filter(o => (o.status||'') === fStatus);
+  }
+  if (query){
+    filtered = filtered.filter(o=>{
+      const c = o.customer || {};
+      const hay = [c.names, c.phone, c.address].join(' ').toLowerCase();
+      return hay.includes(query);
+    });
+  }
+
+  // агрегати
+  countE.textContent = String(filtered.length);
+  const totalSum = filtered.reduce((s,o)=> s + (Number(o.total)||0), 0);
+  sumE.textContent = lv(totalSum);
+
+  // празно състояние
+  emptyE.style.display = filtered.length ? 'none' : 'block';
+
+  // DOM
+  grid.innerHTML = filtered.map(o=>{
+    const when = fmtWhen(o.createdAt);
+    const items = Array.isArray(o.items) ? o.items : [];
+    const status = o.status || 'ПРЕГЛЕД';
+
+    return `
+    <div class="card ${o._new ? 'new':''}" data-id="${o.id}">
+      <div class="row">
+        <span class="badge">#${o.id.slice(0,6)}</span>
+        <span class="small muted">${when}</span>
+        <span class="status" data-s="${status}">${status}</span>
+      </div>
+      <div class="row"><strong>${o.customer?.names||''}</strong> &nbsp; <span class="small">(${o.customer?.phone||''})</span></div>
+      <div class="addr">📍 ${o.customer?.address||''}</div>
+      <div class="items">
+        ${items.map(it=>`<div class="item"><span>${escapeHTML(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>`).join('')}
+      </div>
+      <div class="total">Общо: ${lv(Number(o.total)||0)}</div>
+      <div class="btns">
+        <button class="btn btn-prev" data-id="${o.id}">ПРЕГЛЕД</button>
+        <button class="btn btn-cook" data-id="${o.id}">ПРИГОТВЯ СЕ</button>
+        <button class="btn btn-deliver" data-id="${o.id}">ДОСТАВЯ СЕ</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  bindButtons();
+  // след първото рисуване премахни „new“ за да не свети постоянно
+  orders = orders.map(o => ({...o, _new:false}));
+}
+
+function escapeHTML(s){
+  return String(s||'').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+/* ===== 5) Обновяване на статус ===== */
+function bindButtons(){
+  grid.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ПРЕГЛЕД')));
+  grid.querySelectorAll('.btn-cook').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ПРИГОТВЯ СЕ')));
+  grid.querySelectorAll('.btn-deliver').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ДОСТАВЯ СЕ')));
+}
+
+async function setStatus(id, status){
+  try{
+    const ref = doc(db, 'orders', id);
+    await updateDoc(ref, { status });
+    // оптимистичен ъпдейт на DOM
+    const el = grid.querySelector(`.card[data-id="${id}"] .status`);
+    if (el){ el.textContent = status; el.setAttribute('data-s', status); }
+  }catch(err){
+    console.error(err);
+    alert('Неуспешна промяна на статуса. Проверете връзката.');
+  }
+}
+</script>
+</body>
+</html>

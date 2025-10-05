@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Corner BBQ — Категория</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+<style>
+:root{
+  --gap:16px;
+  --soft:#00000014;
+  --shadow:0 10px 28px rgba(0,0,0,.16);
+  --accent:#ff7a00;
+  --radius:20px;
+  --home-closed:110px;
+  --home-open:150px;
+  --popShadow:0 22px 60px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#111;background:#fff}
+
+/* Лейаут */
+.app{min-height:100dvh;display:grid;grid-template-columns:260px 1fr}
+@media (max-width:1100px){.app{grid-template-columns:220px 1fr}}
+@media (max-width:900px){.app{grid-template-columns:1fr}}
+
+/* Sidebar */
+.sidebar{
+  position:sticky;top:0;height:100dvh;background:#fff;border-right:1px solid var(--soft);
+  padding:20px 10px 16px 16px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
+  box-shadow:inset -10px 0 30px rgba(0,0,0,.05)
+}
+.sidebar::-webkit-scrollbar{display:none}
+.sidebar-inner{display:flex;flex-direction:column;gap:14px}
+.cat{
+  display:block;text-decoration:none;background:#fff;border:1px solid var(--soft);
+  border-radius:24px;padding:10px;box-shadow:var(--shadow);cursor:pointer;
+  transform-style:preserve-3d; will-change:transform, box-shadow, filter;
+  transition:transform .24s cubic-bezier(.22,.8,.36,1), box-shadow .24s ease, filter .24s ease;
+  outline-offset:3px;
+}
+.cat .box{position:relative;height:118px;border-radius:14px;overflow:hidden;background:#e9ecef center/cover no-repeat}
+.cat .box::after{
+  content:attr(data-label);position:absolute;left:0;right:0;bottom:0;padding:10px 14px;
+  font-weight:900;letter-spacing:.6px;color:#fff;text-shadow:0 2px 3px rgba(0,0,0,.6);
+  background:linear-gradient(180deg,transparent 0,rgba(0,0,0,.62) 100%)
+}
+.cat.active{outline:3px solid var(--accent)}
+
+/* Hover pop */
+@media (hover:hover){
+  .cat:hover{
+    transform:perspective(800px) translateY(-6px) scale(1.03) rotateX(1.5deg);
+    box-shadow:var(--popShadow);
+    filter:saturate(1.03) contrast(1.02);
+  }
+}
+
+/* Press / Pop */
+.cat.is-pressed{ transform:perspective(900px) translateY(-2px) scale(0.985) rotateX(.5deg) }
+.cat.is-popping{
+  transform:perspective(900px) translateY(-10px) scale(1.06) rotateX(3deg);
+  box-shadow:var(--popShadow);
+}
+
+/* Лога без zoom */
+.cat[data-cat="kola"] .box,
+.cat[data-cat="xixo"] .box{
+  background-size:contain;background-position:center;background-repeat:no-repeat;background-color:#fff;
+}
+
+/* Content + Home */
+.content{position:relative;min-width:0;padding:80px 22px 28px}
+.home-pill{
+  position:absolute;top:16px;left:20px;z-index:10;height:48px;width:var(--home-closed);
+  display:flex;align-items:center;justify-content:center;gap:10px;padding:0 12px;
+  background:#ff7a00;color:#fff;border-radius:14px;box-shadow:var(--shadow);
+  text-decoration:none;overflow:hidden;white-space:nowrap;transition:width .25s ease,padding .25s ease
+}
+.home-pill .bi{font-size:20px;line-height:1}
+.home-pill span{font-weight:700;font-size:18px;letter-spacing:.3px;opacity:0;transform:translateX(8px);transition:opacity .2s ease,transform .2s ease}
+.home-pill:hover{width:var(--home-open);justify-content:flex-start;padding:0 16px}
+.home-pill:hover span{opacity:1;transform:translateX(0)}
+
+/* CART button (горе вдясно) */
+.cart-btn{
+  position:fixed;top:16px;right:20px;z-index:1100;
+  display:flex;align-items:center;gap:10px;
+  background:#111;color:#fff;border-radius:14px;padding:10px 14px;
+  text-decoration:none;box-shadow:var(--shadow);cursor:pointer;user-select:none
+}
+.cart-btn .bi{font-size:20px}
+.cart-count{
+  min-width:22px;height:22px;border-radius:999px;background:#ff7a00;color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;padding:0 6px
+}
+
+.h1{font-size:28px;font-weight:900;color:#ff7a00;letter-spacing:.6px;margin:0 0 18px}
+
+/* Заглавия на секции */
+.sec-title{margin:14px 0 10px;font-weight:900;font-size:28px;color:#ff7a00;letter-spacing:.6px}
+
+/* Продуктов грид */
+.grid-products{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.grid-products{grid-template-columns:1fr}}
+
+/* Карта продукт */
+.product{
+  background:#fff;border:1px solid var(--soft);border-radius:22px;box-shadow:var(--shadow);
+  display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:center;overflow:hidden
+}
+.product .photo{height:210px;background:#e9ecef center/cover no-repeat;margin:16px;border-radius:14px}
+.product .pad{padding:12px 16px;display:flex;flex-direction:column;gap:8px;height:100%}
+.product .title{font-weight:900;font-size:20px;margin:0}
+.product.even{grid-template-columns:1fr 360px}
+.product.even .photo{order:2;margin-left:0;margin-right:16px}
+@media (max-width:1200px){.product{grid-template-columns:320px 1fr}.product.even{grid-template-columns:1fr 320px}.product .photo{height:200px}}
+@media (max-width:760px){.product,.product.even{grid-template-columns:1fr}.product .photo{height:200px;margin:14px}.product.even .photo{order:0;margin:14px}}
+
+/* Ценови бадж + Add */
+.price-badge{
+  display:inline-block;margin-left:auto;margin-right:16px;margin-top:auto;
+  background:#ff7a00;color:#fff;border-radius:12px 12px 12px 4px;
+  padding:10px 12px 8px;line-height:1;text-align:right;min-width:110px;box-shadow:var(--shadow)
+}
+.price-badge .lv{font-weight:900;font-size:28px}
+.price-badge .eur{font-size:18px;opacity:.95}
+.add-btn{
+  display:inline-block;margin:8px 16px 16px auto;
+  background:#111;color:#fff;border:none;border-radius:10px;padding:8px 14px;
+  font-weight:800;cursor:pointer;box-shadow:var(--shadow)
+}
+.add-btn:active{transform:translateY(1px)}
+
+/* Галерия (HELL) */
+.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media (max-width:1200px){.gallery{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:900px){.gallery{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:600px){.gallery{grid-template-columns:1fr}}
+.tile{
+  background:#fff;border:1px solid var(--soft);border-radius:16px;box-shadow:var(--shadow);
+  padding:12px;text-align:center;
+}
+.tile img{width:100%;height:220px;object-fit:contain;display:block;border-radius:12px}
+.caption{margin-top:6px;font-weight:800;font-size:14px;text-align:center}
+.tile .price-badge{margin:10px auto 4px;display:block;text-align:center;border-radius:12px}
+.tile .add-btn{margin:10px auto 0;display:block}
+
+/* ВОДА — 2 колони */
+.water-wrapper{display:flex;flex-direction:column;gap:26px;max-width:720px}
+.water-block h2{margin:0 0 8px;font-size:24px;font-weight:900;color:#ff7a00}
+.water-grid{display:grid;grid-template-columns:repeat(2, minmax(160px, 1fr));gap:16px;align-items:start}
+.water-card{
+  background:#fff;border:1px solid var(--soft);border-radius:16px;box-shadow:var(--shadow);
+  padding:12px;text-align:center;
+}
+.water-card img{width:100%;height:220px;object-fit:contain;display:block;border-radius:12px}
+.water-name{margin-top:8px;font-weight:800}
+.water-card .price-badge{margin:10px auto 4px;display:block;text-align:center;border-radius:12px}
+.water-card .add-btn{margin:8px auto 0;display:block}
+@media (max-width:520px){.water-grid{grid-template-columns:1fr}}
+
+/* Достъпност */
+@media (prefers-reduced-motion: reduce){ .cat{transition:none} }
+
+/* === Плаващо „Начало“ === */
+.home-pill{ will-change: transform; }
+.home-pill{ position: fixed !important; top: 16px; left: 20px; z-index: 1000; will-change: transform; }
+
+/* === CART MODAL === */
+.cart-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.2);
+  backdrop-filter:blur(20px);
+  display:none;align-items:flex-start;justify-content:flex-end;z-index:1200;
+}
+.cart-panel{
+  width:min(560px, 100%);max-height:100dvh;overflow:auto;background:#fff;border-left:1px solid var(--soft);
+  box-shadow:var(--popShadow);padding:18px 16px 20px;border-radius:16px 0 0 16px;
+}
+.cart-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.cart-head .title{font-size:22px;font-weight:900;color:#ff7a00}
+.cart-close{margin-left:auto;background:transparent;border:none;font-size:22px;cursor:pointer}
+.cart-items{display:flex;flex-direction:column;gap:12px}
+.cart-item{
+  display:grid;grid-template-columns:88px 1fr auto;gap:12px;align-items:center;
+  background:#fff;border:1px solid var(--soft);border-radius:12px;padding:8px;box-shadow:var(--shadow)
+}
+.cart-item img{width:88px;height:66px;object-fit:cover;border-radius:10px;background:#e9ecef}
+.cart-item .name{font-weight:800}
+.cart-item .price{font-weight:900}
+.cart-empty{padding:12px;font-weight:700;opacity:.7}
+.cart-total{
+  margin-top:14px;padding-top:12px;border-top:2px dashed var(--soft);
+  display:flex;align-items:center;justify-content:space-between;font-weight:900;font-size:18px
+}
+.cart-actions{margin-top:12px;display:flex;justify-content:flex-end}
+.order-btn{
+  background:var(--accent);color:#fff;border:none;border-radius:12px;
+  padding:12px 16px;font-weight:900;box-shadow:var(--shadow);cursor:pointer
+}
+.order-btn:disabled{opacity:.5;cursor:not-allowed}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar"><div class="sidebar-inner" id="sidebar"></div></aside>
+
+  <main class="content">
+    <!-- HOME -->
+    <a class="home-pill" href="index.html" title="Начало">
+      <i class="bi bi-house"></i><span>Начало</span>
+    </a>
+
+    <!-- CART BTN -->
+    <button class="cart-btn" id="cartBtn" title="Количка">
+      <i class="bi bi-cart3"></i>
+      <span>Количка</span>
+      <span class="cart-count" id="cartCount">0</span>
+    </button>
+
+    <h1 class="h1" id="catTitle">БУРГЕРИ</h1>
+    <div id="productGrid"></div>
+  </main>
+</div>
+
+<!-- CART MODAL -->
+<div class="cart-overlay" id="cartOverlay" aria-hidden="true">
+  <div class="cart-panel" role="dialog" aria-modal="true">
+    <div class="cart-head">
+      <div class="title"><i class="bi bi-cart3"></i> Твоята количка</div>
+      <button class="cart-close" id="cartClose" aria-label="Затвори"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-total" id="cartTotalRow" style="display:none">
+      <span>Общо:</span>
+      <span id="cartTotal"></span>
+    </div>
+    <div class="cart-actions">
+      <button id="orderNow" class="order-btn" disabled>Поръчай сега</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Миниатюри (сайдбар) */
+const CAT_THUMBS = {
+  burgeri:'snimki/produkti/1menu/burger.jpg',
+  palachinki:'snimki/produkti/1menu/palachinki.jpg',
+  strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',
+  kartofi:'snimki/produkti/1menu/kartofi.jpg',
+  salati:'snimki/produkti/1menu/salata.jpg',
+  portsii:'snimki/produkti/1menu/porciq.jpg',
+  sosove:'snimki/produkti/1menu/sosove.jpg',
+  dobavki:'snimki/produkti/1menu/dobavki.jpg',
+  deserti:'snimki/produkti/1menu/desert.jpg',
+  bezalkoholni:'snimki/produkti/1menu/bezalkoholno.jpg',
+  bira:'snimki/produkti/1menu/bira.jpg',
+  hell:'snimki/produkti/1menu/hell.jpg',
+  voda:'snimki/produkti/ВОДА/voda_snimka.jpg',
+  gazirana_voda:'snimki/produkti/ГАЗИРАНА_ВОДА/gaziranavoda_snimka.jpg',
+  fanta:'snimki/produkti/ФАНТА/fanta_logo.jpg',
+  studen_chai:'snimki/produkti/СТУДЕН_ЧАЙ/studen_chai_logo.jpg',
+  kola:'snimki/produkti/КОЛА/kola_logo.jpg',
+  sok:'snimki/produkti/СОК/cappy_logo.jpg',
+  airqn:'snimki/produkti/АЙРАН/vereq_logo.jpg',
+  xixo:'snimki/produkti/ХИХО/xixo_logo.jpg'
+};
+
+/* Цени – конвертор */
+const BGN_PER_EUR = 1.95583;
+const fmtLv  = v => (v).toFixed(2).replace('.',',') + ' лв.';
+const fmtEur = v => (v / BGN_PER_EUR).toFixed(2).replace('.',',') + ' €';
+
+/* Количка */
+const CART = [];
+const cartBtn   = document.getElementById('cartBtn');
+const cartCount = document.getElementById('cartCount');
+const cartOverlay = document.getElementById('cartOverlay');
+const cartItemsEl = document.getElementById('cartItems');
+const cartTotalRow = document.getElementById('cartTotalRow');
+const cartTotal = document.getElementById('cartTotal');
+const orderNowBtn = document.getElementById('orderNow');
+
+/* ====== LS ключове (index2 -> index3) ====== */
+const LS_CART_ITEMS = 'bbq_cart_items';
+const LS_CART_TOTAL = 'bbq_cart_total';
+
+/* Добавяне към количката */
+function addToCart(item){
+  CART.push(item);
+  updateCartUI();
+}
+
+/* Основен рендер на количката */
+function updateCartUI(){
+  cartCount.textContent = CART.length;
+
+  if (CART.length === 0){
+    cartItemsEl.innerHTML = `<div class="cart-empty">Количката е празна.</div>`;
+    cartTotalRow.style.display = 'none';
+    orderNowBtn.disabled = true;
+    persistCartSnapshot(); // пазим „празно“ състояние
+    return;
+  }
+
+  cartItemsEl.innerHTML = CART.map(it => `
+    <div class="cart-item">
+      <img src="${it.img}" alt="${it.name}">
+      <div>
+        <div class="name">${it.name}</div>
+        <div class="price">${fmtLv(it.price)} <span style="opacity:.75">(${fmtEur(it.price)})</span></div>
+      </div>
+      <div>
+        <button class="add-btn" data-remove="${it._id}">✕</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Премахване
+  cartItemsEl.querySelectorAll('[data-remove]').forEach((btn)=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.getAttribute('data-remove');
+      const i = CART.findIndex(x => String(x._id) === id);
+      if (i>=0){ CART.splice(i,1); updateCartUI(); }
+    });
+  });
+
+  // Общо
+  const total = CART.reduce((s, x)=> s + (Number(x.price)||0), 0);
+  cartTotal.textContent = `${fmtLv(total)}  (${fmtEur(total)})`;
+  cartTotalRow.style.display = '';
+  orderNowBtn.disabled = CART.length === 0;
+
+  // 🔐 Пазим снимка на количката след всяко обновяване
+  persistCartSnapshot();
+}
+
+/* ====== Persist & Restore ====== */
+function persistCartSnapshot(){
+  try{
+    const itemsSnapshot = CART.map(({_id, name, price, img}) => ({_id, name, price, img}));
+    const total = CART.reduce((s, x)=> s + (Number(x.price)||0), 0);
+    localStorage.setItem(LS_CART_ITEMS, JSON.stringify(itemsSnapshot));
+    localStorage.setItem(LS_CART_TOTAL, String(total));
+  }catch(e){ console.warn('LS error:', e); }
+}
+
+function restoreCartFromLS(){
+  try{
+    const raw = localStorage.getItem(LS_CART_ITEMS);
+    if (!raw) return;
+    const items = JSON.parse(raw);
+    if (Array.isArray(items)){
+      items.forEach(it => CART.push({
+        _id: it._id || (Date.now()+''+Math.random()),
+        name: it.name, price: Number(it.price)||0, img: it.img||''
+      }));
+      updateCartUI();
+    }
+  }catch(e){ console.warn('Restore LS error:', e); }
+}
+
+/* Отваряне/затваряне на модала */
+function openCart(){
+  updateCartUI();
+  cartOverlay.style.display = 'flex';
+  cartOverlay.setAttribute('aria-hidden','false');
+}
+function closeCart(){
+  cartOverlay.style.display = 'none';
+  cartOverlay.setAttribute('aria-hidden','true');
+}
+document.getElementById('cartClose').addEventListener('click', closeCart);
+cartOverlay.addEventListener('click', (e)=>{ if(e.target === cartOverlay) closeCart(); });
+cartBtn.addEventListener('click', openCart);
+
+/* Поръчай сега → index3.html (локално или уеб) */
+orderNowBtn.addEventListener('click', ()=>{
+  if (CART.length === 0) return;
+  persistCartSnapshot(); // гарантираме запис
+  const target = (location.protocol === 'file:')
+    ? 'file:///E:/BBQ_SITE/index3.html'
+    : 'index3.html';
+  window.location.href = target;
+});
+
+/* Каталог с цени в лв. */
+const CATALOG = {
+  burgeri:{title:'БУРГЕРИ',items:[
+    {name:'КОНСКА ПЛЕСКАВИЦА',price:9.00,img:'snimki/produkti/2menu/konski.jpg'},
+    {name:'ТЕЛЕШКА ПЛЕСКАВИЦА',price:9.00,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'ШАРСКА ПЛЕСКАВИЦА',price:9.50,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'СВИНСКА ВЕШАЛИЦА',price:9.00,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'ПИЛЕШКИ СТЕК',price:9.00,img:'snimki/produkti/2menu/pileshkistek.jpg'},
+    {name:'ВЕГЕТАРИЯНСКИ',price:5.00,img:'snimki/produkti/2menu/vegan.jpg'},
+    {name:'ДВОЙНА ШАРСКА ПЛЕСКАВИЦА',price:12.50,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'ДВОЙНА КОНСКА ПЛЕСКАВИЦА',price:12.00,img:'snimki/produkti/2menu/konski.jpg'},
+    {name:'ДВОЙНА СВИНСКА ВЕШАЛИЦА',price:12.00,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'ДВОЕН ПИЛЕШКИ СТЕК',price:12.00,img:'snimki/produkti/2menu/pileshkistek.jpg'},
+    {name:'ДВОЙНА ТЕЛЕШКА ПЛЕСКАВИЦА',price:12.00,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'БУРГЕР С ДЪРПАНО ТЕЛЕШКО',price:12.50,img:'snimki/produkti/2menu/durpano.jpg'},
+  ]},
+
+  palachinki:{
+    title:'ПАЛАЧИНКИ',
+    groups:[
+      { heading:'СЛАДКИ', items:[
+        {name:'ПАЛАЧИНКА СЪС NUCREMA ШОКОЛАД',price:5.00,img:'snimki/produkti/ПАЛАЧИНКИ/shokolad.jpg'},
+        {name:'ПАЛАЧИНКА СЪС NUCREMA ШОКОЛАД И БАНАН',price:6.00,img:'snimki/produkti/ПАЛАЧИНКИ/shokoladibanan.png'},
+        {name:'ПАЛАЧИНКА С МЕД И ОРЕХИ',price:5.50,img:'snimki/produkti/ПАЛАЧИНКИ/mediorehi.png'},
+        {name:'ПАЛАЧИНКА СЪС СЛАДКО ОТ БОРОВИНКИ',price:5.00,img:'snimki/produkti/ПАЛАЧИНКИ/borovinki.png'},
+        {name:'ПАЛАЧИНКА СЪС СЛАДКО ОТ ПРАСКОВА',price:5.00,img:'snimki/produkti/ПАЛАЧИНКИ/praskovi.png'},
+        {name:'ПАЛАЧИНКА СЪС СЛАДКО ОТ ЯГОДИ',price:5.00,img:'snimki/produkti/ПАЛАЧИНКИ/qgodi.png'},
+      ]},
+      { heading:'СОЛЕНИ', items:[
+        {name:'СИРЕНЕ И СЛАДКО',price:5.50,img:'snimki/produkti/ПАЛАЧИНКИ/sirene.png'},
+        {name:'ПАЛАЧИНКА СЪС СИРЕНЕ',price:5.00,img:'snimki/produkti/ПАЛАЧИНКИ/sirene.png'},
+        {name:'ПАЛАЧИНКА СЪС КАШКАВАЛ',price:5.50,img:'snimki/produkti/ПАЛАЧИНКИ/kashkaval.png'},
+        {name:'ПАЛАЧИНКА СЪС СИРЕНЕ И КАШКАВАЛ',price:6.00,img:'snimki/produkti/ПАЛАЧИНКИ/kashkavalisirene.png'},
+        {name:'ПАЛАЧИНКА С МАСЛО',price:4.50,img:'snimki/produkti/ПАЛАЧИНКИ/maslo.png'},
+      ]}
+    ]
+  },
+
+  strandzhanki:{ title:'СТРАНДЖАНКИ', items:[
+    {name:'ТЕЛЕШКА СТРАНДЖАНКА',price:5.00,img:CAT_THUMBS.strandzhanki},
+    {name:'СВИНСКА СТРАНДЖАНКА',price:5.00,img:CAT_THUMBS.strandzhanki},
+  ]},
+
+  kartofi:{ title:'КАРТОФИ', items:[
+    {name:'ПЪРЖЕНИ КАРТОФИ 200 ГРАМА',price:4.00,img:'snimki/produkti/КАРТОФИ/kartofi.jpg'},
+    {name:'КАРТОФИ С ЧЕДЪР И БЕКОН',price:6.50,img:'snimki/produkti/КАРТОФИ/kartofisbekonichedur.jpg'},
+    {name:'КАРТОФИ С ЧЕДЪР',price:5.00,img:'snimki/produkti/КАРТОФИ/kartofischedur.jpg'},
+  ]},
+
+  salati:{ title:'САЛАТИ', items:[
+    {name:'САЛАТА ЦЕЗАР', price:8.50, img:CAT_THUMBS.salati},
+  ]},
+
+  portsii:{ title:'ПОРЦИИ', items:[
+    {name:'РАЗЯДКА 100 ГРАМА',price:1.50,img:CAT_THUMBS.portsii},
+    {name:'ПИТКА 1 БРОЙ',price:1.50,img:'snimki/produkti/ПОРЦИИ/pitka.jpg'},
+    {name:'ТЕЛЕШКА ПЛЕСКАВИЦА ПОРЦИЯ',price:11.50,img:'snimki/produkti/ПОРЦИИ/sharsko.jpg'},
+    {name:'ПИЛЕШКО ФИЛЕ ПОРЦИЯ',price:11.00,img:'snimki/produkti/ПОРЦИИ/pileshko.jpg'},
+    {name:'СВИНСКО ФИЛЕ ПОРЦИЯ',price:11.00,img:'snimki/produkti/ПОРЦИИ/svinsko.jpg'},
+    {name:'ТЕЛЕШКИ КЕБАПЧЕТА ПОРЦИЯ',price:9.50,img:'snimki/produkti/ПОРЦИИ/kebapche.jpg'},
+    {name:'ШАРСКА ПЛЕСКАВИЦА ПОРЦИЯ',price:12.50,img:'snimki/produkti/ПОРЦИИ/sharsko.jpg'},
+  ]},
+
+  dobavki:{ title:'ДОБАВКИ', items:[
+    {name:'СИРЕНЕ 100 ГРАМА',  price:1.50},
+    {name:'КАШКАВАЛ 100 ГРАМА',price:1.50},
+    {name:'ДРЕСИНГ ДОБАВКА',   price:1.00},
+    {name:'МЕСО ДОБАВКА',      price:4.00},
+    {name:'ПИТКА',             price:1.50},
+  ]},
+
+  sosove:{ title:'СОСОВЕ', items:[
+    {name:'ДОМАШНА РАЗЯДКА 100ГР', price:1.50, img:CAT_THUMBS.sosove},
+    {name:'ДОМАШНА МАЙОНЕЗА',     price:1.50, img:CAT_THUMBS.sosove},
+    {name:'ЛЮТЕНИЦА',             price:1.50, img:CAT_THUMBS.sosove},
+    {name:'КЕТЧУП',               price:1.00, img:CAT_THUMBS.sosove},
+    {name:'ГОРЧИЦА',              price:1.00, img:CAT_THUMBS.sosove},
+    {name:'СОС ЦЕЗАР',            price:1.50, img:CAT_THUMBS.sosove},
+  ]},
+
+  deserti:{ title:'ДЕСЕРТИ', items:[
+    {name:'ЛЕК ДЕСЕРТ С ЧИЯ, МЮСЛИ И СУШЕНИ ПЛОДОВЕ',price:4.50,img:CAT_THUMBS.deserti},
+    {name:'ЛЕК ДЕСЕРТ С ЧИЯ, МЮСЛИ И СЛАДКО ОТ БОРОВИНКИ',price:4.50,img:CAT_THUMBS.deserti},
+  ]},
+
+  bezalkoholni:{ title:'БЕЗАЛКОХОЛНИ', items:[
+    {name:'КОЛА КЕН',price:2.00,img:CAT_THUMBS.bezalkoholni},
+    {name:'ФАНТА ПОРТОКАЛ КЕН',price:2.00,img:CAT_THUMBS.bezalkoholni},
+    {name:'КОКА КОЛА БУТИЛКА',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'ФАНТА ПОРТОКАЛ БУТИЛКА',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'СПРАЙТ БУТИЛКА',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'СТУДЕН ЧАЙ',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'КАПИ ПЪЛПИ',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'КАПИ КУТИЯ',price:1.70,img:CAT_THUMBS.bezalkoholni},
+    {name:'СОДА БУТИЛКА',price:1.90,img:CAT_THUMBS.bezalkoholni},
+    {name:'МАЛКА МИНЕРАЛНА ВОДА',price:1.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'ГОЛЯМА МИНЕРАЛНА ВОДА',price:2.00,img:CAT_THUMBS.bezalkoholni},
+    {name:'КАПИ ЛИМОНАДА',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'ТОНИК БУТИЛКА',price:1.90,img:CAT_THUMBS.bezalkoholni},
+  ]},
+
+  bira:{ title:'БИРА', items:[
+    {name:'БИРА КОРОНА',price:3.50,img:CAT_THUMBS.bira},
+    {name:'ХАЙНИКЕН',price:4.00,img:CAT_THUMBS.bira},
+    {name:'СТЕЛА АРТОА',price:4.50,img:CAT_THUMBS.bira},
+  ]},
+
+  hell:{
+    title:'HELL',
+    view:'gallery',
+    hellPrice:2.00,
+    groups:[
+      { heading:'HELL', images:[
+          'snimki/hell_sminki/normal/hell_apple.jpg',
+          'snimki/hell_sminki/normal/hell_clasic.jpg',
+          'snimki/hell_sminki/normal/hell_classic.jpg',
+          'snimki/hell_sminki/normal/hell_redgrape.jpg',
+          'snimki/hell_sminki/normal/hell_watermelon.jpg'
+      ]},
+      { heading:'ICE COFFE HELL', images:[
+          'snimki/hell_sminki/ice_coffe/ice_coffe_capochino.png',
+          'snimki/hell_sminki/ice_coffe/ice_coffe_caramel.png',
+          'snimki/hell_sminki/ice_coffe/ice_coffe_coconut.png',
+          'snimki/hell_sminki/ice_coffe/ice_coffe_doubleespresso.png',
+          'snimki/hell_sminki/ice_coffe/ice_coffe_late.png',
+          'snimki/hell_sminki/ice_coffe/ice_coffe_pinklatte.png',
+          'snimki/hell_sminki/ice_coffe/ice_coffe_vanilia.png',
+          'snimki/hell_sminki/ice_coffe/ice_hell_distachio.png'
+      ]}
+    ]
+  },
+
+  voda:{
+    title:'ВОДА',
+    view:'water2',
+    groups:[
+      { heading:'Devin', pair:[
+          {src:'snimki/produkti/ВОДА/golqma_devin.jpg', label:'Голяма Девин', price:2.00},
+          {src:'snimki/produkti/ВОДА/malka_devin.jpg', label:'Малка Девин',  price:1.50}
+      ]},
+      { heading:'Банкя', pair:[
+          {src:'snimki/produkti/ВОДА/golqma_bankq.jpg', label:'Голяма Банкя', price:2.00},
+          {src:'snimki/produkti/ВОДА/malka_bankq.jpg', label:'Малка Банкя',  price:1.50}
+      ]}
+    ]
+  },
+
+  gazirana_voda:{
+    title:'ГАЗИРАНА ВОДА',
+    view:'water2',
+    groups:[
+      { heading:'Марки', pair:[
+          {src:'snimki/produkti/ГАЗИРАНА_ВОДА/shveps.jpg',  label:'Schweppes', price:1.90},
+          {src:'snimki/produkti/ГАЗИРАНА_ВОДА/sprait.jpg',  label:'Sprite',    price:1.90}
+      ]}
+    ]
+  },
+
+  fanta:{
+    title:'ФАНТА',
+    items:[
+      {name:'Фанта Портокал',      price:2.00, img:'snimki/produkti/ФАНТА/fanta_portokal.jpg'},
+      {name:'Фанта Лимон',         price:2.00, img:'snimki/produkti/ФАНТА/fanta_lemon.jpg'},
+      {name:'Фанта Лайчи',         price:2.00, img:'snimki/produkti/ФАНТА/fanta_laici.jpg'},
+      {name:'Фанта Tutti Frutti',  price:2.00, img:'snimki/produkti/ФАНТА/fanta_tutti.jpg'},
+      {name:'Фанта Зелена ябълка', price:2.00, img:'snimki/produkti/ФАНТА/fanta_greenapple.jpg'},
+      {name:'Фанта Боровинка',     price:2.00, img:'snimki/produkti/ФАНТА/sinq_blueberry.jpg'}
+    ]
+  },
+
+  studen_chai:{
+    title:'СТУДЕН ЧАЙ',
+    items:[
+      {name:'Fuze Tea Горски плод', price:2.50, img:'snimki/produkti/СТУДЕН ЧАЙ/fuze_tea_forest_frut.jpg'},
+      {name:'Fuze Tea Праскова',    price:2.50, img:'snimki/produkti/СТУДЕН ЧАЙ/fuze_tea_praskova.jpg'}
+    ]
+  },
+
+  kola:{
+    title:'КОЛА',
+    items:[
+      {name:'Кола Кен',        price:2.00, img:'snimki/produkti/КОЛА/kolaken.jpg'},
+      {name:'Кола Кен Zero',   price:2.00, img:'snimki/produkti/КОЛА/kolakenzero.jpg'},
+      {name:'Кола Бутилка',    price:2.50, img:'snimki/produkti/КОЛА/kolapvc.jpg'},
+      {name:'Кола Бутилка Zero',price:2.50, img:'snimki/produkti/КОЛА/kolapvczero.jpg'}
+    ]
+  },
+
+  sok:{
+    title:'СОК',
+    items:[
+      {name:'Cappy Портокал', price:2.50, img:'snimki/produkti/СОК/cappy_orange.jpg'},
+      {name:'Cappy Лимон',    price:2.50, img:'snimki/produkti/СОК/cappy_lemon.jpg'}
+    ]
+  },
+
+  airqn:{
+    title:'АЙРЯН',
+    groups:[
+      { heading:'Верея', items:[
+          {name:'Айрян Верея Голям', price:2.00, img:'snimki/produkti/АЙРАН/airan_vereq_golqm.jpg'},
+          {name:'Айрян Верея Малък', price:1.50, img:'snimki/produkti/АЙРАН/airan_vereq_maluk.jpg'}
+      ]},
+      { heading:'Meggle', items:[
+          {name:'Айрян Meggle Бутилка', price:2.00, img:'snimki/produkti/АЙРАН/megle_airan_butilka.jpg'},
+          {name:'Айрян Meggle Кофа',    price:2.50, img:'snimki/produkti/АЙРАН/megle_airan_kofa.jpg'},
+          {name:'Айрян Meggle Плодов',  price:2.20, img:'snimki/produkti/АЙРАН/mwgle_airan_plodov.jpg'}
+      ]}
+    ]
+  },
+
+  xixo:{
+    title:'XIXO',
+    items:[
+      {name:'XIXO Cola',               price:1.10, img:'snimki/produkti/ХИХО/xixo_cola.jpg'},
+      {name:'XIXO Cherry Cola',        price:1.10, img:'snimki/produkti/ХИХО/xixo_cherry_cola.jpg'},
+      {name:'XIXO Диня',               price:1.10, img:'snimki/produkti/ХИХО/xixo_dinq.jpg'},
+      {name:'XIXO Горски плод',        price:1.10, img:'snimki/produkti/ХИХО/xixo_gorski_plod.jpg'},
+      {name:'XIXO Green Fusion',       price:1.10, img:'snimki/produkti/ХИХО/xixo_green_fusion.jpg'},
+      {name:'XIXO Круша',              price:1.10, img:'snimki/produкти/ХИХО/xixo_krusha.jpg'},
+      {name:'XIXO Лимон',              price:1.10, img:'snimki/produkti/ХИХО/xixo_limon.jpg'},
+      {name:'XIXO Манго и ананас',     price:1.10, img:'snimki/produkti/ХИХО/xixo_mango_and_pineapple.jpg'},
+      {name:'XIXO Розова лимонада',    price:1.10, img:'snimki/produkti/ХИХО/xixo_pink_lemonade.jpg'},
+      {name:'XIXO Праскова',           price:1.10, img:'snimki/produkti/ХИХО/xixo_praskova.jpg'},
+      {name:'XIXO Ягода',              price:1.10, img:'snimki/produkti/ХИХО/xixo_qgoda.jpg'},
+      {name:'XIXO Tutti Frutti',       price:1.10, img:'snimki/produkti/ХИХО/xixo_tuti_fruity.jpg'}
+    ]
+  }
+};
+
+/* Подредба на категориите */
+const ORDER = [
+  'burgeri','palachinki','strandzhanki','kartofi','salati','portsii','dobavki',
+  'hell','voda','gazirana_voda','fanta','studen_chai','kola','sok','xixo','airqn'
+];
+
+const sidebar = document.getElementById('sidebar');
+const grid    = document.getElementById('productGrid');
+const titleEl = document.getElementById('catTitle');
+
+/* Сайдбар рендер */
+sidebar.innerHTML = ORDER.map(key=>{
+  const label = CATALOG[key].title;
+  const img   = CAT_THUMBS[key];
+  return `<a class="cat" data-cat="${key}" role="link" tabindex="0" aria-label="${label}">
+            <div class="box" style="background-image:url('${img}')" data-label="${label}"></div>
+          </a>`;
+}).join('');
+
+/* pretty label за HELL */
+function prettyLabel(src){
+  let f = src.split('/').pop().split('.')[0].toLowerCase();
+  f = f.replace(/^hell_/, '').replace(/^ice_coffe_/, '').replace(/^ice_hell_/, '');
+  const map = {
+    apple:'Apple', clasic:'Classic', classic:'Black Cherry',
+    redgrape:'Red Grape', watermelon:'Watermelon',
+    capochino:'Cappuccino', cappuccino:'Cappuccino', caramel:'Salted Caramel',
+    coconut:'Coconut', doubleespresso:'Double Espresso', doublespresso:'Double Espresso',
+    late:'Latte', latte:'Latte', pinklatte:'Pink Latte',
+    vanilia:'Vanilla', vanilla:'Vanilla', distachio:'Pistachio', pistachio:'Pistachio',
+    slimvanilla:'Vanilla'
+  };
+  if (map[f]) return map[f];
+  return f.replace(/[_-]+/g,' ').replace(/\b\w/g, m=>m.toUpperCase());
+}
+
+/* ===== Активиране на категория + рендер ===== */
+let current = null;
+
+function productCardHTML(it, i){
+  return `
+  <article class="product ${i%2? 'even':''}">
+    <div class="photo" style="background-image:url('${it.img}')"></div>
+    <div class="pad">
+      <h3 class="title">${it.name}</h3>
+      <div class="price-badge">
+        <div class="lv">${fmtLv(it.price)}</div>
+        <div class="eur">${fmtEur(it.price)}</div>
+      </div>
+      <button class="add-btn" data-name="${it.name.replace(/"/g,'&quot;')}" data-price="${it.price}" data-img="${it.img}">+</button>
+    </div>
+  </article>`;
+}
+
+function activate(cat, {fromNav=false, replace=false} = {}){
+  const exists = !!CATALOG[cat];
+  if(!exists) cat = 'burgeri';
+  current = cat;
+
+  sidebar.querySelectorAll('.cat').forEach(c=>c.classList.toggle('active', c.dataset.cat===cat));
+  titleEl.textContent = CATALOG[cat]?.title || cat.toUpperCase();
+
+  const url = new URL(location.href);
+  if (url.searchParams.get('cat') !== cat) {
+    url.searchParams.set('cat', cat);
+    if (replace) history.replaceState({cat}, '', url);
+    else if (fromNav) history.pushState({cat}, '', url);
+  }
+
+  const data = CATALOG[cat];
+
+  if (data.view === 'water2') {
+    grid.innerHTML = `
+      <div class="water-wrapper">
+        ${data.groups.map(g=>`
+          <section class="water-block">
+            <h2>${g.heading}</h2>
+            <div class="water-grid">
+              ${g.pair.map(p=>`
+                <div class="water-card">
+                  <img src="${p.src}" alt="${p.label}">
+                  <div class="water-name">${p.label}</div>
+                  ${typeof p.price === 'number' ? `
+                    <div class="price-badge">
+                      <div class="lv">${fmtLv(p.price)}</div>
+                      <div class="eur">${fmtEur(p.price)}</div>
+                    </div>
+                    <button class="add-btn" data-name="${p.label.replace(/"/g,'&quot;')}" data-price="${p.price}" data-img="${p.src}">+</button>
+                  ` : ``}
+                </div>
+              `).join('')}
+            </div>
+          </section>
+        `).join('')}
+      </div>
+    `;
+    bindAddButtons();
+    return;
+  }
+
+  if (data.view === 'gallery') {
+    const hellPrice = data.hellPrice ?? 2.00;
+    grid.innerHTML = data.groups.map(group=>{
+      const pics = group.images.map(src=>{
+        const label = prettyLabel(src);
+        return `
+        <div>
+          <div class="tile">
+            <img src="${src}" alt="${label}">
+            <div class="price-badge">
+              <div class="lv">${fmtLv(hellPrice)}</div>
+              <div class="eur">${fmtEur(hellPrice)}</div>
+            </div>
+            <button class="add-btn" data-name="${label.replace(/"/g,'&quot;')}" data-price="${hellPrice}" data-img="${src}">+</button>
+          </div>
+          <div class="caption">${label}</div>
+        </div>`;
+      }).join('');
+      return `
+        <h2 class="sec-title">${group.heading}</h2>
+        <div class="gallery">${pics}</div>
+      `;
+    }).join('');
+    bindAddButtons();
+    return;
+  }
+
+  if (data.groups && Array.isArray(data.groups)) {
+    const groupsHTML = data.groups.map(group => `
+      <h2 class="sec-title">${group.heading}</h2>
+      <div class="grid-products">
+        ${group.items?.map((it,i)=> productCardHTML(it,i)).join('')||''}
+      </div>
+    `).join('');
+    grid.innerHTML = groupsHTML;
+    bindAddButtons();
+    return;
+  }
+
+  const items = (data?.items)||[];
+  if (items.length === 0) {
+    grid.innerHTML = `<p style="padding:16px;font-weight:700">Няма продукти в тази категория.</p>`;
+    return;
+  }
+  grid.innerHTML = `
+    <div class="grid-products">
+      ${items.map((it,i)=> productCardHTML(it,i)).join('')}
+    </div>
+  `;
+  bindAddButtons();
+}
+
+/* Добавяне – слушатели */
+function bindAddButtons(){
+  grid.querySelectorAll('.add-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const name = btn.getAttribute('data-name');
+      const price = Number(btn.getAttribute('data-price')) || 0;
+      const img = btn.getAttribute('data-img') || '';
+      addToCart({ _id: Date.now()+''+Math.random(), name, price, img });
+      btn.textContent = '✓';
+      setTimeout(()=> btn.textContent = '+', 450);
+    });
+  });
+}
+
+/* POP DELAY в сайдбара */
+const POP_DELAY = 100; // ms
+function shouldBypassDelay(evt){ return evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey || evt.button === 1; }
+function popThenActivate(el, key){
+  el.classList.remove('is-pressed'); el.classList.add('is-popping'); el.dataset.locked = '1';
+  setTimeout(()=>{ activate(key, {fromNav:true}); el.classList.remove('is-popping'); delete el.dataset.locked; }, POP_DELAY);
+}
+
+/* Чети cat от URL при зареждане */
+function initFromURL(){
+  const params = new URLSearchParams(location.search);
+  const cat = params.get('cat') || 'burgeri';
+  activate(cat, {replace:true});
+}
+initFromURL();
+
+/* Възстанови количката при първо зареждане (ако има предишна сесия) */
+restoreCartFromLS();
+
+/* Събития за сайдбар картите */
+sidebar.querySelectorAll('.cat').forEach(catEl=>{
+  const key = catEl.dataset.cat;
+  catEl.addEventListener('touchstart', ()=>{ catEl.classList.add('is-pressed'); setTimeout(()=>catEl.classList.remove('is-pressed'), 120); }, {passive:true});
+  catEl.addEventListener('mousedown', ()=>catEl.classList.add('is-pressed'));
+  catEl.addEventListener('mouseleave', ()=>catEl.classList.remove('is-pressed'));
+  catEl.addEventListener('mouseup',   ()=>catEl.classList.remove('is-pressed'));
+  catEl.addEventListener('click', (e)=>{ if (shouldBypassDelay(e)) return; e.preventDefault(); if (catEl.dataset.locked==='1'|| key===current) return; popThenActivate(catEl, key); });
+  catEl.addEventListener('keydown', (e)=>{ if (e.key==='Enter'||e.key===' '){ e.preventDefault(); if (catEl.dataset.locked==='1'|| key===current) return; popThenActivate(catEl, key);} });
+});
+
+/* Back/Forward */
+addEventListener('popstate', (e)=>{
+  const cat = (e.state && e.state.cat) || new URLSearchParams(location.search).get('cat') || 'burgeri';
+  activate(cat, {replace:true});
+});
+
+/* Почистване на класове при pageshow (ако се върнем) */
+addEventListener('pageshow', ()=>{
+  sidebar.querySelectorAll('.cat').forEach(c=>{ c.classList.remove('is-pressed','is-popping'); delete c.dataset.locked; });
+});
+
+/* Плаващо движение на бутона „Начало“ */
+(function(){
+  const home = document.querySelector('.home-pill');
+  const content = document.querySelector('.content');
+  if(!home || !content) return;
+
+  const TOP = 16, BOTTOM_MARGIN = 16, SPEED = 0.25;
+  let cur = 0, target = 0, rafId = 0;
+
+  function maxShift(){ return Math.max(0, window.innerHeight - TOP - BOTTOM_MARGIN - home.offsetHeight); }
+  function updateLeft(){
+    const rect = content.getBoundingClientRect();
+    home.style.left = (rect.left + 20) + 'px';
+  }
+  function onScroll(){
+    const doc = document.documentElement;
+    const scrollMax = Math.max(1, doc.scrollHeight - window.innerHeight);
+    const progress = window.scrollY / scrollMax;
+    target = progress * maxShift();
+    if(!rafId) rafId = requestAnimationFrame(tick);
+  }
+  function tick(){
+    rafId = 0;
+    cur += (target - cur) * SPEED;
+    home.style.transform = `translateY(${cur.toFixed(2)}px)`;
+    if (Math.abs(target - cur) > 0.5) rafId = requestAnimationFrame(tick);
+  }
+  addEventListener('scroll', onScroll, {passive:true});
+  addEventListener('resize', ()=>{ updateLeft(); onScroll(); });
+  updateLeft(); onScroll();
+})();
+
+/* HOME според средата (file:// или web) */
+(function(){
+  const home = document.querySelector('.home-pill');
+  if (!home) return;
+  const HOME_LOCAL = 'file:///E:/BBQ_SITE/index.html';
+  const HOME_WEB   = 'index.html';
+  home.addEventListener('click', function(e){
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button === 1) return;
+    e.preventDefault();
+    const target = (location.protocol === 'file:') ? HOME_LOCAL : HOME_WEB;
+    window.location.href = target;
+  });
+})();
+</script>
+</body>
+</html>
