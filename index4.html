@@ -236,7 +236,7 @@ async function deleteOrder(id){
 
     if ((o.status||'') === 'ДОСТАВЕНО'){
       const pwd = prompt('Парола за изтриване на ДОСТАВЕНА поръчка:');
-      if (pwd !== 'mikatathebest!'){ alert('❌ Грешна парола.'); return; }
+      if (pwd !== 'mitakathebest!'){ alert('❌ Грешна парола.'); return; }
     } else if (!confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?')) return;
 
     await deleteDoc(doc(db,'orders',id));
