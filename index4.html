@@ -11,7 +11,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .wrap{max-width:1200px;margin:0 auto;padding:18px}
 .header{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap}
 .title{font-weight:900;font-size:20px;color:var(--accent)}
-.header-right{display:flex;gap:10px;align-items:center}
+.header-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .small{font-size:12px;opacity:.75}
 .stat{padding:6px 10px;border-radius:10px;background:#121316;border:1px solid var(--soft);font-weight:800}
 .filter{display:flex;gap:6px;align-items:center}
@@ -37,6 +37,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .status[data-s='ПРЕГЛЕД']{color:#f0f0f0}
 .status[data-s='ПРИГОТВЯ СЕ']{background:#1e2a18;color:#95ff6b;border-color:#2c4a23}
 .status[data-s='ДОСТАВЯ СЕ']{background:#262017;color:#ffcf7a;border-color:#554125}
+.status[data-s='ДОСТАВЕНО']{background:#1c2a1c;color:#86ff86;border-color:#2a5a2a}
 .items{margin-top:8px;border-top:1px dashed var(--soft);padding-top:8px}
 .item{display:flex;justify-content:space-between;margin:4px 0;font-size:14px}
 .total{margin-top:10px;font-weight:900;display:flex;justify-content:flex-end}
@@ -68,11 +69,14 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
           <option value="ПРЕГЛЕД">ПРЕГЛЕД</option>
           <option value="ПРИГОТВЯ СЕ">ПРИГОТВЯ СЕ</option>
           <option value="ДОСТАВЯ СЕ">ДОСТАВЯ СЕ</option>
+          <option value="ДОСТАВЕНО">ДОСТАВЕНО</option>
         </select>
-        <input id="searchBox" type="search" placeholder="Търси по име/телефон/адрес…" />
+        <input id="searchBox" type="search" placeholder="Търси по име/телефон/адрес…">
       </div>
       <div class="stat"><span id="count">0</span> поръчки</div>
-      <div class="stat">Общо: <span id="sum">0,00 лв.</span></div>
+      <div class="stat">Сума (филтър): <span id="sum">0,00 лв.</span></div>
+      <div class="stat">Оборот (Доставени): <span id="deliveredSum">0,00 лв.</span></div>
+      <div class="stat">Оборот (Сайт): <span id="siteSum">0,00 лв.</span></div>
     </div>
   </div>
 
@@ -81,13 +85,13 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 </div>
 
 <script type="module">
-/* ===== 0) Лека защита ===== */
+/* ===== 0) Лека защита (по желание) ===== */
 (function enforceAdmin(){
   try{
     const ok = sessionStorage.getItem('bbq_is_admin') === '1';
     if(!ok){
       const target = (location.protocol === 'file:') ? 'file:///E:/BBQ_SITE/index.html' : 'index.html';
-      // window.location.href = target; // включи ако искаш твърд редирект
+      // window.location.href = target;
     }
   }catch(_){}
 })();
@@ -101,10 +105,11 @@ const fmtWhen = ts => {
     return d.toLocaleString();
   }catch(_){ return ''; }
 };
-
-const grid   = document.getElementById('grid');
+const grid = document.getElementById('grid');
 const countE = document.getElementById('count');
-const sumE   = document.getElementById('sum');
+const sumE = document.getElementById('sum');
+const deliveredSumE = document.getElementById('deliveredSum');
+const siteSumE = document.getElementById('siteSum');
 const emptyE = document.getElementById('emptyState');
 const selStatus = document.getElementById('statusFilter');
 const searchBox = document.getElementById('searchBox');
@@ -125,7 +130,6 @@ const firebaseConfig = {
   appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
   measurementId: "G-FWBDL96GN0"
 };
-
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
@@ -150,7 +154,7 @@ onSnapshot(q, (snap)=>{
   render();
 });
 
-/* ===== 4) Рендер + филтри/търсене ===== */
+/* ===== 4) Рендер + филтри/търсене + суми ===== */
 selStatus.addEventListener('change', render);
 searchBox.addEventListener('input', render);
 
@@ -170,16 +174,33 @@ function render(){
     });
   }
 
+  // агрегати
   countE.textContent = String(filtered.length);
-  const totalSum = filtered.reduce((s,o)=> s + (Number(o.total)||0), 0);
-  sumE.textContent = lv(totalSum);
+  const filterSum = filtered.reduce((s,o)=> s + (Number(o.total)||0), 0);
+  sumE.textContent = lv(filterSum);
 
+  // оборот (Доставени) – всички с ДОСТАВЕНО
+  const deliveredSum = orders
+    .filter(o => (o.status||'') === 'ДОСТАВЕНО')
+    .reduce((s,o)=> s + (Number(o.total)||0), 0);
+  deliveredSumE.textContent = lv(deliveredSum);
+
+  // оборот (Сайт) – абсолютно всички
+  const siteSum = orders.reduce((s,o)=> s + (Number(o.total)||0), 0);
+  siteSumE.textContent = lv(siteSum);
+
+  // празно състояние
   emptyE.style.display = filtered.length ? 'none' : 'block';
 
+  // DOM карти
   grid.innerHTML = filtered.map(o=>{
     const when = fmtWhen(o.createdAt);
     const items = Array.isArray(o.items) ? o.items : [];
     const status = o.status || 'ПРЕГЛЕД';
+
+    const deliveredBtn = status === 'ДОСТАВЕНО'
+      ? ''
+      : `<button class="btn btn-done" data-id="${o.id}">ДОСТАВЕНО</button>`;
 
     return `
     <div class="card ${o._new ? 'new':''}" data-id="${o.id}">
@@ -199,6 +220,7 @@ function render(){
         <button class="btn btn-prev" data-id="${o.id}">ПРЕГЛЕД</button>
         <button class="btn btn-cook" data-id="${o.id}">ПРИГОТВЯ СЕ</button>
         <button class="btn btn-deliver" data-id="${o.id}">ДОСТАВЯ СЕ</button>
+        ${deliveredBtn}
       </div>
     </div>`;
   }).join('');
@@ -218,6 +240,7 @@ function bindButtons(){
   grid.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ПРЕГЛЕД')));
   grid.querySelectorAll('.btn-cook').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ПРИГОТВЯ СЕ')));
   grid.querySelectorAll('.btn-deliver').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ДОСТАВЯ СЕ')));
+  grid.querySelectorAll('.btn-done').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ДОСТАВЕНО')));
   grid.querySelectorAll('.close').forEach(b=>b.addEventListener('click', ()=> deleteOrder(b.dataset.id)));
 }
 
@@ -225,6 +248,7 @@ async function setStatus(id, status){
   try{
     const ref = doc(db, 'orders', id);
     await updateDoc(ref, { status });
+    // оптимистичен ъпдейт
     const el = grid.querySelector(`.card[data-id="${id}"] .status`);
     if (el){ el.textContent = status; el.setAttribute('data-s', status); }
   }catch(err){
@@ -234,10 +258,26 @@ async function setStatus(id, status){
 }
 
 async function deleteOrder(id){
-  if (!confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?')) return;
   try{
+    // намери текущата поръчка по id
+    const o = orders.find(x => x.id === id);
+    if (!o){ return; }
+
+    // ако е ДОСТАВЕНО — искай парола
+    if ((o.status || '') === 'ДОСТАВЕНО'){
+      const pwd = prompt('Въведи парола за изтриване на ДОСТАВЕНА поръчка:');
+      if (pwd !== 'mikatathebest!'){
+        alert('❌ Грешна парола. Поръчката не е изтрита.');
+        return;
+      }
+    } else {
+      const ok = confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?');
+      if (!ok) return;
+    }
+
     await deleteDoc(doc(db, 'orders', id));
-    // визуално премахване незабавно (onSnapshot така или иначе ще опресни)
+
+    // визуално премахване (snapshot така или иначе ще опресни)
     const card = grid.querySelector(`.card[data-id="${id}"]`);
     if(card) card.remove();
   }catch(err){
