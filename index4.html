@@ -42,7 +42,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .btn:hover{border-color:#ffffff33}
 .empty{padding:20px;text-align:center;border:1px dashed var(--soft);border-radius:12px}
 
-/* Х бутон */
+/* X бутон */
 .close{
   position:absolute;top:8px;right:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
   border-radius:999px;background:#3a1515;border:1px solid #8a1f1f;color:#fff;font-weight:900;line-height:1;cursor:pointer
@@ -124,15 +124,20 @@ function render(){
   const fStatus = selStatus.value;
   const queryTxt = (searchBox.value || '').trim().toLowerCase();
 
-  // Оборот (Доставени) – винаги се смята от всички
+  // оборот (Доставени)
   const deliveredSum = orders
     .filter(o => (o.status||'') === 'ДОСТАВЕНО')
     .reduce((s,o)=> s + (Number(o.total)||0), 0);
   deliveredSumE.textContent = lv(deliveredSum);
 
-  // Филтър + търсене
-  let filtered = orders.slice();
-  if (fStatus !== 'ALL') filtered = filtered.filter(o => (o.status||'') === fStatus);
+  // филтър и логика: "Всички" показва без доставени
+  let filtered = orders.filter(o=>{
+    if(fStatus === 'ALL') return (o.status||'') !== 'ДОСТАВЕНО';
+    if(fStatus === 'ДОСТАВЕНО') return (o.status||'') === 'ДОСТАВЕНО';
+    return (o.status||'') === fStatus;
+  });
+
+  // търсене
   if (queryTxt){
     filtered = filtered.filter(o=>{
       const c = o.customer || {};
@@ -153,13 +158,13 @@ function render(){
 
     return `
     <div class="card" data-id="${o.id}">
-      <button class="close" title="Изтрий" data-id="${o.id}" aria-label="Изтрий">×</button>
+      <button class="close" title="Изтрий" data-id="${o.id}">×</button>
       <div class="row">
         <span class="badge">#${o.id.slice(0,6)}</span>
         <span class="small muted">${when}</span>
         <span class="status" data-s="${status}">${status}</span>
       </div>
-      <div class="row"><strong>${o.customer?.names||''}</strong> &nbsp; <span class="small">(${o.customer?.phone||''})</span></div>
+      <div class="row"><strong>${o.customer?.names||''}</strong> <span class="small">(${o.customer?.phone||''})</span></div>
       <div class="addr">📍 ${o.customer?.address||''}</div>
       <div class="items">
         ${items.map(it=>`<div class="item"><span>${escapeHTML(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>`).join('')}
@@ -185,30 +190,22 @@ function escapeHTML(s){
 
 /* ===== Действия ===== */
 function bindButtons(){
-  grid.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click', ()=> changeStatusAndMaybeHide(b.dataset.id,'ПРЕГЛЕД')));
-  grid.querySelectorAll('.btn-cook').forEach(b=>b.addEventListener('click', ()=> changeStatusAndMaybeHide(b.dataset.id,'ПРИГОТВЯ СЕ')));
-  grid.querySelectorAll('.btn-deliver').forEach(b=>b.addEventListener('click', ()=> changeStatusAndMaybeHide(b.dataset.id,'ДОСТАВЯ СЕ')));
-  grid.querySelectorAll('.btn-done').forEach(b=>b.addEventListener('click', ()=> changeStatusAndMaybeHide(b.dataset.id,'ДОСТАВЕНО')));
+  grid.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click', ()=> changeStatus(b.dataset.id,'ПРЕГЛЕД')));
+  grid.querySelectorAll('.btn-cook').forEach(b=>b.addEventListener('click', ()=> changeStatus(b.dataset.id,'ПРИГОТВЯ СЕ')));
+  grid.querySelectorAll('.btn-deliver').forEach(b=>b.addEventListener('click', ()=> changeStatus(b.dataset.id,'ДОСТАВЯ СЕ')));
+  grid.querySelectorAll('.btn-done').forEach(b=>b.addEventListener('click', ()=> changeStatus(b.dataset.id,'ДОСТАВЕНО')));
   grid.querySelectorAll('.close').forEach(b=>b.addEventListener('click', ()=> deleteOrder(b.dataset.id)));
 }
 
-// сменя статус; ако става „ДОСТАВЕНО“ и филтърът не е „ДОСТАВЕНО“ → скрий веднага
-async function changeStatusAndMaybeHide(id, status){
+async function changeStatus(id, status){
   try{
     await updateDoc(doc(db,'orders',id), { status });
-
-    const currFilterIsDelivered = selStatus.value === 'ДОСТАВЕНО';
-    if (status === 'ДОСТАВЕНО' && !currFilterIsDelivered){
-      const card = grid.querySelector(`.card[data-id="${id}"]`);
-      if (card) card.remove();            // изчезва веднага
-    }
-    // локален update, после рендер
     const o = orders.find(x=>x.id===id);
-    if (o) o.status = status;
-    render();
+    if(o) o.status = status;
+    render(); // автоматично скрива доставените от "Всички"
   }catch(err){
     console.error(err);
-    alert('Неуспешна промяна на статуса.');
+    alert('Неуспешна промяна.');
   }
 }
 
@@ -218,19 +215,16 @@ async function deleteOrder(id){
     if (!o) return;
 
     if ((o.status||'') === 'ДОСТАВЕНО'){
-      const pwd = prompt('Парола за изтриване на ДОСТАВЕНА поръчка:');
+      const pwd = prompt('Парола за изтриване:');
       if (pwd !== 'mikatathebest!'){ alert('❌ Грешна парола.'); return; }
-    } else {
-      const ok = confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?');
-      if (!ok) return;
-    }
+    } else if (!confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?')) return;
 
     await deleteDoc(doc(db,'orders',id));
     const card = grid.querySelector(`.card[data-id="${id}"]`);
     if(card) card.remove();
   }catch(err){
     console.error(err);
-    alert('❌ Грешка при изтриване.');
+    alert('Грешка при изтриване.');
   }
 }
 </script>
