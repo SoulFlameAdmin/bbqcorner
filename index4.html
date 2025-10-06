@@ -50,7 +50,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .muted{opacity:.7}
 .empty{padding:20px;text-align:center;border:1px dashed var(--soft);border-radius:12px}
 
-/* ❌ X бутон горе вдясно на картата */
+/* ❌ X горе вдясно */
 .close{
   position:absolute;top:8px;right:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
   border-radius:999px;background:#3a1515;border:1px solid #8a1f1f;color:#fff;font-weight:900;line-height:1;cursor:pointer
@@ -74,9 +74,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
         <input id="searchBox" type="search" placeholder="Търси по име/телефон/адрес…">
       </div>
       <div class="stat"><span id="count">0</span> поръчки</div>
-      <div class="stat">Сума (филтър): <span id="sum">0,00 лв.</span></div>
       <div class="stat">Оборот (Доставени): <span id="deliveredSum">0,00 лв.</span></div>
-      <div class="stat">Оборот (Сайт): <span id="siteSum">0,00 лв.</span></div>
     </div>
   </div>
 
@@ -85,17 +83,6 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 </div>
 
 <script type="module">
-/* ===== 0) Лека защита (по желание) ===== */
-(function enforceAdmin(){
-  try{
-    const ok = sessionStorage.getItem('bbq_is_admin') === '1';
-    if(!ok){
-      const target = (location.protocol === 'file:') ? 'file:///E:/BBQ_SITE/index.html' : 'index.html';
-      // window.location.href = target;
-    }
-  }catch(_){}
-})();
-
 /* ===== 1) Помощни ===== */
 const lv = n => (Number(n)||0).toFixed(2).replace('.',',')+' лв.';
 const fmtWhen = ts => {
@@ -107,9 +94,7 @@ const fmtWhen = ts => {
 };
 const grid = document.getElementById('grid');
 const countE = document.getElementById('count');
-const sumE = document.getElementById('sum');
 const deliveredSumE = document.getElementById('deliveredSum');
-const siteSumE = document.getElementById('siteSum');
 const emptyE = document.getElementById('emptyState');
 const selStatus = document.getElementById('statusFilter');
 const searchBox = document.getElementById('searchBox');
@@ -133,28 +118,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
-/* ===== 3) Реално време: поръчки ===== */
+/* ===== 3) Реално време ===== */
 let orders = [];
 const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
 
 onSnapshot(q, (snap)=>{
-  const next = [];
-  const seenIds = new Set(orders.map(o=>o.id));
-  snap.docChanges().forEach(ch=>{
-    if (ch.type === 'added' && !seenIds.has(ch.doc.id)){
-      next.push({ id: ch.doc.id, ...ch.doc.data(), _new: true });
-    }
-  });
-
-  orders = snap.docs.map(d => {
-    const wasNew = next.find(x=>x.id===d.id)?._new;
-    return { id: d.id, _new: !!wasNew, ...d.data() };
-  });
-
+  orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   render();
 });
 
-/* ===== 4) Рендер + филтри/търсене + суми ===== */
+/* ===== 4) Рендер + филтър и оборот ===== */
 selStatus.addEventListener('change', render);
 searchBox.addEventListener('input', render);
 
@@ -162,6 +135,13 @@ function render(){
   const fStatus = selStatus.value;
   const queryTxt = (searchBox.value || '').trim().toLowerCase();
 
+  // оборот (Доставени) – винаги от всички
+  const deliveredSum = orders
+    .filter(o => (o.status||'') === 'ДОСТАВЕНО')
+    .reduce((s,o)=> s + (Number(o.total)||0), 0);
+  deliveredSumE.textContent = lv(deliveredSum);
+
+  // филтър + търсене
   let filtered = orders.slice();
   if (fStatus !== 'ALL'){
     filtered = filtered.filter(o => (o.status||'') === fStatus);
@@ -174,36 +154,20 @@ function render(){
     });
   }
 
-  // агрегати
   countE.textContent = String(filtered.length);
-  const filterSum = filtered.reduce((s,o)=> s + (Number(o.total)||0), 0);
-  sumE.textContent = lv(filterSum);
-
-  // оборот (Доставени) – всички с ДОСТАВЕНО
-  const deliveredSum = orders
-    .filter(o => (o.status||'') === 'ДОСТАВЕНО')
-    .reduce((s,o)=> s + (Number(o.total)||0), 0);
-  deliveredSumE.textContent = lv(deliveredSum);
-
-  // оборот (Сайт) – абсолютно всички
-  const siteSum = orders.reduce((s,o)=> s + (Number(o.total)||0), 0);
-  siteSumE.textContent = lv(siteSum);
-
-  // празно състояние
   emptyE.style.display = filtered.length ? 'none' : 'block';
 
-  // DOM карти
   grid.innerHTML = filtered.map(o=>{
     const when = fmtWhen(o.createdAt);
     const items = Array.isArray(o.items) ? o.items : [];
     const status = o.status || 'ПРЕГЛЕД';
 
-    const deliveredBtn = status === 'ДОСТАВЕНО'
-      ? ''
-      : `<button class="btn btn-done" data-id="${o.id}">ДОСТАВЕНО</button>`;
+    // Показвай бутона „ДОСТАВЕНО“ само ако не е вече доставено
+    const deliveredBtn = status === 'ДОСТАВЕНО' ? '' :
+      `<button class="btn btn-done" data-id="${o.id}">ДОСТАВЕНО</button>`;
 
     return `
-    <div class="card ${o._new ? 'new':''}" data-id="${o.id}">
+    <div class="card" data-id="${o.id}">
       <button class="close" title="Изтрий" data-id="${o.id}" aria-label="Изтрий">×</button>
       <div class="row">
         <span class="badge">#${o.id.slice(0,6)}</span>
@@ -226,7 +190,6 @@ function render(){
   }).join('');
 
   bindButtons();
-  orders = orders.map(o => ({...o, _new:false}));
 }
 
 function escapeHTML(s){
@@ -237,35 +200,46 @@ function escapeHTML(s){
 
 /* ===== 5) Действия ===== */
 function bindButtons(){
-  grid.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ПРЕГЛЕД')));
-  grid.querySelectorAll('.btn-cook').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ПРИГОТВЯ СЕ')));
-  grid.querySelectorAll('.btn-deliver').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ДОСТАВЯ СЕ')));
-  grid.querySelectorAll('.btn-done').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ДОСТАВЕНО')));
+  grid.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click', ()=> changeStatusAndRerender(b.dataset.id,'ПРЕГЛЕД')));
+  grid.querySelectorAll('.btn-cook').forEach(b=>b.addEventListener('click', ()=> changeStatusAndRerender(b.dataset.id,'ПРИГОТВЯ СЕ')));
+  grid.querySelectorAll('.btn-deliver').forEach(b=>b.addEventListener('click', ()=> changeStatusAndRerender(b.dataset.id,'ДОСТАВЯ СЕ')));
+  grid.querySelectorAll('.btn-done').forEach(b=>b.addEventListener('click', ()=> changeStatusAndRerender(b.dataset.id,'ДОСТАВЕНО')));
   grid.querySelectorAll('.close').forEach(b=>b.addEventListener('click', ()=> deleteOrder(b.dataset.id)));
 }
 
-async function setStatus(id, status){
+async function changeStatusAndRerender(id, status){
   try{
     const ref = doc(db, 'orders', id);
     await updateDoc(ref, { status });
-    // оптимистичен ъпдейт
-    const el = grid.querySelector(`.card[data-id="${id}"] .status`);
-    if (el){ el.textContent = status; el.setAttribute('data-s', status); }
+
+    // ако сменяме на ДОСТАВЕНО и текущият филтър не е ДОСТАВЕНО → скрий картата веднага
+    if(status === 'ДОСТАВЕНО' && selStatus.value !== 'ДОСТАВЕНО'){
+      const card = grid.querySelector(`.card[data-id="${id}"]`);
+      if (card) card.remove();
+      // актуализирай броя и оборота веднага
+      const o = orders.find(x=>x.id===id);
+      if (o){ o.status = 'ДОСТАВЕНО'; }
+      render();
+      return;
+    }
+
+    // иначе просто презарисувай
+    const o = orders.find(x=>x.id===id);
+    if (o){ o.status = status; }
+    render();
   }catch(err){
     console.error(err);
-    alert('Неуспешна промяна на статуса. Проверете връзката.');
+    alert('Неуспешна промяна на статуса.');
   }
 }
 
 async function deleteOrder(id){
   try{
-    // намери текущата поръчка по id
     const o = orders.find(x => x.id === id);
-    if (!o){ return; }
+    if (!o) return;
 
-    // ако е ДОСТАВЕНО — искай парола
-    if ((o.status || '') === 'ДОСТАВЕНО'){
-      const pwd = prompt('Въведи парола за изтриване на ДОСТАВЕНА поръчка:');
+    if ((o.status||'') === 'ДОСТАВЕНО'){
+      const pwd = prompt('Парола за изтриване на ДОСТАВЕНА поръчка:');
       if (pwd !== 'mikatathebest!'){
         alert('❌ Грешна парола. Поръчката не е изтрита.');
         return;
@@ -276,13 +250,11 @@ async function deleteOrder(id){
     }
 
     await deleteDoc(doc(db, 'orders', id));
-
-    // визуално премахване (snapshot така или иначе ще опресни)
     const card = grid.querySelector(`.card[data-id="${id}"]`);
     if(card) card.remove();
   }catch(err){
     console.error(err);
-    alert('❌ Грешка при изтриване на поръчката.');
+    alert('❌ Грешка при изтриване.');
   }
 }
 </script>
