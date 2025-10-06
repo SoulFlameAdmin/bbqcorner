@@ -1,22 +1,32 @@
 @echo off
-setlocal
-set REPO=E:\BBQ_SITE
-set BRANCH=main
-set HOOK_URL=https://api.vercel.com/v1/integrations/deploy/prj_nhuHgdGOTehZGMuabcMVzTPtvcJX/Ymb7x0wu0E
-set SITE=https://bbqcorner.vercel.app/
+setlocal enabledelayedexpansion
 
-cd /d "%REPO%" || (echo ❌ Repo path not found & pause & exit /b 1)
+set "REPO=E:\BBQ_SITE"
+set "BRANCH=main"
+set "HOOK_URL=https://api.vercel.com/v1/integrations/deploy/prj_nhuHgdGOTehZGMuabcMVzTPtvcJX/Ymb7x0wu0E"
+set "SITE=https://bbqcorner.vercel.app/"
+
+cd /d "%REPO%" || (echo [X] Repo path not found & pause & exit /b 1)
 set GIT_PAGER=cat
 
+REM --- Git add/commit/pull/push ---
 git add -A
-git commit -m "Auto update %date% %time%" || echo ℹ️ No changes to commit
-git pull --rebase origin %BRANCH%
-git push origin %BRANCH% || (echo ❌ Git push failed & pause & exit /b 1)
+git commit -m "Auto update %date% %time%" || echo [i] No changes to commit
+git pull --rebase origin "%BRANCH%"
+git push origin "%BRANCH%" || (echo [X] Git push failed & pause & exit /b 1)
 
-echo 🚀 Trigger Vercel deploy...
+REM --- Trigger Vercel Deploy Hook (1 retry) ---
+echo [>] Trigger Vercel deploy...
 for /f %%C in ('curl -s -o NUL -w "%%{http_code}" -X POST "%HOOK_URL%"') do set CODE=%%C
-echo HTTP %CODE%
-if not "%CODE%"=="200" echo ⚠️ Deploy hook did not return 200 (got %CODE%).
+echo [i] Hook HTTP: !CODE!
+if not "!CODE!"=="200" (
+  echo [!] Retrying deploy hook in 3s...
+  timeout /t 3 >nul
+  for /f %%C in ('curl -s -o NUL -w "%%{http_code}" -X POST "%HOOK_URL%"') do set CODE=%%C
+  echo [i] Hook HTTP: !CODE!
+)
 
-start %SITE%
+REM --- Open site with cache-buster ---
+start "" "%SITE%?v=%RANDOM%"
+
 pause
