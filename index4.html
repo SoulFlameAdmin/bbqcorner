@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Corner BBQ — Админ</title>
 <style>
-:root{
-  --bg:#0e0f10; --soft:#ffffff1a; --accent:#ff7a00; --text:#fff;
-}
+:root{ --bg:#0e0f10; --soft:#ffffff1a; --accent:#ff7a00; --text:#fff; }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 .wrap{max-width:1200px;margin:0 auto;padding:18px}
@@ -45,12 +43,18 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .addr{margin-top:6px;font-size:14px;opacity:.95}
 .btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .btn{
-  background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;font-weight:800;
-  cursor:pointer
+  background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer
 }
 .btn:hover{border-color:#ffffff33}
 .muted{opacity:.7}
 .empty{padding:20px;text-align:center;border:1px dashed var(--soft);border-radius:12px}
+
+/* ❌ X бутон горе вдясно на картата */
+.close{
+  position:absolute;top:8px;right:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:999px;background:#3a1515;border:1px solid #8a1f1f;color:#fff;font-weight:900;line-height:1;cursor:pointer
+}
+.close:hover{background:#4a1919;border-color:#b32626}
 </style>
 </head>
 <body>
@@ -77,15 +81,13 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 </div>
 
 <script type="module">
-/* ===== 0) Лека защита: изисквай админ флаг от index.html ===== */
+/* ===== 0) Лека защита ===== */
 (function enforceAdmin(){
   try{
     const ok = sessionStorage.getItem('bbq_is_admin') === '1';
     if(!ok){
-      // ако нямаме флаг – върни към логина/началото
       const target = (location.protocol === 'file:') ? 'file:///E:/BBQ_SITE/index.html' : 'index.html';
-      // можеш да закоментираш следния ред, ако тестваш без логин:
-      // window.location.href = target;
+      // window.location.href = target; // включи ако искаш твърд редирект
     }
   }catch(_){}
 })();
@@ -111,7 +113,7 @@ const searchBox = document.getElementById('searchBox');
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
 import {
   getFirestore, collection, query, orderBy, onSnapshot,
-  doc, updateDoc
+  doc, updateDoc, deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -128,16 +130,14 @@ const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
 /* ===== 3) Реално време: поръчки ===== */
-let orders = []; // пълен списък от Firestore
+let orders = [];
 const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
 
 onSnapshot(q, (snap)=>{
-  // merge-наме локално с флаг "new" за добавени
   const next = [];
   const seenIds = new Set(orders.map(o=>o.id));
   snap.docChanges().forEach(ch=>{
     if (ch.type === 'added' && !seenIds.has(ch.doc.id)){
-      // маркирай „new“ само при първото влизане/пристигнали нови
       next.push({ id: ch.doc.id, ...ch.doc.data(), _new: true });
     }
   });
@@ -155,31 +155,27 @@ selStatus.addEventListener('change', render);
 searchBox.addEventListener('input', render);
 
 function render(){
-  // филтър
   const fStatus = selStatus.value;
-  const query = (searchBox.value || '').trim().toLowerCase();
+  const queryTxt = (searchBox.value || '').trim().toLowerCase();
 
   let filtered = orders.slice();
   if (fStatus !== 'ALL'){
     filtered = filtered.filter(o => (o.status||'') === fStatus);
   }
-  if (query){
+  if (queryTxt){
     filtered = filtered.filter(o=>{
       const c = o.customer || {};
       const hay = [c.names, c.phone, c.address].join(' ').toLowerCase();
-      return hay.includes(query);
+      return hay.includes(queryTxt);
     });
   }
 
-  // агрегати
   countE.textContent = String(filtered.length);
   const totalSum = filtered.reduce((s,o)=> s + (Number(o.total)||0), 0);
   sumE.textContent = lv(totalSum);
 
-  // празно състояние
   emptyE.style.display = filtered.length ? 'none' : 'block';
 
-  // DOM
   grid.innerHTML = filtered.map(o=>{
     const when = fmtWhen(o.createdAt);
     const items = Array.isArray(o.items) ? o.items : [];
@@ -187,6 +183,7 @@ function render(){
 
     return `
     <div class="card ${o._new ? 'new':''}" data-id="${o.id}">
+      <button class="close" title="Изтрий" data-id="${o.id}" aria-label="Изтрий">×</button>
       <div class="row">
         <span class="badge">#${o.id.slice(0,6)}</span>
         <span class="small muted">${when}</span>
@@ -207,7 +204,6 @@ function render(){
   }).join('');
 
   bindButtons();
-  // след първото рисуване премахни „new“ за да не свети постоянно
   orders = orders.map(o => ({...o, _new:false}));
 }
 
@@ -217,23 +213,36 @@ function escapeHTML(s){
   }[ch]));
 }
 
-/* ===== 5) Обновяване на статус ===== */
+/* ===== 5) Действия ===== */
 function bindButtons(){
   grid.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ПРЕГЛЕД')));
   grid.querySelectorAll('.btn-cook').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ПРИГОТВЯ СЕ')));
   grid.querySelectorAll('.btn-deliver').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.id,'ДОСТАВЯ СЕ')));
+  grid.querySelectorAll('.close').forEach(b=>b.addEventListener('click', ()=> deleteOrder(b.dataset.id)));
 }
 
 async function setStatus(id, status){
   try{
     const ref = doc(db, 'orders', id);
     await updateDoc(ref, { status });
-    // оптимистичен ъпдейт на DOM
     const el = grid.querySelector(`.card[data-id="${id}"] .status`);
     if (el){ el.textContent = status; el.setAttribute('data-s', status); }
   }catch(err){
     console.error(err);
     alert('Неуспешна промяна на статуса. Проверете връзката.');
+  }
+}
+
+async function deleteOrder(id){
+  if (!confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?')) return;
+  try{
+    await deleteDoc(doc(db, 'orders', id));
+    // визуално премахване незабавно (onSnapshot така или иначе ще опресни)
+    const card = grid.querySelector(`.card[data-id="${id}"]`);
+    if(card) card.remove();
+  }catch(err){
+    console.error(err);
+    alert('❌ Грешка при изтриване на поръчката.');
   }
 }
 </script>
