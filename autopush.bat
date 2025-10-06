@@ -27,6 +27,6 @@ if not "!CODE!"=="200" (
 )
 
 REM --- Open site with cache-buster ---
-start "" "%SITE%?v=%RANDOM%"
+start "" "%SITE%"
 
 pause
