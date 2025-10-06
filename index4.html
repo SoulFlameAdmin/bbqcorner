@@ -130,11 +130,14 @@ function render(){
     .reduce((s,o)=> s + (Number(o.total)||0), 0);
   deliveredSumE.textContent = lv(deliveredSum);
 
-  // филтър и логика: "Всички" показва без доставени
+  // логика на филтрите:
+  // "ALL" => всичко БЕЗ доставените
+  // "ДОСТАВЕНО" => само доставени
   let filtered = orders.filter(o=>{
-    if(fStatus === 'ALL') return (o.status||'') !== 'ДОСТАВЕНО';
-    if(fStatus === 'ДОСТАВЕНО') return (o.status||'') === 'ДОСТАВЕНО';
-    return (o.status||'') === fStatus;
+    const s = (o.status||'');
+    if (fStatus === 'ALL') return s !== 'ДОСТАВЕНО';
+    if (fStatus === 'ДОСТАВЕНО') return s === 'ДОСТАВЕНО';
+    return s === fStatus;
   });
 
   // търсене
@@ -153,8 +156,12 @@ function render(){
     const items = Array.isArray(o.items) ? o.items : [];
     const status = o.status || 'ПРЕГЛЕД';
 
-    const doneBtn = status === 'ДОСТАВЕНО' ? '' :
-      `<button class="btn btn-done" data-id="${o.id}">ДОСТАВЕНО</button>`;
+    // Няма бутони за статус при ДОСТАВЕНО (необратимо)
+    const statusBtns = status === 'ДОСТАВЕНО' ? '' : `
+      <button class="btn btn-prev" data-id="${o.id}">ПРЕГЛЕД</button>
+      <button class="btn btn-cook" data-id="${o.id}">ПРИГОТВЯ СЕ</button>
+      <button class="btn btn-deliver" data-id="${o.id}">ДОСТАВЯ СЕ</button>
+      <button class="btn btn-done" data-id="${o.id}">ДОСТАВЕНО</button>`;
 
     return `
     <div class="card" data-id="${o.id}">
@@ -170,12 +177,7 @@ function render(){
         ${items.map(it=>`<div class="item"><span>${escapeHTML(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>`).join('')}
       </div>
       <div class="total">Общо: ${lv(Number(o.total)||0)}</div>
-      <div class="btns">
-        <button class="btn btn-prev" data-id="${o.id}">ПРЕГЛЕД</button>
-        <button class="btn btn-cook" data-id="${o.id}">ПРИГОТВЯ СЕ</button>
-        <button class="btn btn-deliver" data-id="${o.id}">ДОСТАВЯ СЕ</button>
-        ${doneBtn}
-      </div>
+      <div class="btns">${statusBtns}</div>
     </div>`;
   }).join('');
 
@@ -190,19 +192,37 @@ function escapeHTML(s){
 
 /* ===== Действия ===== */
 function bindButtons(){
-  grid.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click', ()=> changeStatus(b.dataset.id,'ПРЕГЛЕД')));
-  grid.querySelectorAll('.btn-cook').forEach(b=>b.addEventListener('click', ()=> changeStatus(b.dataset.id,'ПРИГОТВЯ СЕ')));
-  grid.querySelectorAll('.btn-deliver').forEach(b=>b.addEventListener('click', ()=> changeStatus(b.dataset.id,'ДОСТАВЯ СЕ')));
-  grid.querySelectorAll('.btn-done').forEach(b=>b.addEventListener('click', ()=> changeStatus(b.dataset.id,'ДОСТАВЕНО')));
-  grid.querySelectorAll('.close').forEach(b=>b.addEventListener('click', ()=> deleteOrder(b.dataset.id)));
+  grid.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ПРЕГЛЕД')));
+  grid.querySelectorAll('.btn-cook').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ПРИГОТВЯ СЕ')));
+  grid.querySelectorAll('.btn-deliver').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ДОСТАВЯ СЕ')));
+  grid.querySelectorAll('.btn-done').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ДОСТАВЕНО')));
+  grid.querySelectorAll('.close').forEach(b=>b.addEventListener('click', ()=> deleteOrder(idOf(b))));
 }
+const idOf = (btn) => btn.dataset.id;
 
-async function changeStatus(id, status){
+async function changeStatus(id, targetStatus){
   try{
-    await updateDoc(doc(db,'orders',id), { status });
     const o = orders.find(x=>x.id===id);
-    if(o) o.status = status;
-    render(); // автоматично скрива доставените от "Всички"
+    if (!o) return;
+
+    // ❗ НЕОБРАТИМО: ако е ДОСТАВЕНО — блокирай всякаква промяна
+    if ((o.status||'') === 'ДОСТАВЕНО'){
+      alert('Тази поръчка вече е ДОСТАВЕНО и не може да се променя.');
+      return;
+    }
+
+    await updateDoc(doc(db,'orders',id), { status: targetStatus });
+
+    // локално обнови
+    o.status = targetStatus;
+
+    // ако току-що стана ДОСТАВЕНО и не сме във филтър „ДОСТАВЕНО“ → махни картата веднага
+    if (targetStatus === 'ДОСТАВЕНО' && selStatus.value !== 'ДОСТАВЕНО'){
+      const card = grid.querySelector(`.card[data-id="${id}"]`);
+      if (card) card.remove();
+    }
+
+    render(); // ще скрие/покаже според филтъра
   }catch(err){
     console.error(err);
     alert('Неуспешна промяна.');
@@ -215,7 +235,7 @@ async function deleteOrder(id){
     if (!o) return;
 
     if ((o.status||'') === 'ДОСТАВЕНО'){
-      const pwd = prompt('Парола за изтриване:');
+      const pwd = prompt('Парола за изтриване на ДОСТАВЕНА поръчка:');
       if (pwd !== 'mikatathebest!'){ alert('❌ Грешна парола.'); return; }
     } else if (!confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?')) return;
 
