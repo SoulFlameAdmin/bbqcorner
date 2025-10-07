@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Corner BBQ — Hub (index5)</title>
+<meta name="theme-color" content="#ff7a00" />
+
+<style>
+  :root{
+    --bg:#0e0f10; --card:#15171a; --soft:#ffffff14; --text:#eaeaea;
+    --muted:#a7a7a7; --accent:#ff7a00; --radius:18px; --gap:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--text); background:linear-gradient(120deg,#0b0c0d,#111317 55%,#0b0c0e);
+  }
+
+  .wrap{max-width:1100px; margin:0 auto; padding:24px}
+  .top{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px;
+  }
+  .brand{display:flex; align-items:center; gap:12px}
+  .brand img{width:40px; height:40px; border-radius:10px; object-fit:cover}
+  .brand h1{font-size:20px; margin:0}
+  .hint{color:var(--muted); font-size:13px}
+
+  /* responsive grid */
+  .grid{
+    display:grid; gap:var(--gap);
+    grid-template-columns: repeat(4, minmax(0,1fr));
+  }
+  @media (max-width:1200px){ .grid{grid-template-columns: repeat(3, minmax(0,1fr));} }
+  @media (max-width:820px){  .grid{grid-template-columns: repeat(2, minmax(0,1fr));} }
+  @media (max-width:520px){  .grid{grid-template-columns: 1fr;} }
+
+  .card{
+    position:relative; background:var(--card); border:1px solid var(--soft);
+    border-radius:var(--radius); padding:16px; box-shadow:0 8px 24px #00000055;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    min-height:132px; display:flex; flex-direction:column; gap:8px;
+  }
+  .card:hover{ transform:translateY(-2px); border-color:#ffffff2a; box-shadow:0 16px 36px #00000066; }
+  .card .kicker{ position:absolute; top:10px; right:12px; color:#ffffffaa; font-size:12px }
+  .title{ font-weight:700; font-size:16px; padding-right:58px }
+  .desc{ color:var(--muted); font-size:13px; line-height:1.35 }
+  .actions{ margin-top:auto; display:flex; gap:10px; flex-wrap:wrap }
+  .btn{
+    appearance:none; border:1px solid var(--soft); background:#ffffff10; color:#fff;
+    padding:9px 12px; border-radius:12px; font-size:14px; cursor:pointer;
+    text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn.primary{ background:var(--accent); border-color:transparent; font-weight:700 }
+  .btn:active{ transform:translateY(1px) }
+
+  /* viewer */
+  .viewer{
+    margin-top:22px; background:#0b0c0e; border:1px solid var(--soft);
+    border-radius:var(--radius); overflow:hidden;
+  }
+  .viewer .bar{
+    display:flex; align-items:center; justify-content:space-between; padding:10px 12px;
+    background:#101214; border-bottom:1px solid var(--soft);
+  }
+  .viewer .bar .url{ color:#b9b9b9; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px }
+  iframe{ width:100%; height:70vh; border:0; display:block; background:#fff }
+  @media (max-width:600px){ iframe{ height:78vh } }
+
+  .pill{
+    display:inline-flex; gap:8px; align-items:center; font-size:12px; padding:6px 10px;
+    border-radius:999px; border:1px solid var(--soft); color:#ddd; background:#ffffff08;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <img src="./bbqsaitlogo.jpg" alt="Corner BBQ" onerror="this.style.display='none'">
+        <h1>Corner BBQ — Централен хъб</h1>
+      </div>
+      <div class="hint">
+        <span class="pill" id="devInfo">Устройство: …</span>
+      </div>
+    </div>
+
+    <p class="hint">Тук събираме всички версии (<b>index.html</b>, <b>index2.html</b>, <b>index3.html</b>, <b>index4.html</b>)
+      и ги показваме адаптивно. Кликни „Отвори“ за директно зареждане, или „Преглед“ за вгледан изглед.</p>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="viewer" id="viewer" hidden>
+      <div class="bar">
+        <div class="url" id="viewerUrl">about:blank</div>
+        <div class="actions">
+          <a class="btn" id="openNew" target="_blank" rel="noopener">Отвори в нов таб</a>
+          <button class="btn" id="closeViewer">Затвори преглед</button>
+        </div>
+      </div>
+      <iframe id="frame" title="Preview"></iframe>
+    </div>
+  </div>
+
+<script>
+/* ---- конфигурация на страниците (можеш да редактираш заглавия/описания) ---- */
+const PAGES = [
+  {file:'index.html',  title:'Index (основна)', desc:'Главна версия / прототип.'},
+  {file:'index2.html', title:'Index 2', desc:'Категории/меню – алтернативен layout.'},
+  {file:'index3.html', title:'Index 3', desc:'Количка/checkout (mobile friendly).'},
+  {file:'index4.html', title:'Index 4', desc:'Админ/експерименти/тестови изглед.'}
+];
+
+/* ---- помощни: устройство, видим размер, наличие на файл ---- */
+const isMobile = () => Math.max(screen.width, window.innerWidth) <= 640;
+const devInfo = document.getElementById('devInfo');
+devInfo.textContent = `Устройство: ${isMobile() ? 'Мобилен' : 'Десктоп/Таблет'} • ${window.innerWidth}×${window.innerHeight}`;
+
+async function exists(path){
+  try{
+    const r = await fetch(path, {method:'HEAD', cache:'no-store'});
+    return r.ok;
+  }catch{ return false; }
+}
+
+/* ---- рендер на картите ---- */
+async function render(){
+  const holder = document.getElementById('grid');
+  holder.innerHTML = '';
+
+  const available = [];
+  for(const p of PAGES){
+    if(await exists(p.file)) available.push(p);
+  }
+  if(available.length === 0){
+    holder.innerHTML = `<div class="hint">Няма намерени страници (index.html/index2.html/index3.html/index4.html) в тази директория.</div>`;
+    return;
+  }
+
+  for(const p of available){
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = `
+      <div class="kicker">${p.file}</div>
+      <div class="title">${p.title}</div>
+      <div class="desc">${p.desc}</div>
+      <div class="actions">
+        <a class="btn primary" href="./${p.file}">Отвори</a>
+        <button class="btn preview" data-file="${p.file}">Преглед</button>
+      </div>
+    `;
+    holder.appendChild(el);
+  }
+
+  // event listeners за „Преглед“
+  holder.querySelectorAll('.preview').forEach(btn=>{
+    btn.addEventListener('click', ()=> openPreview(btn.dataset.file));
+  });
+
+  // автосугестия за мобилен – избери по-подходяща страница
+  // Смени към твоя предпочитана логика:
+  const preferred = isMobile()
+    ? available.find(p => p.file === 'index3.html') || available[0]
+    : available.find(p => p.file === 'index.html') || available[0];
+
+  // по желание: автоматично отваряне на преглед при мобилен (за по-бърз UX)
+  // if (isMobile() && preferred) openPreview(preferred.file);
+}
+
+function openPreview(file){
+  const viewer = document.getElementById('viewer');
+  const frame  = document.getElementById('frame');
+  const urlBar = document.getElementById('viewerUrl');
+  const openNew= document.getElementById('openNew');
+
+  frame.src = './' + file;
+  urlBar.textContent = location.origin + location.pathname.replace(/index5\.html$/,'') + file;
+  openNew.href = './' + file;
+  viewer.hidden = false;
+}
+
+document.getElementById('closeViewer').addEventListener('click', ()=>{
+  document.getElementById('viewer').hidden = true;
+  document.getElementById('frame').src = 'about:blank';
+});
+
+// стартирай
+render();
+</script>
+</body>
+</html>
