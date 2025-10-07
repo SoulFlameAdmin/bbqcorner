@@ -263,15 +263,17 @@ form.addEventListener('submit', async (e)=>{
     img: it.img || null
   }));
   const total = Number(cartTotal) || items.reduce((s,x)=>s+x.price,0);
+const orderNote = localStorage.getItem('bbq_order_note') || localStorage.getItem('bbq_orderNote') || '';
 
-  const order = {
-    items,
-    total,
-    customer: { names, phone, address },
-    status: 'ПРЕГЛЕД',           // начално състояние
-    createdAt: serverTimestamp(),
-    source: (location.protocol === 'file:' ? 'desktop-file' : 'web')
-  };
+const order = {
+  items,
+  total,
+  customer: { names, phone, address },
+  note: orderNote,              // ✅ ДОБАВЕНА БЕЛЕЖКА
+  status: 'ПРЕГЛЕД',
+  createdAt: serverTimestamp(),
+  source: (location.protocol === 'file:' ? 'desktop-file' : 'web')
+};
 
   try{
     const ref = await addDoc(collection(db, 'orders'), order);
