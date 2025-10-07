@@ -46,24 +46,6 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
   border-radius:999px;background:#3a1515;border:1px solid #8a1f1f;color:#fff;font-weight:900;line-height:1;cursor:pointer
 }
 .close:hover{background:#4a1919;border-color:#b32626}
-
-/* === Auth Overlay === */
-.auth {
-  position:fixed; inset:0; background:rgba(0,0,0,.65); display:flex; align-items:center; justify-content:center; z-index:9999;
-}
-.auth .box{
-  width:min(92vw,420px); background:#121316; border:1px solid var(--soft); border-radius:16px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,.5);
-}
-.auth h2{margin-bottom:10px; color:var(--accent)}
-.field{display:flex; flex-direction:column; gap:6px; margin-top:10px}
-.field input[type="password"],
-.field input[type="text"]{
-  background:#0f1115; border:1px solid var(--soft); color:#fff; border-radius:10px; padding:10px 12px; outline:none;
-}
-.rowc{display:flex; align-items:center; gap:8px; margin-top:8px}
-.auth .actions{display:flex; gap:10px; margin-top:14px}
-.auth .btn.primary{background:var(--accent); border-color:transparent}
-.err{color:#ff9a9a; font-size:12px; margin-top:8px; display:none}
 </style>
 </head>
 <body>
@@ -90,30 +72,14 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
   <div id="emptyState" class="empty" style="display:none">Няма поръчки.</div>
 </div>
 
-<!-- ===== AUTH OVERLAY ===== -->
-<div id="auth" class="auth" hidden>
-  <div class="box">
-    <h2>Админ достъп</h2>
-    <div class="field">
-      <label for="pwd">Парола</label>
-      <input id="pwd" type="password" placeholder="Въведи админ парола">
-    </div>
-    <div class="rowc">
-      <input id="remember" type="checkbox">
-      <label for="remember">Запомни ме на това устройство</label>
-    </div>
-    <div id="nameWrap" class="field" style="display:none">
-      <label for="adminName">Име за този админ (напр. „admin ivan“)</label>
-      <input id="adminName" type="text" placeholder="Въведи име">
-    </div>
-    <div class="actions">
-      <button id="loginBtn" class="btn primary">Вход</button>
-    </div>
-    <div id="err" class="err">❌ Грешна парола или липсва име.</div>
-  </div>
-</div>
-
 <script type="module">
+/* ========= ГАРД ЗА ДОСТЪП ========= */
+const verified = localStorage.getItem('adminVerified') === '1';
+if (!verified) {
+  alert('❌ Нямаш достъп до админ панела. Моля, влез през началната страница.');
+  window.location.href = 'index.html';
+}
+
 /* ===== Помощни ===== */
 const lv = n => (Number(n)||0).toFixed(2).replace('.',',')+' лв.';
 const fmtWhen = ts => {
@@ -146,90 +112,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* ======= AUTH + REMEMBER ME ======= */
+/* ===== Настройки за админ действия (само тук нужна парола при триене на ДОСТАВЕНО) ===== */
 const ADMIN_PASSWORD = 'mitakathebest!'; // смени при нужда
-const authEl = document.getElementById('auth');
-const pwdEl = document.getElementById('pwd');
-const rememberEl = document.getElementById('remember');
-const nameWrapEl = document.getElementById('nameWrap');
-const adminNameEl = document.getElementById('adminName');
-const loginBtn = document.getElementById('loginBtn');
-const errEl = document.getElementById('err');
-
-let CURRENT_ADMIN = null;
-
-function showAuth() {
-  authEl.hidden = false;
-  pwdEl.focus();
-}
-function hideAuth() { authEl.hidden = true; }
-
-rememberEl.addEventListener('change', () => {
-  nameWrapEl.style.display = rememberEl.checked ? 'block' : 'none';
-});
-
-loginBtn.addEventListener('click', doLogin);
-pwdEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
-adminNameEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
-
-function doLogin(){
-  const okPwd = pwdEl.value.trim() === ADMIN_PASSWORD;
-  const remember = rememberEl.checked;
-  const name = remember ? (adminNameEl.value || '').trim() : (localStorage.getItem('adminName') || '').trim();
-
-  if(!okPwd || (remember && !name)){
-    errEl.style.display = 'block';
-    return;
-  }
-  errEl.style.display = 'none';
-
-  if(remember){
-    localStorage.setItem('adminRemembered','1');
-    localStorage.setItem('adminName', name);
-  }
-  CURRENT_ADMIN = remember ? name : (localStorage.getItem('adminName')||'анонимен');
-  hideAuth();
-  logAction(`се логна`);
-}
-
-/* === Форсиране на логин екрана при #forceAuth или ?auth=1 === */
-(function bootstrapAuth(){
-  const force = location.hash.includes('forceAuth') ||
-                new URLSearchParams(location.search).has('auth');
-
-  const remembered = localStorage.getItem('adminRemembered') === '1';
-  const savedName = (localStorage.getItem('adminName') || '').trim();
-
-  if (force) {
-    // винаги показвай overlay, независимо, че е запомнен
-    authEl.hidden = false;
-    pwdEl.focus();
-    return;
-  }
-
-  if(remembered && savedName){
-    CURRENT_ADMIN = savedName;
-    authEl.hidden = true;
-    logAction(`отвори админ панела`);
-  }else{
-    showAuth();
-  }
-})();
-
-/* ===== Логване на действия (localStorage per admin) ===== */
-function logAction(text){
-  const who = CURRENT_ADMIN || (localStorage.getItem('adminName') || 'анонимен');
-  const k = `logs_${who}`;
-  const now = new Date();
-  const entry = `${now.toLocaleString()} — ${who} ${text}`;
-  const arr = JSON.parse(localStorage.getItem(k) || '[]');
-  arr.unshift(entry);
-  localStorage.setItem(k, JSON.stringify(arr));
-
-  const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
-  known.add(who);
-  localStorage.setItem('logs__admins', JSON.stringify([...known]));
-}
 
 /* ===== Реално време ===== */
 let orders = [];
@@ -336,10 +220,9 @@ async function changeStatus(id, targetStatus){
 
     await updateDoc(doc(db,'orders',id), { status: targetStatus });
 
-    logAction(`смени статус на поръчка #${id.slice(0,6)} → „${targetStatus}“`);
-
     o.status = targetStatus;
 
+    // Ако е ДОСТАВЕНО и филтърът не е "ДОСТАВЕНО" — махни картата
     if (targetStatus === 'ДОСТАВЕНО' && selStatus.value !== 'ДОСТАВЕНО'){
       const card = grid.querySelector(`.card[data-id="${id}"]`);
       if (card) card.remove();
@@ -367,8 +250,6 @@ async function deleteOrder(id){
     await deleteDoc(doc(db,'orders',id));
     const card = grid.querySelector(`.card[data-id="${id}"]`);
     if(card) card.remove();
-
-    logAction(`изтри поръчка #${id.slice(0,6)}`);
   }catch(err){
     console.error(err);
     alert('Грешка при изтриване.');

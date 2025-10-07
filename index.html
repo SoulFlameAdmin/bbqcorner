@@ -4,12 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Corner BBQ — Menu</title>
-
-<!-- 🌶️ Logo / Favicon -->
 <link rel="icon" type="image/png" href="/bbqsaitlogo.jpg">
 <link rel="apple-touch-icon" href="/bbqsaitlogo.jpg">
-
-<!-- 🌍 SEO / Google -->
 <meta name="theme-color" content="#ff7a00">
 <meta property="og:title" content="Corner BBQ — Храна с вкус на огън 🔥">
 <meta property="og:description" content="Поръчай вкусна храна онлайн от Corner BBQ — бургери, палачинки, странджанки и още!">
@@ -21,340 +17,120 @@
 <meta name="twitter:title" content="Corner BBQ — Онлайн поръчки">
 <meta name="twitter:description" content="Corner BBQ — вкусът на истинския грил.">
 <meta name="format-detection" content="telephone=no" />
-
-<!-- 🔍 Structured Data for Google -->
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "Corner BBQ",
-  "url": "https://bbqcorner.vercel.app",
-  "logo": "https://bbqcorner.vercel.app/bbqsaitlogo.jpg"
-}
+{"@context":"https://schema.org","@type":"Organization","name":"Corner BBQ","url":"https://bbqcorner.vercel.app","logo":"https://bbqcorner.vercel.app/bbqsaitlogo.jpg"}
 </script>
 
 <style>
-:root{
-  --gap:22px;
-  --cardRadius:18px;
-  --shadow:0 12px 36px rgba(0,0,0,.18);
-  --softBorder:#00000012;
-  --popShadow:0 22px 60px rgba(0,0,0,.28);
-}
+:root{ --gap:22px; --cardRadius:18px; --shadow:0 12px 36px rgba(0,0,0,.18); --softBorder:#00000012; --popShadow:0 22px 60px rgba(0,0,0,.28) }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
 html,body{height:100%}
-body{
-  margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#111;background:#fff;
-  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#111;background:#fff;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 img,picture,video,canvas,svg{max-width:100%;height:auto;display:block}
 a,button{touch-action:manipulation}
-
 .wrap{min-height:100dvh;display:flex;flex-direction:column}
 
-/* ===== HERO (КОРИЦА) ===== */
-.hero{
-  position:relative;
-  height:72vh;
-  padding:28px 60px;
-  background:url("snimki/korica/korica.jpg") center/cover no-repeat;
-  overflow:hidden;
-  filter:contrast(1.25) saturate(1.25) brightness(1.10);
-  animation: zoomOut 3s ease-out forwards;
-}
-.hero::before{
-  content:""; position:absolute; inset:0;
-  backdrop-filter:blur(4px);
-  background:linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.55) 80%, transparent);
-}
-.hero-inner{ position:relative; z-index:1; max-width:1250px; margin:0 auto; }
-
-/* 🔑 Keyframes за zoom-out */
-@keyframes zoomOut { from { background-size:110% } to { background-size:100% } }
-
-/* ===== Лого ===== */
-.logo-card{
-  position:relative;width:128px;height:128px;border-radius:20px;
-  background:linear-gradient(180deg,#ffffff,#fafafa);
-  box-shadow:0 26px 44px rgba(0,0,0,.28),0 10px 22px rgba(0,0,0,.18),inset 0 1px 0 #ffffffcc;
-  display:grid;place-items:center;margin:18px 0 12px 8px;border:1px solid var(--softBorder);
-  animation: floatY 6s ease-in-out infinite; will-change:transform;
-}
+/* ===== HERO ===== */
+.hero{position:relative;height:72vh;padding:28px 60px;background:url("snimki/korica/korica.jpg") center/cover no-repeat;overflow:hidden;
+  filter:contrast(1.25) saturate(1.25) brightness(1.10);animation:zoomOut 3s ease-out forwards}
+.hero::before{content:"";position:absolute;inset:0;backdrop-filter:blur(4px);
+  background:linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.55) 80%, transparent)}
+.hero-inner{position:relative;z-index:1;max-width:1250px;margin:0 auto}
+@keyframes zoomOut{from{background-size:110%}to{background-size:100%}}
+.logo-card{position:relative;width:128px;height:128px;border-radius:20px;background:linear-gradient(180deg,#fff,#fafafa);
+  box-shadow:0 26px 44px rgba(0,0,0,.28),0 10px 22px rgba(0,0,0,.18),inset 0 1px 0 #ffffffcc;display:grid;place-items:center;margin:18px 0 12px 8px;border:1px solid var(--softBorder);
+  animation:floatY 6s ease-in-out infinite;will-change:transform}
 .logo-card img{max-width:82%;max-height:82%;object-fit:contain}
-.logo-card::before{
-  content:""; position:absolute; left:50%; bottom:-16px; width:76%; height:20px; transform:translateX(-50%);
-  background:radial-gradient(ellipse at center, rgba(0,0,0,.40) 0%, rgba(0,0,0,0) 65%);
-  filter: blur(9px); opacity:.46; pointer-events:none; z-index:-1; animation: shadowPulse 6s ease-in-out infinite;
-}
-
-/* Телефон */
-.phone-banner{
-  position:absolute; left:50%; transform:translateX(-50%); top:18px; z-index:3;
-  font-weight:900; letter-spacing:.8px; text-transform:uppercase;
-  font-size:48px; line-height:1.05; margin:0; color:#fff;
-  text-shadow:0 4px 10px rgba(0,0,0,.9), 0 2px 1px rgba(255,255,255,.12);
-}
-
-/* Анимации */
-@keyframes floatY{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-@keyframes shadowPulse{ 0%,100%{transform:scale(1);opacity:.46} 50%{transform:scale(.9);opacity:.36} }
-
-/* ===== TAB ===== */
+.logo-card::before{content:"";position:absolute;left:50%;bottom:-16px;width:76%;height:20px;transform:translateX(-50%);
+  background:radial-gradient(ellipse at center, rgba(0,0,0,.40) 0%, rgba(0,0,0,0) 65%);filter:blur(9px);opacity:.46;pointer-events:none;z-index:-1;animation:shadowPulse 6s ease-in-out infinite}
+.phone-banner{position:absolute;left:50%;transform:translateX(-50%);top:18px;z-index:3;font-weight:900;letter-spacing:.8px;text-transform:uppercase;
+  font-size:48px;line-height:1.05;margin:0;color:#fff;text-shadow:0 4px 10px rgba(0,0,0,.9),0 2px 1px rgba(255,255,255,.12)}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}} @keyframes shadowPulse{0%,100%{transform:scale(1);opacity:.46}50%{transform:scale(.9);opacity:.36}}
 .tab-wrap{display:flex;justify-content:center;margin-top:-28px;position:relative;z-index:2}
-.tab-title{
-  background:#fff;border-radius:16px;padding:10px 22px;font-weight:800;letter-spacing:.6px;color:#ff7a00;
-  border:1px solid var(--softBorder);box-shadow:var(--shadow)
-}
+.tab-title{background:#fff;border-radius:16px;padding:10px 22px;font-weight:800;letter-spacing:.6px;color:#ff7a00;border:1px solid var(--softBorder);box-shadow:var(--shadow)}
 
-/* ===== GRID КАРТИ ===== */
+/* ===== GRID ===== */
 .stage{background:#fff}
-.grid{
-  max-width:1250px;margin:12px auto 36px;padding:0 16px;
-  display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap);
-}
+.grid{max-width:1250px;margin:12px auto 36px;padding:0 16px;display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap)}
 @media (max-width:1100px){ .grid{grid-template-columns:repeat(8,1fr)} }
 @media (max-width:700px){ .grid{grid-template-columns:repeat(4,1fr); --gap:16px} }
-
-.card{
-  position:relative;border-radius:var(--cardRadius);
-  background:#fff;border:1px solid var(--softBorder);
-  box-shadow:0 2px 0 #ffffff, var(--shadow);
-  overflow:hidden;height:240px;display:flex;align-items:flex-end; text-decoration:none;
-  transform-style:preserve-3d; will-change:transform, box-shadow;
-  transition:transform .28s cubic-bezier(.22,.8,.36,1), box-shadow .28s ease, filter .28s ease;
-}
-.card .img{
-  position:absolute;inset:10px;border-radius:14px;
-  background:#e9ecef;background-size:cover;background-position:center;
-  transform:translateZ(0);
-}
-.card::after{
-  content:"";position:absolute;inset:10px;border-radius:14px;
-  background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%);
-  pointer-events:none;
-}
-.card span{
-  position:relative;z-index:1;margin:0 0 18px 22px;
-  font-size:28px;font-weight:900;color:#fff;letter-spacing:.6px;
-  text-shadow:0 2px 6px rgba(0,0,0,.9);
-}
+.card{position:relative;border-radius:var(--cardRadius);background:#fff;border:1px solid var(--softBorder);
+  box-shadow:0 2px 0 #ffffff, var(--shadow);overflow:hidden;height:240px;display:flex;align-items:flex-end;text-decoration:none;
+  transform-style:preserve-3d;transition:transform .28s cubic-bezier(.22,.8,.36,1), box-shadow .28s ease, filter .28s ease}
+.card .img{position:absolute;inset:10px;border-radius:14px;background:#e9ecef;background-size:cover;background-position:center}
+.card::after{content:"";position:absolute;inset:10px;border-radius:14px;background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%);pointer-events:none}
+.card span{position:relative;z-index:1;margin:0 0 18px 22px;font-size:28px;font-weight:900;color:#fff;letter-spacing:.6px;text-shadow:0 2px 6px rgba(0,0,0,.9)}
 .w-4{grid-column:span 4}.w-6{grid-column:span 6}
-
-/* Hover 3D pop (само устройства с hover) */
-@media (hover:hover){
-  .card:hover{
-    transform: perspective(800px) translateY(-6px) scale(1.035) rotateX(2deg);
-    box-shadow: var(--popShadow);
-    filter:saturate(1.04) contrast(1.02);
-  }
-}
-
-/* Press pop (универсално – и мобилен tap) */
-.card.is-pressed{
-  transform: perspective(900px) translateY(-2px) scale(0.985) rotateX(0.5deg);
-}
-.card.is-popping{
-  transform: perspective(900px) translateY(-10px) scale(1.06) rotateX(3deg);
-  box-shadow: var(--popShadow);
-}
+@media (hover:hover){ .card:hover{ transform:perspective(800px) translateY(-6px) scale(1.035) rotateX(2deg); box-shadow:var(--popShadow); filter:saturate(1.04) contrast(1.02) } }
+.card.is-pressed{ transform:perspective(900px) translateY(-2px) scale(0.985) rotateX(0.5deg) }
+.card.is-popping{ transform:perspective(900px) translateY(-10px) scale(1.06) rotateX(3deg); box-shadow:var(--popShadow) }
 
 /* ===== FOOTER ===== */
 .footer{border-top:1px solid var(--softBorder);background:#fafafa;padding:26px 0 36px}
 .footer-inner{max-width:1250px;margin:0 auto;padding:0 16px;display:grid;gap:28px;grid-template-columns:1.3fr 1fr 1fr}
-.ft h4{margin:0 0 10px;font-size:18px}
-.ft p,.ft a{color:#333;margin:6px 0;text-decoration:none}
+.ft h4{margin:0 0 10px;font-size:18px}.ft p,.ft a{color:#333;margin:6px 0;text-decoration:none}
 .power{text-align:center;color:#ff8a00;margin-top:16px}
+.to-top{position:fixed;right:22px;bottom:22px;width:46px;height:46px;border-radius:999px;background:#111;color:#fff;border:1px solid #ffffff22;display:grid;place-items:center;font-size:20px;cursor:pointer;box-shadow:var(--shadow)}
+@media (prefers-reduced-motion: reduce){ .hero{animation:none} .card{transition:none} }
 
-/* Scroll to top */
-.to-top{
-  position:fixed;right:22px;bottom:22px;width:46px;height:46px;
-  border-radius:999px;background:#111;color:#fff;border:1px solid #ffffff22;
-  display:grid;place-items:center;font-size:20px;cursor:pointer;box-shadow:var(--shadow)
-}
+/* ===== Admin button ===== */
+.admin-btn{position:fixed;top:16px;right:20px;z-index:1100;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:#111;color:#fff;border:1px solid #ffffff1a;font-weight:900;cursor:pointer;box-shadow:var(--shadow)}
 
-/* Accessibility / Reduced motion */
-@media (prefers-reduced-motion: reduce){
-  .hero{animation:none}
-  .card{transition:none}
-}
+/* ===== Admin PANEL overlay (iframe index4.html) ===== */
+.admin-overlay{position:fixed;inset:0;display:none;z-index:1300;background:rgba(0,0,0,.2);backdrop-filter:blur(20px)}
+.admin-overlay.show{display:block}
+.admin-panel{position:absolute;top:5vh;left:50%;transform:translateX(-50%);width:min(1200px,94vw);height:90vh;background:#0d0d0e;border-radius:18px;border:1px solid #ffffff1a;box-shadow:0 30px 80px rgba(0,0,0,.55);overflow:hidden}
+.admin-close{position:absolute;top:10px;right:12px;z-index:2;background:#111;border:1px solid #ffffff22;color:#fff;border-radius:10px;padding:6px 10px;cursor:pointer;font-weight:800}
+.admin-iframe{width:100%;height:100%;border:0;display:block;background:#111}
 
-/* ======= ADDED: Admin login button (top-right) ======= */
-.admin-btn{
-  position:fixed; top:16px; right:20px; z-index:1100;
-  display:flex; align-items:center; gap:10px;
-  padding:10px 14px; border-radius:14px;
-  background:#111; color:#fff; border:1px solid #ffffff1a;
-  font-weight:900; cursor:pointer; box-shadow:var(--shadow)
-}
+/* ===== AUTH overlay (логинът от index4.html) ===== */
+:root{ --soft:#ffffff1a; --accent:#ff7a00; --text:#fff; }
+.auth{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:9999}
+.auth.show{display:flex}
+.auth .box{width:min(92vw,420px);background:#121316;border:1px solid var(--soft);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);color:var(--text)}
+.auth h2{margin-bottom:10px;color:var(--accent)}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.field input[type="password"], .field input[type="text"]{background:#0f1115;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:10px 12px;outline:none}
+.rowc{display:flex;align-items:center;gap:8px;margin-top:8px}
+.actions{display:flex;gap:10px;margin-top:14px}
+.btn{background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
+.btn.primary{background:#ff7a00;border-color:transparent}
+.err{color:#ff9a9a;font-size:12px;margin-top:8px;display:none}
 
-/* ======= ADDED: Login modal & Admin overlay ======= */
-.modal-overlay{
-  position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:1200;
-  background:rgba(0,0,0,.2); backdrop-filter:blur(20px) saturate(120%);
-}
-.modal-overlay.show{ display:flex }
-.modal{
-  background:#0e0e0f; border:1px solid #ffffff14; border-radius:18px;
-  box-shadow:0 22px 60px rgba(0,0,0,.45); padding:22px; min-width:320px; max-width:92vw;
-}
-.modal-title{font-weight:900; color:#ff7a00; margin-bottom:12px; text-align:center}
-.login-row{display:flex; align-items:center; gap:8px}
-.pass-input{
-  flex:1; padding:12px 14px; border-radius:14px; border:1px solid #ffffff2a;
-  background:#ffffff12; color:#fff; font-size:16px; outline:none
-}
-.arrow-btn{
-  width:46px; height:46px; border-radius:12px; border:none;
-  background:#ff7a00; color:#fff; font-weight:900; font-size:20px; cursor:pointer
-}
-.login-msg{margin-top:10px; height:22px; font-weight:800; text-align:center}
-.login-msg.error{color:#ff5757}
-.login-msg.ok{color:#22cc88}
-.shake{animation:shake .35s}
-@keyframes shake{
-  10%, 90% {transform:translateX(-2px)}
-  20%, 80% {transform:translateX(4px)}
-  30%, 50%, 70% {transform:translateX(-8px)}
-  40%, 60% {transform:translateX(8px)}
-}
-
-/* Admin overlay (index4.html in iframe) */
-.admin-overlay{
-  position:fixed; inset:0; display:none; z-index:1300;
-  background:rgba(0,0,0,.2); backdrop-filter:blur(20px);
-}
-.admin-overlay.show{ display:block }
-.admin-panel{
-  position:absolute; top:5vh; left:50%; transform:translateX(-50%);
-  width:min(1200px,94vw); height:90vh; background:#0d0d0e; border-radius:18px;
-  border:1px solid #ffffff1a; box-shadow:0 30px 80px rgba(0,0,0,.55); overflow:hidden
-}
-.admin-close{
-  position:absolute; top:10px; right:12px; z-index:2;
-  background:#111; border:1px solid #ffffff22; color:#fff; border-radius:10px;
-  padding:6px 10px; cursor:pointer; font-weight:800
-}
-.admin-iframe{ width:100%; height:100%; border:0; display:block; background:#111 }
-
-/* ==== MOBILE POLISH PATCH (<= 640px) ==== */
-@media (max-width: 640px){
-
-  /* 1) Херо – по-ниско, без сиви пояси, центрирано */
-  .hero{
-    height: 48vh;
-    padding: 16px 16px 24px;
-    filter: contrast(1.15) saturate(1.1) brightness(1.06);
-    background-position: center;
-  }
-  .hero::before{
-    backdrop-filter: none;
-    background: linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,.45) 60%, rgba(0,0,0,0) 100%);
-  }
-  .hero-inner{
-    max-width: 100%;
-    display: grid;
-    place-items: center;
-    text-align: center;
-    gap: 10px;
-  }
-
-  /* 2) Лого – компактно */
-  .logo-card{
-    width: 96px; height: 96px;
-    margin: 6px auto 4px;
-    border-radius: 16px;
-    box-shadow: 0 14px 28px rgba(0,0,0,.24), inset 0 1px 0 #ffffffb0;
-  }
-  .logo-card::before{ bottom: -10px; width: 70%; height: 14px; filter: blur(7px); }
-
-  /* 3) Телефон банер – четим, без да „крещи“ */
-  .phone-banner{
-    position: static;
-    transform: none;
-    margin: 2px 0 0;
-    font-size: 22px;
-    line-height: 1.15;
-    letter-spacing: .3px;
-    text-align: center;
-    text-shadow: 0 2px 6px rgba(0,0,0,.7);
-  }
-
-  /* 4) „WEB МЕНЮ“ – по-близо до херото */
-  .tab-wrap{ margin-top: -8px; }
-  .tab-title{
-    padding: 8px 14px;
-    font-size: 13px;
-    border-radius: 14px;
-    box-shadow: 0 6px 18px rgba(0,0,0,.12);
-  }
-
-  /* 5) Картите – стегнати и четливи */
-  .grid{ padding: 0 12px; gap: 14px; }
-  .card{
-    height: 190px;
-    border-radius: 14px;
-    box-shadow: 0 2px 0 #ffffff, 0 10px 26px rgba(0,0,0,.16);
-  }
-  .card .img{ inset: 8px; border-radius: 12px; }
-  .card::after{ inset: 8px; border-radius: 12px; }
-  .card span{
-    margin: 0 0 14px 16px;
-    font-size: 18px;
-    letter-spacing: .4px;
-    text-shadow: 0 1px 3px rgba(0,0,0,.8);
-  }
-
-  /* 6) Жест при докосване – по-малък „подскок“ */
-  .card.is-popping{
-    transform: translateY(-6px) scale(1.03);
-    box-shadow: 0 18px 42px rgba(0,0,0,.28);
-  }
-
-  /* 7) Админ бутон – дискретен */
-  .admin-btn{
-    top: 10px; right: 10px;
-    padding: 8px 10px;
-    font-size: 12px;
-    border-radius: 12px;
-    background: #1a1a1a;
-  }
-
-  /* 8) Footer – една колона */
-  .footer{ padding: 18px 0 26px; }
-  .footer-inner{ grid-template-columns: 1fr; gap: 8px; padding: 0 12px; }
-  .ft h4{ font-size: 16px; margin-bottom: 6px; }
-  .ft p, .ft a{ margin: 4px 0; font-size: 14px; }
-
-  /* 9) Scroll-to-top */
-  .to-top{ right: 14px; bottom: 14px; width: 46px; height: 46px; font-size: 20px; }
-
-  /* 10) Модал – винаги се побира */
-  .modal{ min-width: auto; width: min(440px, 92vw); }
-  .arrow-btn{ width: 46px; height: 46px; }
+/* ==== Mobile polish ==== */
+@media (max-width:640px){
+  .hero{height:48vh;padding:16px 16px 24px;filter:contrast(1.15) saturate(1.1) brightness(1.06);background-position:center}
+  .hero::before{backdrop-filter:none;background:linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,.45) 60%, rgba(0,0,0,0) 100%)}
+  .hero-inner{max-width:100%;display:grid;place-items:center;text-align:center;gap:10px}
+  .logo-card{width:96px;height:96px;margin:6px auto 4px;border-radius:16px;box-shadow:0 14px 28px rgba(0,0,0,.24), inset 0 1px 0 #ffffffb0}
+  .phone-banner{position:static;transform:none;margin:2px 0 0;font-size:22px;line-height:1.15;letter-spacing:.3px;text-align:center;text-shadow:0 2px 6px rgba(0,0,0,.7)}
+  .tab-wrap{margin-top:-8px}.tab-title{padding:8px 14px;font-size:13px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.12)}
+  .grid{padding:0 12px;gap:14px}.card{height:190px;border-radius:14px;box-shadow:0 2px 0 #ffffff, 0 10px 26px rgba(0,0,0,.16)}
+  .card .img{inset:8px;border-radius:12px}.card::after{inset:8px;border-radius:12px}
+  .card span{margin:0 0 14px 16px;font-size:18px;letter-spacing:.4px;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  .admin-btn{top:10px;right:10px;padding:8px 10px;font-size:12px;border-radius:12px;background:#1a1a1a}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- ADMIN BUTTON (top-right) -->
+  <!-- ADMIN BUTTON -->
   <button class="admin-btn" id="adminBtn">АДМИН</button>
 
   <!-- HERO -->
   <header class="hero">
     <div class="hero-inner">
-      <div class="logo-card">
-        <img src="snimki/logo.png" alt="Corner BBQ Logo">
-      </div>
+      <div class="logo-card"><img src="snimki/logo.png" alt="Corner BBQ Logo"></div>
       <div class="phone-banner">ТЕЛЕФОН ЗА ПОРЪЧКИ:<br>0886 505 861</div>
     </div>
   </header>
 
-  <!-- TAB -->
   <div class="tab-wrap"><div class="tab-title">WEB МЕНЮ</div></div>
 
-  <!-- GRID (в същия ред като сайдбара/ORDER) -->
+  <!-- GRID -->
   <section class="stage">
     <main class="grid" id="menuGrid">
       <a class="card w-4" data-key="burgeri"><div class="img"></div><span>БУРГЕРИ</span></a>
@@ -379,21 +155,9 @@ a,button{touch-action:manipulation}
   <!-- FOOTER -->
   <footer class="footer">
     <div class="footer-inner">
-      <div class="ft">
-        <h4>За контакт</h4>
-        <p>гр. Хасково, Център, пл. „Свобода“ 26</p>
-        <p>10:00ч. – 20:00ч.</p>
-        <p><b>Поръчки: 0886 505 861</b></p>
-      </div>
-      <div class="ft">
-        <h4>Информация</h4>
-        <a href="#">Общи условия</a><br>
-        <a href="#">Политика за поверителност</a>
-      </div>
-      <div class="ft">
-        <h4>За нас</h4>
-        <p>Corner BBQ • Сандвичи на жар</p>
-      </div>
+      <div class="ft"><h4>За контакт</h4><p>гр. Хасково, Център, пл. „Свобода“ 26</p><p>10:00ч. – 20:00ч.</p><p><b>Поръчки: 0886 505 861</b></p></div>
+      <div class="ft"><h4>Информация</h4><a href="#">Общи условия</a><br><a href="#">Политика за поверителност</a></div>
+      <div class="ft"><h4>За нас</h4><p>Corner BBQ • Сандвичи на жар</p></div>
     </div>
     <div class="power">Powered by Dimitar Lambov. © 2025</div>
   </footer>
@@ -402,19 +166,30 @@ a,button{touch-action:manipulation}
 
 <button id="toTop" class="to-top" title="Към началото">↑</button>
 
-<!-- ===== Login Modal ===== -->
-<div class="modal-overlay" id="loginOverlay" aria-hidden="true">
-  <div class="modal" role="dialog" aria-modal="true">
-    <div class="modal-title">Админ вход</div>
-    <div class="login-row">
-      <input type="password" id="adminPass" class="pass-input" placeholder="" autocomplete="current-password">
-      <button class="arrow-btn" id="passGo" title="Напред">➜</button>
+<!-- ===== AUTH OVERLAY (логинът от index4.html) ===== -->
+<div id="auth" class="auth" aria-hidden="true">
+  <div class="box">
+    <h2>Админ достъп</h2>
+    <div class="field">
+      <label for="pwd">Парола</label>
+      <input id="pwd" type="password" placeholder="Въведи админ парола" autocomplete="current-password">
     </div>
-    <div class="login-msg" id="loginMsg"></div>
+    <div class="rowc">
+      <input id="remember" type="checkbox">
+      <label for="remember">Запомни ме на това устройство</label>
+    </div>
+    <div id="nameWrap" class="field" style="display:none">
+      <label for="adminName">Име за този админ (напр. „admin ivan“)</label>
+      <input id="adminName" type="text" placeholder="Въведи име">
+    </div>
+    <div class="actions">
+      <button id="loginBtn" class="btn primary">Вход</button>
+    </div>
+    <div id="err" class="err">❌ Грешна парола или липсва име.</div>
   </div>
 </div>
 
-<!-- ===== Admin Panel Overlay (index4.html) ===== -->
+<!-- ===== Admin PANEL overlay (iframe към index4.html) ===== -->
 <div class="admin-overlay" id="adminOverlay" aria-hidden="true">
   <div class="admin-panel">
     <button class="admin-close" id="adminClose">X</button>
@@ -429,95 +204,78 @@ const toggle = () => toTop.style.display = scrollY > 300 ? 'grid' : 'none';
 toggle(); addEventListener('scroll', toggle);
 toTop.addEventListener('click', () => scrollTo({ top:0, behavior:'smooth' }));
 
-/* Същите картинки и пътища като в сайдбара (CAT_THUMBS) */
-const FILE_MAP = {
-  burgeri:'snimki/produkti/1menu/burger.jpg',
-  palachinki:'snimki/produkti/1menu/palachinki.jpg',
-  strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',
-  kartofi:'snimki/produkti/1menu/kartofi.jpg',
-  salati:'snimki/produkti/1menu/salata.jpg',
-  portsii:'snimki/produkti/1menu/porciq.jpg',
-  dobavki:'snimki/produkti/1menu/dobavki.jpg',
-  hell:'snimki/produkti/1menu/hell.jpg',
-  voda:'snimki/produkti/ВОДА/voda_snimka.jpg',
-  gazirana_voda:'snimki/produkti/ГАЗИРАНА_ВОДА/gaziranavoda_snimka.jpg',
-  fanta:'snimki/produkti/ФАНТА/fanta_logo.jpg',
-  studen_chai:'snimki/produkti/СТУДЕН_ЧАЙ/studen_chai_logo.jpg',
-  kola:'snimki/produkti/КОЛА/kola_logo.jpg',
-  sok:'snimki/produkti/СОК/cappy_logo.jpg',
-  xixo:'snimki/produkti/ХИХО/xixo_logo.jpg',
-  airqn:'snimki/produkti/АЙРАН/vereq_logo.jpg'
-};
-
-/* Сетни фон + линк към index2 с правилната категория */
+/* Kартинки за картите */
+const FILE_MAP={burgeri:'snimki/produkti/1menu/burger.jpg',palachinki:'snimki/produkti/1menu/palachinki.jpg',strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',kartofi:'snimki/produkti/1menu/kartofi.jpg',salati:'snimki/produkti/1menu/salata.jpg',portsii:'snimki/produkti/1menu/porciq.jpg',dobavki:'snimki/produkti/1menu/dobavki.jpg',hell:'snimki/produkti/1menu/hell.jpg',voda:'snimki/produkti/ВОДА/voda_snimka.jpg',gazirana_voda:'snimki/produkti/ГАЗИРАНА_ВОДА/gaziranavoda_snimka.jpg',fanta:'snimki/produkti/ФАНТА/fanta_logo.jpg',studen_chai:'snimki/produkti/СТУДЕН_ЧАЙ/studen_chai_logo.jpg',kola:'snimki/produkti/КОЛА/kola_logo.jpg',sok:'snimki/produkti/СОК/cappy_logo.jpg',xixo:'snimki/produkti/ХИХО/xixo_logo.jpg',airqn:'snimki/produkti/АЙРАН/vereq_logo.jpg'};
 document.querySelectorAll('[data-key]').forEach(el=>{
-  const key  = el.getAttribute('data-key');
-  const path = FILE_MAP[key];
-  const imgEl = el.querySelector('.img');
-  if (path) imgEl.style.backgroundImage = `url("${path}")`;
+  const key=el.getAttribute('data-key'), path=FILE_MAP[key];
+  if(path) el.querySelector('.img').style.backgroundImage=`url("${path}")`;
   el.setAttribute('href', `index2.html?cat=${encodeURIComponent(key)}`);
-
-  // Достъпност: позволи focus + Enter/Space
-  el.setAttribute('role','link');
-  el.setAttribute('tabindex','0');
 });
 
-/* ===== 3D POP на hover/tap + 1s delay преди навигация ===== */
-const POP_DELAY = 1000; // ms
-function goWithPop(el, url){
-  el.classList.remove('is-pressed');
-  el.classList.add('is-popping');
-  el.dataset.locked = '1';
-  setTimeout(()=>{ location.href = url; }, POP_DELAY);
-}
-function shouldBypassDelay(evt){ return evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey || evt.button === 1; }
-
+/* 3D pop + delay */
+const POP_DELAY=1000;
+function goWithPop(el,url){ el.classList.remove('is-pressed'); el.classList.add('is-popping'); el.dataset.locked='1'; setTimeout(()=>{ location.href=url; },POP_DELAY); }
+function shouldBypassDelay(e){ return e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button===1; }
 document.querySelectorAll('.card').forEach(card=>{
   card.addEventListener('mousedown',()=>card.classList.add('is-pressed'));
   card.addEventListener('mouseleave',()=>card.classList.remove('is-pressed'));
-  card.addEventListener('touchstart', ()=>{ card.classList.add('is-pressed'); setTimeout(()=> card.classList.remove('is-pressed'), 120); }, {passive:true});
-  card.addEventListener('click', (e)=>{ if (shouldBypassDelay(e)) return; e.preventDefault(); if (card.dataset.locked==='1') return; const url = card.getAttribute('href'); goWithPop(card, url); });
-  card.addEventListener('keydown', (e)=>{ if (e.key==='Enter'||e.key===' '){ e.preventDefault(); if (card.dataset.locked==='1') return; const url = card.getAttribute('href'); goWithPop(card, url);} });
-  window.addEventListener('pageshow', ()=> { card.classList.remove('is-pressed','is-popping'); delete card.dataset.locked; });
+  card.addEventListener('touchstart',()=>{card.classList.add('is-pressed'); setTimeout(()=>card.classList.remove('is-pressed'),120)},{passive:true});
+  card.addEventListener('click',e=>{ if(shouldBypassDelay(e)) return; e.preventDefault(); if(card.dataset.locked==='1') return; goWithPop(card, card.getAttribute('href')); });
+  card.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); if(card.dataset.locked==='1') return; goWithPop(card, card.getAttribute('href')); }});
+  window.addEventListener('pageshow',()=>{ card.classList.remove('is-pressed','is-popping'); delete card.dataset.locked; });
 });
 
-/* ===== ADDED: Admin login logic ===== */
+/* ===== ADMIN LOGIN from index4 ===== */
+const ADMIN_PASSWORD='bbqcornera123'; // смени
 const adminBtn=document.getElementById('adminBtn');
-const loginOverlay=document.getElementById('loginOverlay');
+const authEl=document.getElementById('auth');
+const pwdEl=document.getElementById('pwd');
+const rememberEl=document.getElementById('remember');
+const nameWrapEl=document.getElementById('nameWrap');
+const adminNameEl=document.getElementById('adminName');
+const loginBtn=document.getElementById('loginBtn');
+const errEl=document.getElementById('err');
+
 const adminOverlay=document.getElementById('adminOverlay');
 const adminFrame=document.getElementById('adminFrame');
 const adminClose=document.getElementById('adminClose');
-const passInput=document.getElementById('adminPass');
-const passGo=document.getElementById('passGo');
-const loginMsg=document.getElementById('loginMsg');
-const ADMIN_PASS='bbqcornera123';
 
-adminBtn.addEventListener('click',()=>{
-  loginMsg.textContent=''; loginMsg.className='login-msg';
-  passInput.value=''; passInput.classList.remove('shake');
-  loginOverlay.classList.add('show'); passInput.focus();
+adminBtn.addEventListener('click',()=>{ // покажи логина при клик
+  errEl.style.display='none';
+  pwdEl.value=''; adminNameEl.value=''; rememberEl.checked=false; nameWrapEl.style.display='none';
+  authEl.classList.add('show'); setTimeout(()=>pwdEl.focus(),0);
 });
+rememberEl.addEventListener('change',()=>{ nameWrapEl.style.display = rememberEl.checked ? 'block' : 'none'; });
+
+function openAdminPanel(){
+  // Ако предпочиташ redirect: window.location.href='index4.html';
+  adminFrame.src='index4.html';
+  adminOverlay.classList.add('show');
+}
+
 function doLogin(){
-  const val=passInput.value.trim();
-  if(val!==ADMIN_PASS){
-    loginMsg.textContent='ГРЕШКА';
-    loginMsg.className='login-msg error';
-    passInput.classList.remove('shake'); void passInput.offsetWidth; passInput.classList.add('shake');
+  const okPwd = pwdEl.value.trim()===ADMIN_PASSWORD;
+  const remember = rememberEl.checked;
+  const name = remember ? (adminNameEl.value||'').trim() : (localStorage.getItem('adminName')||'').trim();
+
+  if(!okPwd || (remember && !name)){
+    errEl.style.display='block';
     return;
   }
-  loginMsg.textContent='✅ Успешен вход като админ !';
-  loginMsg.className='login-msg ok';
-  setTimeout(()=>{
-    loginOverlay.classList.remove('show');
-    const local='file:///E:/BBQ_SITE/index4.html';
-    const web='index4.html';
-    adminFrame.src=(location.protocol==='file:')?local:web;
-    adminOverlay.classList.add('show');
-  },3000);
+  errEl.style.display='none';
+
+  if(remember){
+    localStorage.setItem('adminRemembered','1');
+    localStorage.setItem('adminName', name);
+  }
+  authEl.classList.remove('show');
+  openAdminPanel(); // успешен вход → отвори панела
 }
-passGo.addEventListener('click',doLogin);
-passInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); doLogin(); }});
-loginOverlay.addEventListener('click',(e)=>{ if(e.target===loginOverlay) loginOverlay.classList.remove('show'); });
+
+loginBtn.addEventListener('click', doLogin);
+pwdEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+adminNameEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
 adminClose.addEventListener('click',()=>{ adminOverlay.classList.remove('show'); });
 </script>
 </body>
