@@ -342,6 +342,17 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
       <button class="cart-close" id="cartClose" aria-label="Затвори"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="cart-items" id="cartItems"></div>
+
+<!-- 🔶 Забележка към поръчката -->
+<div id="noteWrapper" style="display:none; margin-top:14px;">
+  <label for="orderNote" style="font-weight:900; color:#ff7a00; display:block; margin-bottom:6px;">
+    Забележка към поръчката:
+  </label>
+  <textarea id="orderNote" rows="3" placeholder="Добавете специални изисквания или бележка..."
+    style="width:100%; border:1px solid #ccc; border-radius:10px; padding:10px; font-family:inherit; resize:vertical;">
+  </textarea>
+</div>
+
     <div class="cart-total" id="cartTotalRow" style="display:none">
       <span>Общо:</span>
       <span id="cartTotal"></span>
@@ -395,6 +406,11 @@ const orderNowBtn = document.getElementById('orderNow');
 /* ====== LS ключове (index2 -> index3) ====== */
 const LS_CART_ITEMS = 'bbq_cart_items';
 const LS_CART_TOTAL = 'bbq_cart_total';
+// 🔶 Ключ и елементи за бележка
+const LS_ORDER_NOTE = 'bbq_order_note';
+const noteWrapper = document.getElementById('noteWrapper');
+const orderNoteEl = document.getElementById('orderNote');
+
 
 /* Добавяне към количката */
 function addToCart(item){
@@ -439,8 +455,17 @@ function updateCartUI(){
   cartTotal.textContent = `${fmtLv(total)}  (${fmtEur(total)})`;
   cartTotalRow.style.display = '';
   orderNowBtn.disabled = CART.length === 0;
+// 🔶 Показвай полето за забележка, ако има продукти
+noteWrapper.style.display = CART.length > 0 ? 'block' : 'none';
 
   persistCartSnapshot();
+// 🔶 Бележка – запис и възстановяване
+orderNoteEl.addEventListener('input', () => {
+  localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+});
+
+function restoreOrderNote(){
+  orderNoteEl.value = localStorage.getItem(LS_ORDER_NOTE) || '';
 }
 
 /* ====== Persist & Restore ====== */
@@ -464,6 +489,7 @@ function restoreCartFromLS(){
         name: it.name, price: Number(it.price)||0, img: it.img||''
       }));
       updateCartUI();
+      restoreOrderNote();      // ← ДОБАВИ ТУК ТОЗИ РЕД
     }
   }catch(e){ console.warn('Restore LS error:', e); }
 }
