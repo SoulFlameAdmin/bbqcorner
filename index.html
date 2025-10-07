@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Corner BBQ — Menu</title>
 
 <!-- 🌶️ Logo / Favicon -->
@@ -20,6 +20,7 @@
 <meta name="twitter:image" content="https://bbqcorner.vercel.app/bbqsaitlogo.jpg">
 <meta name="twitter:title" content="Corner BBQ — Онлайн поръчки">
 <meta name="twitter:description" content="Corner BBQ — вкусът на истинския грил.">
+<meta name="format-detection" content="telephone=no" />
 
 <!-- 🔍 Structured Data for Google -->
 <script type="application/ld+json">
@@ -40,10 +41,18 @@
   --softBorder:#00000012;
   --popShadow:0 22px 60px rgba(0,0,0,.28);
 }
-*{box-sizing:border-box}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
 html,body{height:100%}
-body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#111;background:#fff}
+body{
+  margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#111;background:#fff;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+img,picture,video,canvas,svg{max-width:100%;height:auto;display:block}
+a,button{touch-action:manipulation}
+
 .wrap{min-height:100dvh;display:flex;flex-direction:column}
+
 /* ===== HERO (КОРИЦА) ===== */
 .hero{
   position:relative;
@@ -170,18 +179,6 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   .card{transition:none}
 }
 
-/* Responsive */
-@media (max-width: 880px){
-  .hero{ padding:18px 20px 36px; }
-  .hero-inner{display:flex;flex-direction:column;align-items:center;text-align:center;}
-  .logo-card{ margin:8px auto 10px; }
-  .phone-banner{ position:static; transform:none; top:auto; margin:6px 0 0; font-size:34px; line-height:1.15; text-align:center; }
-}
-@media (max-width:560px){
-  .phone-banner{ font-size:26px }
-  .card{ height:210px }
-}
-
 /* ======= ADDED: Admin login button (top-right) ======= */
 .admin-btn{
   position:fixed; top:16px; right:20px; z-index:1100;
@@ -239,6 +236,103 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   padding:6px 10px; cursor:pointer; font-weight:800
 }
 .admin-iframe{ width:100%; height:100%; border:0; display:block; background:#111 }
+
+/* ==== MOBILE POLISH PATCH (<= 640px) ==== */
+@media (max-width: 640px){
+
+  /* 1) Херо – по-ниско, без сиви пояси, центрирано */
+  .hero{
+    height: 48vh;
+    padding: 16px 16px 24px;
+    filter: contrast(1.15) saturate(1.1) brightness(1.06);
+    background-position: center;
+  }
+  .hero::before{
+    backdrop-filter: none;
+    background: linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,.45) 60%, rgba(0,0,0,0) 100%);
+  }
+  .hero-inner{
+    max-width: 100%;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    gap: 10px;
+  }
+
+  /* 2) Лого – компактно */
+  .logo-card{
+    width: 96px; height: 96px;
+    margin: 6px auto 4px;
+    border-radius: 16px;
+    box-shadow: 0 14px 28px rgba(0,0,0,.24), inset 0 1px 0 #ffffffb0;
+  }
+  .logo-card::before{ bottom: -10px; width: 70%; height: 14px; filter: blur(7px); }
+
+  /* 3) Телефон банер – четим, без да „крещи“ */
+  .phone-banner{
+    position: static;
+    transform: none;
+    margin: 2px 0 0;
+    font-size: 22px;
+    line-height: 1.15;
+    letter-spacing: .3px;
+    text-align: center;
+    text-shadow: 0 2px 6px rgba(0,0,0,.7);
+  }
+
+  /* 4) „WEB МЕНЮ“ – по-близо до херото */
+  .tab-wrap{ margin-top: -8px; }
+  .tab-title{
+    padding: 8px 14px;
+    font-size: 13px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  }
+
+  /* 5) Картите – стегнати и четливи */
+  .grid{ padding: 0 12px; gap: 14px; }
+  .card{
+    height: 190px;
+    border-radius: 14px;
+    box-shadow: 0 2px 0 #ffffff, 0 10px 26px rgba(0,0,0,.16);
+  }
+  .card .img{ inset: 8px; border-radius: 12px; }
+  .card::after{ inset: 8px; border-radius: 12px; }
+  .card span{
+    margin: 0 0 14px 16px;
+    font-size: 18px;
+    letter-spacing: .4px;
+    text-shadow: 0 1px 3px rgba(0,0,0,.8);
+  }
+
+  /* 6) Жест при докосване – по-малък „подскок“ */
+  .card.is-popping{
+    transform: translateY(-6px) scale(1.03);
+    box-shadow: 0 18px 42px rgba(0,0,0,.28);
+  }
+
+  /* 7) Админ бутон – дискретен */
+  .admin-btn{
+    top: 10px; right: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    border-radius: 12px;
+    background: #1a1a1a;
+  }
+
+  /* 8) Footer – една колона */
+  .footer{ padding: 18px 0 26px; }
+  .footer-inner{ grid-template-columns: 1fr; gap: 8px; padding: 0 12px; }
+  .ft h4{ font-size: 16px; margin-bottom: 6px; }
+  .ft p, .ft a{ margin: 4px 0; font-size: 14px; }
+
+  /* 9) Scroll-to-top */
+  .to-top{ right: 14px; bottom: 14px; width: 46px; height: 46px; font-size: 20px; }
+
+  /* 10) Модал – винаги се побира */
+  .modal{ min-width: auto; width: min(440px, 92vw); }
+  .arrow-btn{ width: 46px; height: 46px; }
+}
 </style>
 </head>
 <body>
@@ -424,7 +518,6 @@ function doLogin(){
 passGo.addEventListener('click',doLogin);
 passInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); doLogin(); }});
 loginOverlay.addEventListener('click',(e)=>{ if(e.target===loginOverlay) loginOverlay.classList.remove('show'); });
-
 adminClose.addEventListener('click',()=>{ adminOverlay.classList.remove('show'); });
 </script>
 </body>
