@@ -40,7 +40,6 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .btn{background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
 .btn:hover{border-color:#ffffff33}
 .empty{padding:20px;text-align:center;border:1px dashed var(--soft);border-radius:12px}
-/* X бутон */
 .close{
   position:absolute;top:8px;right:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
   border-radius:999px;background:#3a1515;border:1px solid #8a1f1f;color:#fff;font-weight:900;line-height:1;cursor:pointer
@@ -55,6 +54,20 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
   0% { background-color: rgba(255,122,0,.25); }
   100% { background-color: transparent; }
 }
+
+/* 🚗 бутон */
+.map-btn{
+  margin-top:8px;
+  display:inline-block;
+  background:#ff7a00;
+  color:#fff;
+  padding:6px 12px;
+  border-radius:8px;
+  font-weight:800;
+  cursor:pointer;
+  border:none;
+}
+.map-btn:hover{background:#ff9933;}
 </style>
 </head>
 <body>
@@ -81,7 +94,6 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
   <div id="emptyState" class="empty" style="display:none">Няма поръчки.</div>
 </div>
 
-<!-- 🔔 звук за нови поръчки -->
 <audio id="newOrderSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
 <script type="module">
@@ -124,29 +136,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* ===== Настройки за админ действия ===== */
+/* ===== Настройки ===== */
 const ADMIN_PASSWORD = 'mitakathebest!';
-
-/* ===== Реално време ===== */
 let orders = [];
 let firstLoad = true;
 
 const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
 onSnapshot(q, (snap)=>{
   const newOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-  // 🔔 открий нови
   if (!firstLoad && newOrders.length > orders.length) {
     sound.currentTime = 0;
     sound.play().catch(()=>{});
   }
   firstLoad = false;
-
   orders = newOrders;
   render();
 });
 
-/* ===== Рендер ===== */
 selStatus.addEventListener('change', render);
 searchBox.addEventListener('input', render);
 
@@ -181,6 +187,7 @@ function render(){
     const items = Array.isArray(o.items) ? o.items : [];
     const status = o.status || 'ПРЕГЛЕД';
     const noteClass = o.note ? 'note-flash' : '';
+    const address = escapeHTML(o.customer?.address || o.note || 'Haskovo');
 
     const statusBtns = status === 'ДОСТАВЕНО' ? '' : `
       <button class="btn btn-prev" data-id="${o.id}">ПРЕГЛЕД</button>
@@ -200,7 +207,7 @@ function render(){
         <div class="row"><strong>${escapeHTML(o.customer?.names||'')}</strong>
           <span class="small">(${escapeHTML(o.customer?.phone||'')})</span>
         </div>
-        <div class="addr">📍 ${escapeHTML(o.customer?.address||'')}</div>
+        <div class="addr">📍 ${address}</div>
         <div class="items">
           ${items.map(it=>`
              <div class="item"><span>${escapeHTML(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>
@@ -210,6 +217,7 @@ function render(){
         ${o.note ? `<div class="addr ${noteClass}" style="margin-top:8px;color:#ffcf7a;">
           📝 <strong>Бележка:</strong> ${escapeHTML(o.note)}
         </div>` : ''}
+        <button class="map-btn" data-address="${address}">🚗 Достави тази поръчка</button>
         <div class="btns">${statusBtns}</div>
       </div>
     `;
@@ -224,13 +232,13 @@ function escapeHTML(s){
   }[ch]));
 }
 
-/* ===== Действия ===== */
 function bindButtons(){
   grid.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ПРЕГЛЕД')));
   grid.querySelectorAll('.btn-cook').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ПРИГОТВЯ СЕ')));
   grid.querySelectorAll('.btn-deliver').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ДОСТАВЯ СЕ')));
   grid.querySelectorAll('.btn-done').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ДОСТАВЕНО')));
   grid.querySelectorAll('.close').forEach(b=>b.addEventListener('click', ()=> deleteOrder(idOf(b))));
+  grid.querySelectorAll('.map-btn').forEach(b=>b.addEventListener('click', ()=> openInMaps(b.dataset.address)));
 }
 
 const idOf = (btn) => btn.dataset.id;
@@ -239,55 +247,47 @@ async function changeStatus(id, targetStatus){
   try{
     const o = orders.find(x=>x.id===id);
     if (!o) return;
-
     if ((o.status||'') === 'ДОСТАВЕНО'){
       alert('Тази поръчка вече е ДОСТАВЕНО и не може да се променя.');
       return;
     }
-
     await updateDoc(doc(db,'orders',id), { status: targetStatus });
     o.status = targetStatus;
-
     if (targetStatus === 'ДОСТАВЕНО' && selStatus.value !== 'ДОСТАВЕНО'){
       const card = grid.querySelector(`.card[data-id="${id}"]`);
       if (card) card.remove();
     }
     render();
-  }catch(err){
-    console.error(err);
-    alert('Неуспешна промяна.');
-  }
+  }catch(err){ console.error(err); alert('Неуспешна промяна.'); }
 }
 
 async function deleteOrder(id){
   try{
     const o = orders.find(x => x.id === id);
     if (!o) return;
-
     if ((o.status||'') === 'ДОСТАВЕНО'){
       const pwd = prompt('Парола за изтриване на ДОСТАВЕНА поръчка:');
-      if (pwd !== ADMIN_PASSWORD){
-        alert('❌ Грешна парола.');
-        return;
-      }
+      if (pwd !== ADMIN_PASSWORD){ alert('❌ Грешна парола.'); return; }
     } else if (!confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?')) return;
-
     await deleteDoc(doc(db,'orders',id));
     const card = grid.querySelector(`.card[data-id="${id}"]`);
     if(card) card.remove();
-  }catch(err){
-    console.error(err);
-    alert('Грешка при изтриване.');
-  }
+  }catch(err){ console.error(err); alert('Грешка при изтриване.'); }
+}
+
+/* ===== 🚗 Отваряне в Google Maps ===== */
+function openInMaps(address){
+  if(!address){ alert('Адресът липсва.'); return; }
+  const encoded = encodeURIComponent(address);
+  const url = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+  window.open(url, '_blank');
 }
 </script>
 
 <script>
-// === ГЛОБАЛЕН ТРАКЕР НА КЛИКОВЕ ЗА АДМИНИ ===
 (function(){
   const who = (localStorage.getItem('adminName') || '').trim();
   if(!who) return;
-
   function logAction(text){
     const k = `logs_${who}`;
     const now = new Date();
@@ -295,12 +295,10 @@ async function deleteOrder(id){
     const arr = JSON.parse(localStorage.getItem(k) || '[]');
     arr.unshift(entry);
     localStorage.setItem(k, JSON.stringify(arr));
-
     const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
     known.add(who);
     localStorage.setItem('logs__admins', JSON.stringify([...known]));
   }
-
   document.addEventListener('click', e=>{
     let desc = '';
     if(e.target.closest('button, a, input, select')){
@@ -308,13 +306,10 @@ async function deleteOrder(id){
       const tag = el.tagName.toLowerCase();
       const label = el.innerText || el.value || el.id || '(без текст)';
       desc = `кликна върху ${tag} → "${label.trim().slice(0,60)}"`;
-    } else {
-      desc = `кликна на произволно място (${e.clientX}x${e.clientY})`;
-    }
+    } else desc = `кликна на произволно място (${e.clientX}x${e.clientY})`;
     const page = location.pathname.split('/').pop() || 'непозната страница';
     logAction(`${desc} [${page}]`);
   });
-
   logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
 })();
 </script>
