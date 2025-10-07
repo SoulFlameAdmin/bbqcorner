@@ -21,7 +21,6 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 @media (max-width:1024px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:640px){.grid{grid-template-columns:1fr}}
-
 .card{
   background:#121316;border:1px solid var(--soft);border-radius:16px;padding:14px;box-shadow:0 8px 28px rgba(0,0,0,.28);
   position:relative;overflow:hidden
@@ -41,13 +40,30 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .btn{background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
 .btn:hover{border-color:#ffffff33}
 .empty{padding:20px;text-align:center;border:1px dashed var(--soft);border-radius:12px}
-
 /* X бутон */
 .close{
   position:absolute;top:8px;right:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
   border-radius:999px;background:#3a1515;border:1px solid #8a1f1f;color:#fff;font-weight:900;line-height:1;cursor:pointer
 }
 .close:hover{background:#4a1919;border-color:#b32626}
+
+/* === Auth Overlay === */
+.auth {
+  position:fixed; inset:0; background:rgba(0,0,0,.65); display:flex; align-items:center; justify-content:center; z-index:9999;
+}
+.auth .box{
+  width:min(92vw,420px); background:#121316; border:1px solid var(--soft); border-radius:16px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.auth h2{margin-bottom:10px; color:var(--accent)}
+.field{display:flex; flex-direction:column; gap:6px; margin-top:10px}
+.field input[type="password"],
+.field input[type="text"]{
+  background:#0f1115; border:1px solid var(--soft); color:#fff; border-radius:10px; padding:10px 12px; outline:none;
+}
+.rowc{display:flex; align-items:center; gap:8px; margin-top:8px}
+.auth .actions{display:flex; gap:10px; margin-top:14px}
+.auth .btn.primary{background:var(--accent); border-color:transparent}
+.err{color:#ff9a9a; font-size:12px; margin-top:8px; display:none}
 </style>
 </head>
 <body>
@@ -74,12 +90,38 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
   <div id="emptyState" class="empty" style="display:none">Няма поръчки.</div>
 </div>
 
+<!-- ===== AUTH OVERLAY ===== -->
+<div id="auth" class="auth" hidden>
+  <div class="box">
+    <h2>Админ достъп</h2>
+    <div class="field">
+      <label for="pwd">Парола</label>
+      <input id="pwd" type="password" placeholder="Въведи админ парола">
+    </div>
+    <div class="rowc">
+      <input id="remember" type="checkbox">
+      <label for="remember">Запомни ме на това устройство</label>
+    </div>
+    <div id="nameWrap" class="field" style="display:none">
+      <label for="adminName">Име за този админ (напр. „admin ivan“)</label>
+      <input id="adminName" type="text" placeholder="Въведи име">
+    </div>
+    <div class="actions">
+      <button id="loginBtn" class="btn primary">Вход</button>
+    </div>
+    <div id="err" class="err">❌ Грешна парола или липсва име.</div>
+  </div>
+</div>
+
 <script type="module">
 /* ===== Помощни ===== */
 const lv = n => (Number(n)||0).toFixed(2).replace('.',',')+' лв.';
 const fmtWhen = ts => {
-  try{ if (!ts) return ''; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString(); }
-  catch(_){ return ''; }
+  try{
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleString();
+  } catch(_){ return ''; }
 };
 const grid = document.getElementById('grid');
 const countE = document.getElementById('count');
@@ -90,10 +132,7 @@ const searchBox = document.getElementById('searchBox');
 
 /* ===== Firebase ===== */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
-import {
-  getFirestore, collection, query, orderBy, onSnapshot,
-  doc, updateDoc, deleteDoc
-} from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
@@ -105,12 +144,87 @@ const firebaseConfig = {
   measurementId: "G-FWBDL96GN0"
 };
 const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+const db = getFirestore(app);
+
+/* ======= AUTH + REMEMBER ME ======= */
+const ADMIN_PASSWORD = 'mitakathebest!'; // можеш да смениш
+const authEl = document.getElementById('auth');
+const pwdEl = document.getElementById('pwd');
+const rememberEl = document.getElementById('remember');
+const nameWrapEl = document.getElementById('nameWrap');
+const adminNameEl = document.getElementById('adminName');
+const loginBtn = document.getElementById('loginBtn');
+const errEl = document.getElementById('err');
+
+let CURRENT_ADMIN = null;
+
+function showAuth() {
+  authEl.hidden = false;
+  pwdEl.focus();
+}
+function hideAuth() { authEl.hidden = true; }
+
+rememberEl.addEventListener('change', () => {
+  nameWrapEl.style.display = rememberEl.checked ? 'block' : 'none';
+});
+
+loginBtn.addEventListener('click', doLogin);
+pwdEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
+adminNameEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
+
+function doLogin(){
+  const okPwd = pwdEl.value.trim() === ADMIN_PASSWORD;
+  const remember = rememberEl.checked;
+  const name = remember ? (adminNameEl.value || '').trim() : (localStorage.getItem('adminName') || '').trim();
+
+  if(!okPwd || (remember && !name)){
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  if(remember){
+    localStorage.setItem('adminRemembered','1');
+    localStorage.setItem('adminName', name);
+  }
+  CURRENT_ADMIN = remember ? name : (localStorage.getItem('adminName')||'анонимен');
+  hideAuth();
+  logAction(`се логна`);
+}
+
+/* Авто-remember: ако вече е запомнен, не пита */
+(function bootstrapAuth(){
+  const remembered = localStorage.getItem('adminRemembered') === '1';
+  const savedName = (localStorage.getItem('adminName') || '').trim();
+  if(remembered && savedName){
+    CURRENT_ADMIN = savedName;
+    authEl.hidden = true;
+    // автоматичен лог при отваряне
+    logAction(`отвори админ панела`);
+  }else{
+    showAuth();
+  }
+})();
+
+/* ===== Логване на действия (localStorage per admin) ===== */
+function logAction(text){
+  const who = CURRENT_ADMIN || (localStorage.getItem('adminName') || 'анонимен');
+  const k = `logs_${who}`;
+  const now = new Date();
+  const entry = `${now.toLocaleString()} — ${who} ${text}`;
+  const arr = JSON.parse(localStorage.getItem(k) || '[]');
+  arr.unshift(entry); // новото отгоре
+  localStorage.setItem(k, JSON.stringify(arr));
+
+  // списък с известни админи (за index5)
+  const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
+  known.add(who);
+  localStorage.setItem('logs__admins', JSON.stringify([...known]));
+}
 
 /* ===== Реално време ===== */
 let orders = [];
 const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
-
 onSnapshot(q, (snap)=>{
   orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   render();
@@ -156,29 +270,35 @@ function render(){
     const items = Array.isArray(o.items) ? o.items : [];
     const status = o.status || 'ПРЕГЛЕД';
 
-    // Няма бутони за статус при ДОСТАВЕНО (необратимо)
+    // бутони за статус (скрити за ДОСТАВЕНО)
     const statusBtns = status === 'ДОСТАВЕНО' ? '' : `
       <button class="btn btn-prev" data-id="${o.id}">ПРЕГЛЕД</button>
       <button class="btn btn-cook" data-id="${o.id}">ПРИГОТВЯ СЕ</button>
       <button class="btn btn-deliver" data-id="${o.id}">ДОСТАВЯ СЕ</button>
-      <button class="btn btn-done" data-id="${o.id}">ДОСТАВЕНО</button>`;
+      <button class="btn btn-done" data-id="${o.id}">ДОСТАВЕНО</button>
+    `;
 
     return `
-    <div class="card" data-id="${o.id}">
-      <button class="close" title="Изтрий" data-id="${o.id}">×</button>
-      <div class="row">
-        <span class="badge">#${o.id.slice(0,6)}</span>
-        <span class="small muted">${when}</span>
-        <span class="status" data-s="${status}">${status}</span>
+      <div class="card" data-id="${o.id}">
+        <button class="close" title="Изтрий" data-id="${o.id}">×</button>
+        <div class="row">
+          <span class="badge">#${o.id.slice(0,6)}</span>
+          <span class="small muted">${when}</span>
+          <span class="status" data-s="${status}">${status}</span>
+        </div>
+        <div class="row"><strong>${escapeHTML(o.customer?.names||'')}</strong>
+          <span class="small">(${escapeHTML(o.customer?.phone||'')})</span>
+        </div>
+        <div class="addr">📍 ${escapeHTML(o.customer?.address||'')}</div>
+        <div class="items">
+          ${items.map(it=>`
+             <div class="item"><span>${escapeHTML(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>
+          `).join('')}
+        </div>
+        <div class="total">Общо: ${lv(Number(o.total)||0)}</div>
+        <div class="btns">${statusBtns}</div>
       </div>
-      <div class="row"><strong>${o.customer?.names||''}</strong> <span class="small">(${o.customer?.phone||''})</span></div>
-      <div class="addr">📍 ${o.customer?.address||''}</div>
-      <div class="items">
-        ${items.map(it=>`<div class="item"><span>${escapeHTML(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>`).join('')}
-      </div>
-      <div class="total">Общо: ${lv(Number(o.total)||0)}</div>
-      <div class="btns">${statusBtns}</div>
-    </div>`;
+    `;
   }).join('');
 
   bindButtons();
@@ -198,6 +318,7 @@ function bindButtons(){
   grid.querySelectorAll('.btn-done').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ДОСТАВЕНО')));
   grid.querySelectorAll('.close').forEach(b=>b.addEventListener('click', ()=> deleteOrder(idOf(b))));
 }
+
 const idOf = (btn) => btn.dataset.id;
 
 async function changeStatus(id, targetStatus){
@@ -205,7 +326,6 @@ async function changeStatus(id, targetStatus){
     const o = orders.find(x=>x.id===id);
     if (!o) return;
 
-    // ❗ НЕОБРАТИМО: ако е ДОСТАВЕНО — блокирай всякаква промяна
     if ((o.status||'') === 'ДОСТАВЕНО'){
       alert('Тази поръчка вече е ДОСТАВЕНО и не може да се променя.');
       return;
@@ -213,16 +333,17 @@ async function changeStatus(id, targetStatus){
 
     await updateDoc(doc(db,'orders',id), { status: targetStatus });
 
+    logAction(`смени статус на поръчка #${id.slice(0,6)} → „${targetStatus}“`);
+
     // локално обнови
     o.status = targetStatus;
 
-    // ако току-що стана ДОСТАВЕНО и не сме във филтър „ДОСТАВЕНО“ → махни картата веднага
+    // ако току-що стана ДОСТАВЕНО и не сме във филтър „ДОСТАВЕНО“ → махни картата
     if (targetStatus === 'ДОСТАВЕНО' && selStatus.value !== 'ДОСТАВЕНО'){
       const card = grid.querySelector(`.card[data-id="${id}"]`);
       if (card) card.remove();
     }
-
-    render(); // ще скрие/покаже според филтъра
+    render();
   }catch(err){
     console.error(err);
     alert('Неуспешна промяна.');
@@ -236,12 +357,17 @@ async function deleteOrder(id){
 
     if ((o.status||'') === 'ДОСТАВЕНО'){
       const pwd = prompt('Парола за изтриване на ДОСТАВЕНА поръчка:');
-      if (pwd !== 'mitakathebest!'){ alert('❌ Грешна парола.'); return; }
+      if (pwd !== ADMIN_PASSWORD){
+        alert('❌ Грешна парола.');
+        return;
+      }
     } else if (!confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?')) return;
 
     await deleteDoc(doc(db,'orders',id));
     const card = grid.querySelector(`.card[data-id="${id}"]`);
     if(card) card.remove();
+
+    logAction(`изтри поръчка #${id.slice(0,6)}`);
   }catch(err){
     console.error(err);
     alert('Грешка при изтриване.');
