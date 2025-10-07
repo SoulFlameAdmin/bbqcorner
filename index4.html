@@ -46,6 +46,15 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
   border-radius:999px;background:#3a1515;border:1px solid #8a1f1f;color:#fff;font-weight:900;line-height:1;cursor:pointer
 }
 .close:hover{background:#4a1919;border-color:#b32626}
+
+/* 💡 Flash ефект за нови бележки */
+.note-flash {
+  animation: flashNote 2.5s ease-in-out;
+}
+@keyframes flashNote {
+  0% { background-color: rgba(255,122,0,.25); }
+  100% { background-color: transparent; }
+}
 </style>
 </head>
 <body>
@@ -72,8 +81,10 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
   <div id="emptyState" class="empty" style="display:none">Няма поръчки.</div>
 </div>
 
+<!-- 🔔 звук за нови поръчки -->
+<audio id="newOrderSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
 <script type="module">
-/* ========= ГАРД ЗА ДОСТЪП ========= */
 const verified = localStorage.getItem('adminVerified') === '1';
 if (!verified) {
   alert('❌ Нямаш достъп до админ панела. Моля, влез през началната страница.');
@@ -95,6 +106,7 @@ const deliveredSumE = document.getElementById('deliveredSum');
 const emptyE = document.getElementById('emptyState');
 const selStatus = document.getElementById('statusFilter');
 const searchBox = document.getElementById('searchBox');
+const sound = document.getElementById('newOrderSound');
 
 /* ===== Firebase ===== */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
@@ -112,14 +124,25 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* ===== Настройки за админ действия (само тук нужна парола при триене на ДОСТАВЕНО) ===== */
-const ADMIN_PASSWORD = 'mitakathebest!'; // смени при нужда
+/* ===== Настройки за админ действия ===== */
+const ADMIN_PASSWORD = 'mitakathebest!';
 
 /* ===== Реално време ===== */
 let orders = [];
+let firstLoad = true;
+
 const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
 onSnapshot(q, (snap)=>{
-  orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const newOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  // 🔔 открий нови
+  if (!firstLoad && newOrders.length > orders.length) {
+    sound.currentTime = 0;
+    sound.play().catch(()=>{});
+  }
+  firstLoad = false;
+
+  orders = newOrders;
   render();
 });
 
@@ -157,6 +180,7 @@ function render(){
     const when = fmtWhen(o.createdAt);
     const items = Array.isArray(o.items) ? o.items : [];
     const status = o.status || 'ПРЕГЛЕД';
+    const noteClass = o.note ? 'note-flash' : '';
 
     const statusBtns = status === 'ДОСТАВЕНО' ? '' : `
       <button class="btn btn-prev" data-id="${o.id}">ПРЕГЛЕД</button>
@@ -183,6 +207,9 @@ function render(){
           `).join('')}
         </div>
         <div class="total">Общо: ${lv(Number(o.total)||0)}</div>
+        ${o.note ? `<div class="addr ${noteClass}" style="margin-top:8px;color:#ffcf7a;">
+          📝 <strong>Бележка:</strong> ${escapeHTML(o.note)}
+        </div>` : ''}
         <div class="btns">${statusBtns}</div>
       </div>
     `;
@@ -219,10 +246,8 @@ async function changeStatus(id, targetStatus){
     }
 
     await updateDoc(doc(db,'orders',id), { status: targetStatus });
-
     o.status = targetStatus;
 
-    // Ако е ДОСТАВЕНО и филтърът не е "ДОСТАВЕНО" — махни картата
     if (targetStatus === 'ДОСТАВЕНО' && selStatus.value !== 'ДОСТАВЕНО'){
       const card = grid.querySelector(`.card[data-id="${id}"]`);
       if (card) card.remove();
@@ -256,11 +281,12 @@ async function deleteOrder(id){
   }
 }
 </script>
+
 <script>
 // === ГЛОБАЛЕН ТРАКЕР НА КЛИКОВЕ ЗА АДМИНИ ===
 (function(){
   const who = (localStorage.getItem('adminName') || '').trim();
-  if(!who) return; // не е логнат админ => не следим
+  if(!who) return;
 
   function logAction(text){
     const k = `logs_${who}`;
@@ -270,13 +296,11 @@ async function deleteOrder(id){
     arr.unshift(entry);
     localStorage.setItem(k, JSON.stringify(arr));
 
-    // регистрирай името, ако още не е в списъка
     const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
     known.add(who);
     localStorage.setItem('logs__admins', JSON.stringify([...known]));
   }
 
-  // следи всички кликове по документа
   document.addEventListener('click', e=>{
     let desc = '';
     if(e.target.closest('button, a, input, select')){
@@ -287,16 +311,12 @@ async function deleteOrder(id){
     } else {
       desc = `кликна на произволно място (${e.clientX}x${e.clientY})`;
     }
-
-    // запис на страницата
     const page = location.pathname.split('/').pop() || 'непозната страница';
     logAction(`${desc} [${page}]`);
   });
 
-  // запис при вход
   logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
 })();
 </script>
-
 </body>
 </html>
