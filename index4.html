@@ -147,7 +147,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 /* ======= AUTH + REMEMBER ME ======= */
-const ADMIN_PASSWORD = 'mitakathebest!'; // можеш да смениш
+const ADMIN_PASSWORD = 'mitakathebest!'; // смени при нужда
 const authEl = document.getElementById('auth');
 const pwdEl = document.getElementById('pwd');
 const rememberEl = document.getElementById('remember');
@@ -192,14 +192,24 @@ function doLogin(){
   logAction(`се логна`);
 }
 
-/* Авто-remember: ако вече е запомнен, не пита */
+/* === Форсиране на логин екрана при #forceAuth или ?auth=1 === */
 (function bootstrapAuth(){
+  const force = location.hash.includes('forceAuth') ||
+                new URLSearchParams(location.search).has('auth');
+
   const remembered = localStorage.getItem('adminRemembered') === '1';
   const savedName = (localStorage.getItem('adminName') || '').trim();
+
+  if (force) {
+    // винаги показвай overlay, независимо, че е запомнен
+    authEl.hidden = false;
+    pwdEl.focus();
+    return;
+  }
+
   if(remembered && savedName){
     CURRENT_ADMIN = savedName;
     authEl.hidden = true;
-    // автоматичен лог при отваряне
     logAction(`отвори админ панела`);
   }else{
     showAuth();
@@ -213,10 +223,9 @@ function logAction(text){
   const now = new Date();
   const entry = `${now.toLocaleString()} — ${who} ${text}`;
   const arr = JSON.parse(localStorage.getItem(k) || '[]');
-  arr.unshift(entry); // новото отгоре
+  arr.unshift(entry);
   localStorage.setItem(k, JSON.stringify(arr));
 
-  // списък с известни админи (за index5)
   const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
   known.add(who);
   localStorage.setItem('logs__admins', JSON.stringify([...known]));
@@ -238,15 +247,11 @@ function render(){
   const fStatus = selStatus.value;
   const queryTxt = (searchBox.value || '').trim().toLowerCase();
 
-  // оборот (Доставени)
   const deliveredSum = orders
     .filter(o => (o.status||'') === 'ДОСТАВЕНО')
     .reduce((s,o)=> s + (Number(o.total)||0), 0);
   deliveredSumE.textContent = lv(deliveredSum);
 
-  // логика на филтрите:
-  // "ALL" => всичко БЕЗ доставените
-  // "ДОСТАВЕНО" => само доставени
   let filtered = orders.filter(o=>{
     const s = (o.status||'');
     if (fStatus === 'ALL') return s !== 'ДОСТАВЕНО';
@@ -254,7 +259,6 @@ function render(){
     return s === fStatus;
   });
 
-  // търсене
   if (queryTxt){
     filtered = filtered.filter(o=>{
       const c = o.customer || {};
@@ -270,7 +274,6 @@ function render(){
     const items = Array.isArray(o.items) ? o.items : [];
     const status = o.status || 'ПРЕГЛЕД';
 
-    // бутони за статус (скрити за ДОСТАВЕНО)
     const statusBtns = status === 'ДОСТАВЕНО' ? '' : `
       <button class="btn btn-prev" data-id="${o.id}">ПРЕГЛЕД</button>
       <button class="btn btn-cook" data-id="${o.id}">ПРИГОТВЯ СЕ</button>
@@ -335,10 +338,8 @@ async function changeStatus(id, targetStatus){
 
     logAction(`смени статус на поръчка #${id.slice(0,6)} → „${targetStatus}“`);
 
-    // локално обнови
     o.status = targetStatus;
 
-    // ако току-що стана ДОСТАВЕНО и не сме във филтър „ДОСТАВЕНО“ → махни картата
     if (targetStatus === 'ДОСТАВЕНО' && selStatus.value !== 'ДОСТАВЕНО'){
       const card = grid.querySelector(`.card[data-id="${id}"]`);
       if (card) card.remove();
