@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Corner BBQ — Menu</title>
+
 <link rel="icon" type="image/png" href="/bbqsaitlogo.jpg">
 <link rel="apple-touch-icon" href="/bbqsaitlogo.jpg">
 <meta name="theme-color" content="#ff7a00">
@@ -26,28 +27,46 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
 html,body{height:100%}
-body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#111;background:#fff;
-  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+body{
+  margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#111;background:#fff;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)
+}
 img,picture,video,canvas,svg{max-width:100%;height:auto;display:block}
 a,button{touch-action:manipulation}
 .wrap{min-height:100dvh;display:flex;flex-direction:column}
 
 /* ===== HERO ===== */
-.hero{position:relative;height:72vh;padding:28px 60px;background:url("snimki/korica/korica.jpg") center/cover no-repeat;overflow:hidden;
-  filter:contrast(1.25) saturate(1.25) brightness(1.10);animation:zoomOut 3s ease-out forwards}
-.hero::before{content:"";position:absolute;inset:0;backdrop-filter:blur(4px);
-  background:linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.55) 80%, transparent)}
+.hero{
+  position:relative;height:72vh;padding:28px 60px;
+  background:url("snimki/korica/korica.jpg") center/cover no-repeat;overflow:hidden;
+  filter:contrast(1.25) saturate(1.25) brightness(1.10);animation:zoomOut 3s ease-out forwards
+}
+.hero::before{
+  content:"";position:absolute;inset:0;backdrop-filter:blur(4px);
+  background:linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.55) 80%, transparent)
+}
 .hero-inner{position:relative;z-index:1;max-width:1250px;margin:0 auto}
 @keyframes zoomOut{from{background-size:110%}to{background-size:100%}}
-.logo-card{position:relative;width:128px;height:128px;border-radius:20px;background:linear-gradient(180deg,#fff,#fafafa);
-  box-shadow:0 26px 44px rgba(0,0,0,.28),0 10px 22px rgba(0,0,0,.18),inset 0 1px 0 #ffffffcc;display:grid;place-items:center;margin:18px 0 12px 8px;border:1px solid var(--softBorder);
-  animation:floatY 6s ease-in-out infinite;will-change:transform}
+
+.logo-card{
+  position:relative;width:128px;height:128px;border-radius:20px;background:linear-gradient(180deg,#fff,#fafafa);
+  box-shadow:0 26px 44px rgba(0,0,0,.28),0 10px 22px rgba(0,0,0,.18),inset 0 1px 0 #ffffffcc;
+  display:grid;place-items:center;margin:18px 0 12px 8px;border:1px solid var(--softBorder);
+  animation:floatY 6s ease-in-out infinite;will-change:transform
+}
 .logo-card img{max-width:82%;max-height:82%;object-fit:contain}
-.logo-card::before{content:"";position:absolute;left:50%;bottom:-16px;width:76%;height:20px;transform:translateX(-50%);
-  background:radial-gradient(ellipse at center, rgba(0,0,0,.40) 0%, rgba(0,0,0,0) 65%);filter:blur(9px);opacity:.46;pointer-events:none;z-index:-1;animation:shadowPulse 6s ease-in-out infinite}
-.phone-banner{position:absolute;left:50%;transform:translateX(-50%);top:18px;z-index:3;font-weight:900;letter-spacing:.8px;text-transform:uppercase;
-  font-size:48px;line-height:1.05;margin:0;color:#fff;text-shadow:0 4px 10px rgba(0,0,0,.9),0 2px 1px rgba(255,255,255,.12)}
-@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}} @keyframes shadowPulse{0%,100%{transform:scale(1);opacity:.46}50%{transform:scale(.9);opacity:.36}}
+.logo-card::before{
+  content:"";position:absolute;left:50%;bottom:-16px;width:76%;height:20px;transform:translateX(-50%);
+  background:radial-gradient(ellipse at center, rgba(0,0,0,.40) 0%, rgba(0,0,0,0) 65%);
+  filter:blur(9px);opacity:.46;pointer-events:none;z-index:-1;animation:shadowPulse 6s ease-in-out infinite
+}
+.phone-banner{
+  position:absolute;left:50%;transform:translateX(-50%);top:18px;z-index:3;font-weight:900;letter-spacing:.8px;text-transform:uppercase;
+  font-size:48px;line-height:1.05;margin:0;color:#fff;text-shadow:0 4px 10px rgba(0,0,0,.9),0 2px 1px rgba(255,255,255,.12)
+}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes shadowPulse{0%,100%{transform:scale(1);opacity:.46}50%{transform:scale(.9);opacity:.36}}
+
 .tab-wrap{display:flex;justify-content:center;margin-top:-28px;position:relative;z-index:2}
 .tab-title{background:#fff;border-radius:16px;padding:10px 22px;font-weight:800;letter-spacing:.6px;color:#ff7a00;border:1px solid var(--softBorder);box-shadow:var(--shadow)}
 
@@ -56,9 +75,11 @@ a,button{touch-action:manipulation}
 .grid{max-width:1250px;margin:12px auto 36px;padding:0 16px;display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap)}
 @media (max-width:1100px){ .grid{grid-template-columns:repeat(8,1fr)} }
 @media (max-width:700px){ .grid{grid-template-columns:repeat(4,1fr); --gap:16px} }
-.card{position:relative;border-radius:var(--cardRadius);background:#fff;border:1px solid var(--softBorder);
+.card{
+  position:relative;border-radius:var(--cardRadius);background:#fff;border:1px solid var(--softBorder);
   box-shadow:0 2px 0 #ffffff, var(--shadow);overflow:hidden;height:240px;display:flex;align-items:flex-end;text-decoration:none;
-  transform-style:preserve-3d;transition:transform .28s cubic-bezier(.22,.8,.36,1), box-shadow .28s ease, filter .28s ease}
+  transform-style:preserve-3d;transition:transform .28s cubic-bezier(.22,.8,.36,1), box-shadow .28s ease, filter .28s ease
+}
 .card .img{position:absolute;inset:10px;border-radius:14px;background:#e9ecef;background-size:cover;background-position:center}
 .card::after{content:"";position:absolute;inset:10px;border-radius:14px;background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%);pointer-events:none}
 .card span{position:relative;z-index:1;margin:0 0 18px 22px;font-size:28px;font-weight:900;color:#fff;letter-spacing:.6px;text-shadow:0 2px 6px rgba(0,0,0,.9)}
@@ -76,16 +97,12 @@ a,button{touch-action:manipulation}
 @media (prefers-reduced-motion: reduce){ .hero{animation:none} .card{transition:none} }
 
 /* ===== Admin button ===== */
-.admin-btn{position:fixed;top:16px;right:20px;z-index:1100;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:#111;color:#fff;border:1px solid #ffffff1a;font-weight:900;cursor:pointer;box-shadow:var(--shadow)}
+.admin-btn{
+  position:fixed;top:16px;right:20px;z-index:1100;display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-radius:14px;background:#111;color:#fff;border:1px solid #ffffff1a;font-weight:900;cursor:pointer;box-shadow:var(--shadow)
+}
 
-/* ===== Admin PANEL overlay (iframe index4.html) ===== */
-.admin-overlay{position:fixed;inset:0;display:none;z-index:1300;background:rgba(0,0,0,.2);backdrop-filter:blur(20px)}
-.admin-overlay.show{display:block}
-.admin-panel{position:absolute;top:5vh;left:50%;transform:translateX(-50%);width:min(1200px,94vw);height:90vh;background:#0d0d0e;border-radius:18px;border:1px solid #ffffff1a;box-shadow:0 30px 80px rgba(0,0,0,.55);overflow:hidden}
-.admin-close{position:absolute;top:10px;right:12px;z-index:2;background:#111;border:1px solid #ffffff22;color:#fff;border-radius:10px;padding:6px 10px;cursor:pointer;font-weight:800}
-.admin-iframe{width:100%;height:100%;border:0;display:block;background:#111}
-
-/* ===== AUTH overlay (логинът от index4.html) ===== */
+/* ===== AUTH overlay (логин) ===== */
 :root{ --soft:#ffffff1a; --accent:#ff7a00; --text:#fff; }
 .auth{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:9999}
 .auth.show{display:flex}
@@ -98,6 +115,7 @@ a,button{touch-action:manipulation}
 .btn{background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
 .btn.primary{background:#ff7a00;border-color:transparent}
 .err{color:#ff9a9a;font-size:12px;margin-top:8px;display:none}
+.ok{color:#22cc88;font-weight:900;margin-top:8px}
 
 /* ==== Mobile polish ==== */
 @media (max-width:640px){
@@ -166,34 +184,32 @@ a,button{touch-action:manipulation}
 
 <button id="toTop" class="to-top" title="Към началото">↑</button>
 
-<!-- ===== AUTH OVERLAY (логинът от index4.html) ===== -->
+<!-- ===== AUTH OVERLAY (Име + Парола + Запомни ме) ===== -->
 <div id="auth" class="auth" aria-hidden="true">
   <div class="box">
     <h2>Админ достъп</h2>
+
+    <div class="field">
+      <label for="adminName">Име</label>
+      <input id="adminName" type="text" placeholder="Въведи име (напр. Иван)">
+    </div>
+
     <div class="field">
       <label for="pwd">Парола</label>
       <input id="pwd" type="password" placeholder="Въведи админ парола" autocomplete="current-password">
     </div>
+
     <div class="rowc">
       <input id="remember" type="checkbox">
       <label for="remember">Запомни ме на това устройство</label>
     </div>
-    <div id="nameWrap" class="field" style="display:none">
-      <label for="adminName">Име за този админ (напр. „admin ivan“)</label>
-      <input id="adminName" type="text" placeholder="Въведи име">
-    </div>
+
     <div class="actions">
       <button id="loginBtn" class="btn primary">Вход</button>
     </div>
-    <div id="err" class="err">❌ Грешна парола или липсва име.</div>
-  </div>
-</div>
 
-<!-- ===== Admin PANEL overlay (iframe към index4.html) ===== -->
-<div class="admin-overlay" id="adminOverlay" aria-hidden="true">
-  <div class="admin-panel">
-    <button class="admin-close" id="adminClose">X</button>
-    <iframe class="admin-iframe" id="adminFrame" src=""></iframe>
+    <div id="msg" class="ok" style="display:none">✅ Успешен вход като админ !</div>
+    <div id="err" class="err">❌ Грешна парола или липсва име.</div>
   </div>
 </div>
 
@@ -204,7 +220,7 @@ const toggle = () => toTop.style.display = scrollY > 300 ? 'grid' : 'none';
 toggle(); addEventListener('scroll', toggle);
 toTop.addEventListener('click', () => scrollTo({ top:0, behavior:'smooth' }));
 
-/* Kартинки за картите */
+/* Картинки за картите */
 const FILE_MAP={burgeri:'snimki/produkti/1menu/burger.jpg',palachinki:'snimki/produkti/1menu/palachinki.jpg',strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',kartofi:'snimki/produkti/1menu/kartofi.jpg',salati:'snimki/produkti/1menu/salata.jpg',portsii:'snimki/produkti/1menu/porciq.jpg',dobavki:'snimki/produkti/1menu/dobavki.jpg',hell:'snimki/produkti/1menu/hell.jpg',voda:'snimki/produkti/ВОДА/voda_snimka.jpg',gazirana_voda:'snimki/produkti/ГАЗИРАНА_ВОДА/gaziranavoda_snimka.jpg',fanta:'snimki/produkti/ФАНТА/fanta_logo.jpg',studen_chai:'snimki/produkti/СТУДЕН_ЧАЙ/studen_chai_logo.jpg',kola:'snimki/produkti/КОЛА/kola_logo.jpg',sok:'snimki/produkti/СОК/cappy_logo.jpg',xixo:'snimki/produkti/ХИХО/xixo_logo.jpg',airqn:'snimki/produkti/АЙРАН/vereq_logo.jpg'};
 document.querySelectorAll('[data-key]').forEach(el=>{
   const key=el.getAttribute('data-key'), path=FILE_MAP[key];
@@ -225,58 +241,75 @@ document.querySelectorAll('.card').forEach(card=>{
   window.addEventListener('pageshow',()=>{ card.classList.remove('is-pressed','is-popping'); delete card.dataset.locked; });
 });
 
-/* ===== ADMIN LOGIN from index4 ===== */
-const ADMIN_PASSWORD='bbqcornera123'; // смени
+/* ===== ADMIN LOGIN ===== */
+const ADMIN_PASSWORD='bbqcornera123';
+
 const adminBtn=document.getElementById('adminBtn');
 const authEl=document.getElementById('auth');
+const nameEl=document.getElementById('adminName');
 const pwdEl=document.getElementById('pwd');
 const rememberEl=document.getElementById('remember');
-const nameWrapEl=document.getElementById('nameWrap');
-const adminNameEl=document.getElementById('adminName');
 const loginBtn=document.getElementById('loginBtn');
 const errEl=document.getElementById('err');
+const msgEl=document.getElementById('msg');
 
-const adminOverlay=document.getElementById('adminOverlay');
-const adminFrame=document.getElementById('adminFrame');
-const adminClose=document.getElementById('adminClose');
+/* ако е запомнен — директно отвори панела */
+function openPanel(){ window.location.href='index4.html'; }
 
-adminBtn.addEventListener('click',()=>{ // покажи логина при клик
+adminBtn.addEventListener('click',()=>{
+  const remembered = localStorage.getItem('adminRemembered')==='1';
+  const savedName = (localStorage.getItem('adminName')||'').trim();
+
+  if(remembered && savedName){
+    // маркирай верифициран вход и отвори панела без парола
+    localStorage.setItem('adminVerified','1');
+    openPanel();
+    return;
+  }
+
+  // иначе покажи логина
   errEl.style.display='none';
-  pwdEl.value=''; adminNameEl.value=''; rememberEl.checked=false; nameWrapEl.style.display='none';
-  authEl.classList.add('show'); setTimeout(()=>pwdEl.focus(),0);
+  msgEl.style.display='none';
+  nameEl.value='';
+  pwdEl.value='';
+  rememberEl.checked=false;
+  authEl.classList.add('show');
+  setTimeout(()=>nameEl.focus(),0);
 });
-rememberEl.addEventListener('change',()=>{ nameWrapEl.style.display = rememberEl.checked ? 'block' : 'none'; });
-
-function openAdminPanel(){
-  // Ако предпочиташ redirect: window.location.href='index4.html';
-  adminFrame.src='index4.html';
-  adminOverlay.classList.add('show');
-}
 
 function doLogin(){
-  const okPwd = pwdEl.value.trim()===ADMIN_PASSWORD;
+  const name=(nameEl.value||'').trim();
+  const pwd=(pwdEl.value||'').trim();
   const remember = rememberEl.checked;
-  const name = remember ? (adminNameEl.value||'').trim() : (localStorage.getItem('adminName')||'').trim();
 
-  if(!okPwd || (remember && !name)){
+  if(!name || pwd!==ADMIN_PASSWORD){
+    msgEl.style.display='none';
+    errEl.textContent = !name ? '❌ Въведи име.' : '❌ Грешна парола.';
     errEl.style.display='block';
     return;
   }
-  errEl.style.display='none';
 
+  // успех
+  errEl.style.display='none';
+  msgEl.style.display='block';
+  localStorage.setItem('adminVerified','1');
+  localStorage.setItem('adminName', name);
   if(remember){
     localStorage.setItem('adminRemembered','1');
-    localStorage.setItem('adminName', name);
+  }else{
+    localStorage.removeItem('adminRemembered');
   }
-  authEl.classList.remove('show');
-  openAdminPanel(); // успешен вход → отвори панела
+
+  setTimeout(()=>{ authEl.classList.remove('show'); openPanel(); }, 900);
 }
 
 loginBtn.addEventListener('click', doLogin);
-pwdEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
-adminNameEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+nameEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); pwdEl.focus(); }});
+pwdEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doLogin(); }});
 
-adminClose.addEventListener('click',()=>{ adminOverlay.classList.remove('show'); });
+/* затваряне с Esc и клик извън кутията */
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') authEl.classList.remove('show'); });
+authEl.addEventListener('click', e=>{ if(e.target===authEl) authEl.classList.remove('show'); });
 </script>
 </body>
 </html>
