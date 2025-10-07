@@ -211,10 +211,11 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .order-btn:disabled{opacity:.5;cursor:not-allowed}
 
 /* =========================
-   ✅ MOBILE (≤900px) – FIXED SIDEBAR
+   ✅ MOBILE (≤900px) – FIXED SIDEBAR + SCROLL HIDE
    - Количката е НАД сайдбара (fixed)
    - Сайдбарът е FIXED под количката (не покрива продуктите)
-   - Контентът е отместен с padding-top = cart + sidebar
+   - Съдържанието е отместено под тях
+   - При скрол надолу сайдбарът изчезва, при скрол нагоре се връща
    ========================= */
 @media (max-width:900px){
   /* количката остава fixed горе вдясно */
@@ -224,10 +225,10 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
     z-index: 2000;
   }
 
-  /* сайдбар: правим го fixed под количката, на цял екран */
+  /* сайдбар: фиксиран под количката */
   .sidebar{
     position: fixed;
-    top: var(--mobile-cart-h);    /* точно под cart-btn */
+    top: var(--mobile-cart-h);
     left: 0;
     right: 0;
     width: 100%;
@@ -241,30 +242,53 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
     box-shadow: none;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x proximity;
-    z-index: 1200;               /* под cart-btn, над съдържанието */
+    z-index: 1200;
+    transition: transform 0.35s ease, opacity 0.35s ease, filter 0.35s ease;
   }
-  .sidebar::-webkit-scrollbar{ height:6px; }
-  .sidebar-inner{
-    flex-direction: row; gap:10px; align-items: stretch; min-width: max-content;
-  }
-  .cat{ min-width:140px; padding:8px; border-radius:16px; scroll-snap-align: start; }
-  .cat .box{ height:94px; border-radius:12px }
-  .cat .box::after{ padding:8px 10px; font-size:13px }
 
-  /* декоративни fade краища */
-  .sidebar::before, .sidebar::after{
-    content:""; position: sticky; top:0; height:100%; width:22px; z-index:2; pointer-events:none;
+  .sidebar::-webkit-scrollbar{ height:6px; }
+
+  .sidebar-inner{
+    flex-direction: row;
+    gap: 10px;
+    align-items: stretch;
+    min-width: max-content;
   }
-  .sidebar::before{ left:0; background:linear-gradient(90deg,#fff,rgba(255,255,255,0)); margin-left:-12px; }
-  .sidebar::after{ float:right; right:0; background:linear-gradient(270deg,#fff,rgba(255,255,255,0)); margin-right:-10px; }
+
+  .cat{ min-width:140px; padding:8px; border-radius:16px; scroll-snap-align:start; }
+  .cat .box{ height:94px; border-radius:12px; }
+  .cat .box::after{ padding:8px 10px; font-size:13px; }
+
+  /* fade индикатори отляво и отдясно */
+  .sidebar::before, .sidebar::after{
+    content:"";
+    position: sticky;
+    top:0;
+    height:100%;
+    width:22px;
+    z-index:2;
+    pointer-events:none;
+  }
+  .sidebar::before{
+    left:0;
+    background:linear-gradient(90deg,#fff,rgba(255,255,255,0));
+    margin-left:-12px;
+  }
+  .sidebar::after{
+    float:right;
+    right:0;
+    background:linear-gradient(270deg,#fff,rgba(255,255,255,0));
+    margin-right:-10px;
+  }
 
   /* съдържанието се отмества под количка + sidebar */
   .content{
     padding-top: calc(var(--mobile-cart-h) + var(--mobile-sidebar-h) + 16px);
-    padding-left:14px; padding-right:14px;
+    padding-left:14px;
+    padding-right:14px;
   }
 
-  /* home-pill да стои под количката, над сайдбара */
+  /* home-pill да стои под количката */
   .home-pill{
     position: fixed !important;
     top: calc(var(--mobile-cart-h) + 12px) !important;
@@ -272,11 +296,18 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
     z-index: 1500;
   }
 
+  /* анимация: скриване на sidebar при скрол надолу */
+  .sidebar.hide-on-scroll {
+    transform: translateY(-100%);
+    opacity: 0;
+    filter: blur(3px);
+  }
+
   /* дребни типографски корекции */
-  .h1{ font-size:22px; margin:10px 0 12px }
-  .sec-title{ font-size:22px; margin:12px 0 8px }
-  .price-badge .lv{ font-size:24px }
-  .price-badge .eur{ font-size:16px }
+  .h1{ font-size:22px; margin:10px 0 12px; }
+  .sec-title{ font-size:22px; margin:12px 0 8px; }
+  .price-badge .lv{ font-size:24px; }
+  .price-badge .eur{ font-size:16px; }
 }
 </style>
 </head>
@@ -972,6 +1003,36 @@ addEventListener('orientationchange', recalcMobileOffsets);
 /* ако съдържанието на сайдбара се промени динамично */
 const sbObserver = new MutationObserver(()=>recalcMobileOffsets());
 sbObserver.observe(document.getElementById('sidebar'), { childList:true, subtree:true });
+
+/* === Скриване/показване на sidebar при скрол === */
+let lastScrollY = window.scrollY;
+let ticking = false;
+
+function handleScrollHideSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+
+  const currentY = window.scrollY;
+
+  // ако скролваме надолу → скрий
+  if (currentY > lastScrollY + 10) {
+    sidebar.classList.add('hide-on-scroll');
+  }
+  // ако скролваме нагоре → покажи
+  else if (currentY < lastScrollY - 10) {
+    sidebar.classList.remove('hide-on-scroll');
+  }
+
+  lastScrollY = currentY;
+  ticking = false;
+}
+
+window.addEventListener('scroll', () => {
+  if (!ticking) {
+    window.requestAnimationFrame(handleScrollHideSidebar);
+    ticking = true;
+  }
+});
 
 </script>
 </body>
