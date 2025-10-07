@@ -1035,5 +1035,47 @@ window.addEventListener('scroll', () => {
 });
 
 </script>
+<script>
+// === ГЛОБАЛЕН ТРАКЕР НА КЛИКОВЕ ЗА АДМИНИ ===
+(function(){
+  const who = (localStorage.getItem('adminName') || '').trim();
+  if(!who) return; // не е логнат админ => не следим
+
+  function logAction(text){
+    const k = `logs_${who}`;
+    const now = new Date();
+    const entry = `${now.toLocaleString()} — ${who} ${text}`;
+    const arr = JSON.parse(localStorage.getItem(k) || '[]');
+    arr.unshift(entry);
+    localStorage.setItem(k, JSON.stringify(arr));
+
+    // регистрирай името, ако още не е в списъка
+    const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
+    known.add(who);
+    localStorage.setItem('logs__admins', JSON.stringify([...known]));
+  }
+
+  // следи всички кликове по документа
+  document.addEventListener('click', e=>{
+    let desc = '';
+    if(e.target.closest('button, a, input, select')){
+      const el = e.target.closest('button, a, input, select');
+      const tag = el.tagName.toLowerCase();
+      const label = el.innerText || el.value || el.id || '(без текст)';
+      desc = `кликна върху ${tag} → "${label.trim().slice(0,60)}"`;
+    } else {
+      desc = `кликна на произволно място (${e.clientX}x${e.clientY})`;
+    }
+
+    // запис на страницата
+    const page = location.pathname.split('/').pop() || 'непозната страница';
+    logAction(`${desc} [${page}]`);
+  });
+
+  // запис при вход
+  logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
+})();
+</script>
+
 </body>
 </html>

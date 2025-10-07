@@ -14,11 +14,13 @@ body{
   background:linear-gradient(120deg,#0b0c0d,#111317 55%,#0b0c0e);
 }
 .wrap{max-width:1100px; margin:0 auto; padding:24px}
-.top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+.top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
 .brand{display:flex; align-items:center; gap:12px}
 .brand img{width:40px; height:40px; border-radius:10px; object-fit:cover}
 .brand h1{font-size:20px; margin:0}
-.hint{color:var(--muted); font-size:13px}
+.hint{color:var(--muted); font-size:13px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+.pill{ display:inline-flex; gap:8px; align-items:center; font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--soft); color:#ddd; background:#ffffff08; }
+.pill b{color:#fff}
 
 /* grid за карти */
 .grid{ display:grid; gap:var(--gap); grid-template-columns: repeat(4, minmax(0,1fr)); }
@@ -41,27 +43,26 @@ body{
 
 /* viewer */
 .viewer{ margin-top:22px; background:#0b0c0e; border:1px solid var(--soft); border-radius:var(--radius); overflow:hidden; }
-.viewer .bar{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:#101214; border-bottom:1px solid var(--soft); }
+.viewer .bar{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:#101214; border-bottom:1px solid var(--soft); gap:10px; flex-wrap:wrap; }
 .viewer .bar .url{ color:#b9b9b9; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px }
 iframe{ width:100%; height:70vh; border:0; display:block; background:#fff }
 @media (max-width:600px){ iframe{ height:78vh } }
-.pill{ display:inline-flex; gap:8px; align-items:center; font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--soft); color:#ddd; background:#ffffff08; }
 
 /* === Admin Logs Panel === */
-.logsWrap{
-  margin-top:22px; display:grid; gap:14px; grid-template-columns: 260px 1fr;
-}
+.logsWrap{ margin-top:22px; display:grid; gap:14px; grid-template-columns: 260px 1fr; }
 @media (max-width:900px){ .logsWrap{ grid-template-columns: 1fr; } }
-.box{
-  background:#0f1114; border:1px solid var(--soft); border-radius:16px; padding:14px;
-}
+.box{ background:#0f1114; border:1px solid var(--soft); border-radius:16px; padding:14px; }
 .box h3{ margin:0 0 8px 0; color:#fff; font-size:16px }
 .list{ display:flex; flex-direction:column; gap:8px; max-height:360px; overflow:auto }
 .badge{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border:1px solid var(--soft); border-radius:12px; background:#121316; cursor:pointer; }
 .badge:hover{ border-color:#ffffff28 }
 .badge .name{ font-weight:700 }
-.loglines{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; color:#d9d9d9; line-height:1.35; white-space:pre-wrap; }
 .tools{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap }
+.toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+.toolbar input[type="search"]{ background:#121317; border:1px solid var(--soft); color:#fff; border-radius:10px; padding:8px 10px; font-size:13px; min-width:200px }
+.count{ color:#bdbdbd; font-size:12px; margin-left:auto }
+.loglines{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; color:#d9d9d9; line-height:1.35; white-space:pre-wrap; background:#0e1013; border:1px solid var(--soft); border-radius:12px; padding:10px; min-height:220px; }
+.small{font-size:12px; color:#a9a9a9}
 </style>
 </head>
 <body>
@@ -73,10 +74,14 @@ iframe{ width:100%; height:70vh; border:0; display:block; background:#fff }
     </div>
     <div class="hint">
       <span class="pill" id="devInfo">Устройство: …</span>
+      <span class="pill" id="whoAmI">Admin: <b>(не е влизал)</b></span>
     </div>
   </div>
 
-  <p class="hint">Тук събираме всички версии (<b>index.html</b>, <b>index2.html</b>, <b>index3.html</b>, <b>index4.html</b>) и показваме „Админ активност“ от локалните журнали.</p>
+  <p class="hint">
+    Тук събираме всички версии (<b>index.html</b>, <b>index2.html</b>, <b>index3.html</b>, <b>index4.html</b>)
+    и показваме „Админ активност“ от локалните журнали. <span class="small">Записите идват от <code>logAction(...)</code> в други страници.</span>
+  </p>
 
   <div class="grid" id="grid"></div>
 
@@ -98,10 +103,21 @@ iframe{ width:100%; height:70vh; border:0; display:block; background:#fff }
       <div id="admins" class="list"></div>
       <div class="tools">
         <button id="refreshAdmins" class="btn">Обнови</button>
+        <button id="showAll" class="btn">Покажи комбиниран журнал (всички)</button>
       </div>
     </div>
     <div class="box">
-      <h3 id="whoTitle">Журнал</h3>
+      <div style="display:flex; align-items:flex-end; gap:10px; justify-content:space-between;">
+        <h3 id="whoTitle">Журнал</h3>
+        <span class="count" id="linesCount">0 реда</span>
+      </div>
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Търси в журнала (напр. изтри, смени статус, влезе)…">
+        <label class="pill" style="cursor:pointer">
+          <input id="live" type="checkbox" style="margin-right:6px"> Live обновяване
+        </label>
+        <button id="exportCsv" class="btn">Експорт CSV</button>
+      </div>
       <div id="logs" class="loglines">Избери админ отляво.</div>
       <div class="tools">
         <button id="clearForUser" class="btn">Изчисти журнала на този админ</button>
@@ -119,11 +135,22 @@ const PAGES = [
   {file:'index4.html', title:'Index 4',         desc:'Админ панел (реално време).'}
 ];
 
-/* ---- помощни: устройство, видим размер, наличие на файл ---- */
+/* ---- устройство + текущ админ ---- */
 const isMobile = () => Math.max(screen.width, window.innerWidth) <= 640;
 const devInfo = document.getElementById('devInfo');
-devInfo.textContent = `Устройство: ${isMobile() ? 'Мобилен' : 'Десктоп/Таблет'} • ${window.innerWidth}×${window.innerHeight}`;
+const whoAmI = document.getElementById('whoAmI');
 
+function refreshDeviceInfo(){
+  devInfo.textContent = `Устройство: ${isMobile() ? 'Мобилен' : 'Десктоп/Таблет'} • ${window.innerWidth}×${window.innerHeight}`;
+}
+function refreshWho(){
+  const name = (localStorage.getItem('adminName') || '').trim();
+  whoAmI.innerHTML = `Admin: <b>${name || '(не е влизал)'}</b>`;
+}
+refreshDeviceInfo(); refreshWho();
+addEventListener('resize', refreshDeviceInfo);
+
+/* ---- helper за HEAD проверка ---- */
 async function exists(path){
   try{ const r = await fetch(path, {method:'HEAD', cache:'no-store'}); return r.ok; }
   catch{ return false; }
@@ -165,7 +192,7 @@ function openPreview(file){
   const urlBar = document.getElementById('viewerUrl');
   const openNew= document.getElementById('openNew');
   frame.src = './' + file;
-  urlBar.textContent = location.origin + location.pathname.replace(/index5\.html$/,'') + file;
+  urlBar.textContent = new URL('./' + file, location.href).href;
   openNew.href = './' + file;
   viewer.hidden = false;
 }
@@ -180,12 +207,17 @@ const logsEl = document.getElementById('logs');
 const whoTitleEl = document.getElementById('whoTitle');
 const clearBtn = document.getElementById('clearForUser');
 const refreshAdminsBtn = document.getElementById('refreshAdmins');
+const showAllBtn = document.getElementById('showAll');
+const searchBox = document.getElementById('search');
+const linesCount = document.getElementById('linesCount');
+const exportCsvBtn = document.getElementById('exportCsv');
+const liveChk = document.getElementById('live');
 
 let CURRENT_USER = null;
+let LIVE_TIMER = null;
 
 function getAdmins(){
   const arr = JSON.parse(localStorage.getItem('logs__admins') || '[]');
-  // премахни празни/дубликати устойчиво
   return [...new Set(arr.filter(x => String(x||'').trim() !== ''))].sort();
 }
 
@@ -205,22 +237,111 @@ function renderAdmins(){
   });
 }
 
+function readLogArrayFor(name){
+  return JSON.parse(localStorage.getItem(`logs_${name}`) || '[]');
+}
+
+function setCount(n){ linesCount.textContent = `${n} реда`; }
+
 function showLogs(name){
   CURRENT_USER = name;
   whoTitleEl.textContent = `Журнал — ${name}`;
-  const k = `logs_${name}`;
-  const lines = JSON.parse(localStorage.getItem(k) || '[]');
-  logsEl.textContent = lines.length ? lines.join('\n') : 'Няма записи.';
+  const lines = readLogArrayFor(name);
+  applyFilterAndRender(lines);
 }
 
+function showAllLogs(){
+  CURRENT_USER = '__ALL__';
+  whoTitleEl.textContent = 'Журнал — всички админи';
+  const users = getAdmins();
+  // комбинирай: [ "2025-01-01 12:00 — ivan ...", "..." ]
+  let merged = [];
+  users.forEach(u=>{
+    const arr = readLogArrayFor(u).map(s => s); // вече съдържа името в записа от logAction
+    merged = merged.concat(arr);
+  });
+  // по-новите първи (записваш .unshift, така че вече са така)
+  applyFilterAndRender(merged);
+}
+
+function applyFilterAndRender(lines){
+  const q = (searchBox.value || '').toLowerCase().trim();
+  let filtered = lines;
+  if(q){
+    filtered = lines.filter(x => x.toLowerCase().includes(q));
+  }
+  setCount(filtered.length);
+  logsEl.textContent = filtered.length ? filtered.join('\n') : 'Няма записи.';
+}
+
+searchBox.addEventListener('input', ()=>{
+  if(!CURRENT_USER){ return; }
+  if(CURRENT_USER === '__ALL__') showAllLogs();
+  else showLogs(CURRENT_USER);
+});
+
 clearBtn.addEventListener('click', ()=>{
-  if(!CURRENT_USER) return;
+  if(!CURRENT_USER || CURRENT_USER === '__ALL__') return;
   if(confirm(`Да изчистя журнала на „${CURRENT_USER}“?`)){
     localStorage.removeItem(`logs_${CURRENT_USER}`);
     showLogs(CURRENT_USER);
   }
 });
-refreshAdminsBtn.addEventListener('click', renderAdmins);
+refreshAdminsBtn.addEventListener('click', ()=>{
+  renderAdmins();
+  if(CURRENT_USER){
+    if(CURRENT_USER === '__ALL__') showAllLogs();
+    else showLogs(CURRENT_USER);
+  }
+});
+showAllBtn.addEventListener('click', showAllLogs);
+
+exportCsvBtn.addEventListener('click', ()=>{
+  if(!CURRENT_USER){ return; }
+  let lines = [];
+  if(CURRENT_USER === '__ALL__'){
+    getAdmins().forEach(u => lines = lines.concat(readLogArrayFor(u)));
+  }else{
+    lines = readLogArrayFor(CURRENT_USER);
+  }
+  if(!lines.length){ alert('Няма данни за експорт.'); return; }
+  const csv = 'data:text/csv;charset=utf-8,' + lines.map(l => `"${l.replace(/"/g,'""')}"`).join('\n');
+  const a = document.createElement('a');
+  a.href = encodeURI(csv);
+  a.download = `logs_${CURRENT_USER === '__ALL__' ? 'all' : CURRENT_USER}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+/* Live обновяване: storage събитие + опционален таймер (за еднотабов режим) */
+window.addEventListener('storage', (e)=>{
+  if(!e.key) return;
+  // интересуват ни logs__admins и logs_<user>
+  if(e.key === 'logs__admins' || e.key.startsWith('logs_') || e.key === 'adminName'){
+    refreshWho();
+    renderAdmins();
+    if(CURRENT_USER){
+      if(CURRENT_USER === '__ALL__') showAllLogs();
+      else showLogs(CURRENT_USER);
+    }
+  }
+});
+
+liveChk.addEventListener('change', ()=>{
+  if(liveChk.checked){
+    LIVE_TIMER = setInterval(()=>{
+      renderAdmins();
+      if(CURRENT_USER){
+        if(CURRENT_USER === '__ALL__') showAllLogs();
+        else showLogs(CURRENT_USER);
+      }
+    }, 1500);
+  }else{
+    clearInterval(LIVE_TIMER);
+    LIVE_TIMER = null;
+  }
+});
 
 /* init */
 renderPages();
