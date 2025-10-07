@@ -243,6 +243,14 @@ function bindButtons(){
 
 const idOf = (btn) => btn.dataset.id;
 
+/* 🚗 Автоматично Directions в Google Maps */
+function openInMaps(address){
+  if(!address){ alert('Адресът липсва.'); return; }
+  const encoded = encodeURIComponent(address.trim());
+  const url = `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encoded}`;
+  window.open(url, '_blank');
+}
+
 async function changeStatus(id, targetStatus){
   try{
     const o = orders.find(x=>x.id===id);
@@ -273,14 +281,6 @@ async function deleteOrder(id){
     const card = grid.querySelector(`.card[data-id="${id}"]`);
     if(card) card.remove();
   }catch(err){ console.error(err); alert('Грешка при изтриване.'); }
-}
-
-/* ===== 🚗 Отваряне в Google Maps ===== */
-function openInMaps(address){
-  if(!address){ alert('Адресът липсва.'); return; }
-  const encoded = encodeURIComponent(address);
-  const url = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
-  window.open(url, '_blank');
 }
 </script>
 
