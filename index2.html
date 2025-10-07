@@ -151,7 +151,7 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   padding:12px;text-align:center;
 }
 .tile img{width:100%;height:220px;object-fit:contain;display:block;border-radius:12px}
-.caption{margin-top:6px;font-weight:800;font-size:14px;textанк:center}
+.caption{margin-top:6px;font-weight:800;font-size:14px;text-align:center}
 .tile .price-badge{margin:10px auto 4px;display:block;text-align:center;border-radius:12px}
 .tile .add-btn{margin:10px auto 0;display:block}
 
@@ -203,7 +203,7 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   margin-top:14px;padding-top:12px;border-top:2px dashed var(--soft);
   display:flex;align-items:center;justify-content:space-between;font-weight:900;font-size:18px
 }
-.cart-actions{margin-top:12px;display:flex;ustify-content:flex-end}
+.cart-actions{margin-top:12px;display:flex;justify-content:flex-end}
 .order-btn{
   background:var(--accent);color:#fff;border:none;border-radius:12px;
   padding:12px 16px;font-weight:900;box-shadow:var(--shadow);cursor:pointer
@@ -274,12 +274,13 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
     background:linear-gradient(90deg,#fff,rgba(255,255,255,0));
     margin-left:-12px;
   }
-  .sidebar::after{
-    float:right;
-    right:0;
-    background:linear-gradient(270deg,#fff,rgba(255,255,255,0));
-    margin-right:-10px;
-  }
+.sidebar::after{
+  position: sticky;
+  right:0;
+  background:linear-gradient(270deg,#fff,rgba(255,255,255,0));
+  margin-right:-10px;
+}
+
 
   /* съдържанието се отмества под количка + sidebar */
   .content{
@@ -348,9 +349,9 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   <label for="orderNote" style="font-weight:900; color:#ff7a00; display:block; margin-bottom:6px;">
     Забележка към поръчката:
   </label>
-  <textarea id="orderNote" rows="3" placeholder="Добавете специални изисквания или бележка..."
-    style="width:100%; border:1px solid #ccc; border-radius:10px; padding:10px; font-family:inherit; resize:vertical;">
-  </textarea>
+<textarea id="orderNote" rows="3" placeholder="Добавете специални изисквания или бележка..."
+    style="width:100%; border:1px solid #ccc; border-radius:10px; padding:10px; font-family:inherit; resize:vertical;"></textarea>
+
 </div>
 
     <div class="cart-total" id="cartTotalRow" style="display:none">
@@ -459,16 +460,15 @@ function updateCartUI(){
 noteWrapper.style.display = CART.length > 0 ? 'block' : 'none';
 
   persistCartSnapshot();
-// 🔶 Бележка – запис и възстановяване
-orderNoteEl.addEventListener('input', () => {
-  localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
-});
+  orderNoteEl.addEventListener('input', () => {
+    localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+  });
+}
 
 function restoreOrderNote(){
   orderNoteEl.value = localStorage.getItem(LS_ORDER_NOTE) || '';
 }
 
-/* ====== Persist & Restore ====== */
 function persistCartSnapshot(){
   try{
     const itemsSnapshot = CART.map(({_id, name, price, img}) => ({_id, name, price, img}));
@@ -478,20 +478,28 @@ function persistCartSnapshot(){
   }catch(e){ console.warn('LS error:', e); }
 }
 
-function restoreCartFromLS(){
-  try{
+function restoreCartFromLS() {
+  try {
     const raw = localStorage.getItem(LS_CART_ITEMS);
     if (!raw) return;
-    const items = JSON.parse(raw);
-    if (Array.isArray(items)){
+
+    const items = JSON.parse(raw || '[]');
+    if (Array.isArray(items) && items.length > 0) {
       items.forEach(it => CART.push({
-        _id: it._id || (Date.now()+''+Math.random()),
-        name: it.name, price: Number(it.price)||0, img: it.img||''
+        _id: it._id || (Date.now() + '' + Math.random()),
+        name: it.name || 'Без име',
+        price: Number(it.price) || 0,
+        img: it.img || ''
       }));
-      updateCartUI();
-      restoreOrderNote();      // ← ДОБАВИ ТУК ТОЗИ РЕД
     }
-  }catch(e){ console.warn('Restore LS error:', e); }
+
+    // ✅ Възстанови UI и бележката само след като са заредени продуктите
+    updateCartUI();
+    restoreOrderNote();
+
+  } catch (e) {
+    console.warn('⚠️ Грешка при възстановяване на количката от LocalStorage:', e);
+  }
 }
 
 /* Отваряне/затваряне на модала */
@@ -937,6 +945,7 @@ initFromURL();
 
 /* Възстанови количката при първо зареждане (ако има предишна сесия) */
 restoreCartFromLS();
+restoreOrderNote();
 
 /* Събития за сайдбар картите */
 sidebar.querySelectorAll('.cat').forEach(catEl=>{
