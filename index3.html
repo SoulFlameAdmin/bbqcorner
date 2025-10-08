@@ -34,6 +34,7 @@ body {
   position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
   width: 475px;height: 625px;
 }
+
 /* Glow effects */
 .glow-layer-1, .glow-layer-2, .overlay-1, .overlay-2, .background-glow {
   position: absolute;inset: 0;border-radius: 24px;
@@ -49,6 +50,7 @@ body {
   filter: blur(32px);transform: scale(1.1);opacity: .3;z-index:-1;
   background: linear-gradient(-30deg,var(--electric-light-color),transparent,var(--electric-border-color));
 }
+
 /* Content */
 .content-container {
   position:absolute;inset:0;display:flex;flex-direction:column;
@@ -131,7 +133,7 @@ button:disabled{opacity:.6;cursor:not-allowed}
 
 <!-- Firebase + логика за изпращане -->
 <script type="module">
-/* ===== 1) Електрическа рамка ===== */
+/* ====== 1) Canvas анимация (без промени) ====== */
 class ElectricBorder {
   constructor(canvasId, options = {}) {
     this.canvas = document.getElementById(canvasId);
@@ -145,7 +147,7 @@ class ElectricBorder {
     this.frequency = options.frequency || 5;
     this.baseFlatness = options.baseFlatness || 0.2;
     this.displacement = options.displacement || 60;
-    this.speed = options.speed || 1.5;
+    this.speed = options.speed || 1;
     this.borderOffset = options.borderOffset || 60;
     this.borderRadius = options.borderRadius || 40;
     this.lineWidth = options.lineWidth || 1;
@@ -165,11 +167,11 @@ class ElectricBorder {
   getRoundedRectPoint(t,L,T,W,H,R){
     const SW=W-2*R,SH=H-2*R,CA=Math.PI*R/2,TP=2*SW+2*SH+4*CA;
     let d=t*TP,a=0;
-    if(d<=a+SW)return{x=L+R+(d-a),y:T};a+=SW;
+    if(d<=a+SW)return{x:L+R+(d-a),y:T};a+=SW;
     if(d<=a+CA)return this.corner(L+W-R,T+R,R,-Math.PI/2,Math.PI/2,(d-a)/CA);a+=CA;
-    if(d<=a+SH)return{x=L+W,y:T+R+(d-a)};a+=SH;
+    if(d<=a+SH)return{x:L+W,y:T+R+(d-a)};a+=SH;
     if(d<=a+CA)return this.corner(L+W-R,T+H-R,R,0,Math.PI/2,(d-a)/CA);a+=CA;
-    if(d<=a+SW)return{x=L+W-R-(d-a),y:T+H};a+=SW;
+    if(d<=a+SW)return{x:L+W-R-(d-a),y:T+H};a+=SW;
     if(d<=a+CA)return this.corner(L+R,T+H-R,R,Math.PI/2,Math.PI/2,(d-a)/CA);a+=CA;
     if(d<=a+SH)return{x:L,y:T+H-R-(d-a)};a+=SH;
     return this.corner(L+R,T+R,R,Math.PI,Math.PI/2,(d-a)/CA);}
@@ -190,18 +192,20 @@ class ElectricBorder {
   }
   start(){requestAnimationFrame(time=>this.draw(time));}
 }
-new ElectricBorder("electric-border-canvas",{color:"#ff7a00"});
+new ElectricBorder("electric-border-canvas",{color:"#ff7a00",speed:1.5,displacement:50});
 
-/* ===== 2) Количка (от index2) ===== */
+/* ====== 2) Ключове за количката от index2 ====== */
 const LS_CART_ITEMS = 'bbq_cart_items';
 const LS_CART_TOTAL = 'bbq_cart_total';
 
+/* Помощни */
 const $ = sel => document.querySelector(sel);
 const form = $('#orderForm');
 const successMsg = $('#successMsg');
 const cartNote = $('#cartNote');
 const submitBtn = $('#submitBtn');
 
+/* Зареди количката от localStorage; ако няма — върни към менюто */
 function readCart(){
   try{
     const items = JSON.parse(localStorage.getItem(LS_CART_ITEMS) || '[]');
@@ -210,11 +214,16 @@ function readCart(){
   }catch(_){ return {items:[], total:0}; }
 }
 const {items:cartItems, total:cartTotal} = readCart();
-cartNote.textContent = cartItems.length ? `Артикули: ${cartItems.length} • Общо: ${cartTotal.toFixed(2)} лв.` : 'Количката е празна. Върнете се към менюто.';
+if (!cartItems.length){
+  cartNote.textContent = 'Количката е празна. Върнете се към менюто.';
+}
 
-/* ===== 3) Firebase ===== */
+/* Покажи кратко инфо за общата сума */
+cartNote.textContent = cartItems.length ? `Артикули: ${cartItems.length} • Общо: ${cartTotal.toFixed(2)} лв.` : '';
+
+/* ====== 3) Firebase и Firestore ====== */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
@@ -225,20 +234,21 @@ const firebaseConfig = {
   appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
   measurementId: "G-FWBDL96GN0"
 };
+
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
-/* ===== 4) Създаване на поръчка с 4-цифрен КОД + пренасочване към index6 ===== */
+/* ====== 4) Изпращане на поръчка ====== */
 form.addEventListener('submit', async (e)=>{
   e.preventDefault();
-
   if (!cartItems.length){
-    alert('Количката е празна. Моля, добавете продукти.');
+    alert('Количката е празна. Моля, изберете продукти.');
+    redirectHome();
     return;
   }
 
-  const names   = $('#names').value.trim();
-  const phone   = $('#phone').value.trim();
+  const names = $('#names').value.trim();
+  const phone = $('#phone').value.trim();
   const address = $('#address').value.trim();
 
   if (names.length < 3){ return alert('Моля, въведете валидни имена.'); }
@@ -247,64 +257,56 @@ form.addEventListener('submit', async (e)=>{
 
   submitBtn.disabled = true;
 
-  const items = cartItems.map(it => ({ name: it.name, price: Number(it.price)||0, img: it.img || null }));
-  const total = Number(cartTotal) || items.reduce((s,x)=>s+Number(x.price||0),0);
-  const orderNote = localStorage.getItem('bbq_order_note') || localStorage.getItem('bbq_orderNote') || '';
+  const items = cartItems.map(it => ({
+    name: it.name,
+    price: Number(it.price)||0,
+    img: it.img || null
+  }));
+  const total = Number(cartTotal) || items.reduce((s,x)=>s+x.price,0);
+const orderNote = localStorage.getItem('bbq_order_note') || localStorage.getItem('bbq_orderNote') || '';
 
-  const payload = {
-    items,
-    total,
-    customer: { names, phone, address },
-    note: orderNote,
-    status: 'ПРЕГЛЕД',
-    prepEtaMin: 0,
-    deliveryEtaMin: 0,
-    canceledReason: '',
-    createdAt: serverTimestamp(),
-    source: (location.protocol === 'file:' ? 'desktop-file' : 'web')
-  };
-
-  // Генерирай уникален 4-цифрен код без колизии
-  async function generateUniqueCode(){
-    let code;
-    do{
-      code = Math.floor(1000 + Math.random() * 9000).toString();
-    } while ((await getDoc(doc(db,'orders',code))).exists());
-    return code;
-  }
+const order = {
+  items,
+  total,
+  customer: { names, phone, address },
+  note: orderNote,              // ✅ ДОБАВЕНА БЕЛЕЖКА
+  status: 'ПРЕГЛЕД',
+  createdAt: serverTimestamp(),
+  source: (location.protocol === 'file:' ? 'desktop-file' : 'web')
+};
 
   try{
-    const code = await generateUniqueCode();
-    await setDoc(doc(db,'orders',code), { ...payload, code });
+    const ref = await addDoc(collection(db, 'orders'), order);
 
-    // Запази кода локално
+    // почисти количката (за клиента)
     localStorage.removeItem(LS_CART_ITEMS);
     localStorage.removeItem(LS_CART_TOTAL);
-    localStorage.setItem('bbq_last_order_code', code);
-    localStorage.setItem('bbq_track_code', code);
+    localStorage.setItem('bbq_last_order_id', ref.id);
 
-    // Показване на успех + КОД, след това redirect към index6
-    successMsg.innerHTML = `✅ Поръчката е изпратена успешно!<br><br>Твоят код за проследяване е: <b>#${code}</b>`;
+    // покажи успех + пренасочи
     successMsg.classList.add('visible');
-
-    setTimeout(()=>{
-      const base = (location.protocol==='file:') ? 'index6.html' : new URL('index6.html', location.href).toString();
-      const url  = `${base}${base.includes('?')?'&':'?'}code=${encodeURIComponent(code)}`;
-      window.location.href = url;
-    }, 1400);
+    setTimeout(()=>redirectHome(), 2200);
   }catch(err){
     console.error(err);
-    alert('Възникна грешка при изпращане. Проверете връзката и опитайте пак.');
+    alert('Възникна грешка при изпращане. Проверете интернет връзката и опитайте пак.');
     submitBtn.disabled = false;
   }
 });
-</script>
 
+/* ====== 5) Пренасочване към началото ====== */
+function redirectHome(){
+  const target = (location.protocol === 'file:')
+    ? 'file:///E:/BBQ_SITE/index.html'
+    : 'index.html';
+  window.location.href = target;
+}
+</script>
 <script>
-/* === Локален лог на кликове за админи (по избор) === */
+// === ГЛОБАЛЕН ТРАКЕР НА КЛИКОВЕ ЗА АДМИНИ ===
 (function(){
   const who = (localStorage.getItem('adminName') || '').trim();
-  if(!who) return;
+  if(!who) return; // не е логнат админ => не следим
+
   function logAction(text){
     const k = `logs_${who}`;
     const now = new Date();
@@ -312,10 +314,14 @@ form.addEventListener('submit', async (e)=>{
     const arr = JSON.parse(localStorage.getItem(k) || '[]');
     arr.unshift(entry);
     localStorage.setItem(k, JSON.stringify(arr));
+
+    // регистрирай името, ако още не е в списъка
     const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
     known.add(who);
     localStorage.setItem('logs__admins', JSON.stringify([...known]));
   }
+
+  // следи всички кликове по документа
   document.addEventListener('click', e=>{
     let desc = '';
     if(e.target.closest('button, a, input, select')){
@@ -326,9 +332,13 @@ form.addEventListener('submit', async (e)=>{
     } else {
       desc = `кликна на произволно място (${e.clientX}x${e.clientY})`;
     }
+
+    // запис на страницата
     const page = location.pathname.split('/').pop() || 'непозната страница';
     logAction(`${desc} [${page}]`);
   });
+
+  // запис при вход
   logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
 })();
 </script>
