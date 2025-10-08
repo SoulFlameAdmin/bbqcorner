@@ -25,6 +25,32 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 }
 .filter input{min-width:240px}
 
+/* Inbox: Нова поръчка */
+.inbox{
+  background:#14161b;border:1px solid var(--soft);border-radius:14px;padding:12px;margin-bottom:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,.28)
+}
+.inboxHead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.inboxHead .dot{width:10px;height:10px;border-radius:999px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
+.inboxHead .ttl{font-weight:900;letter-spacing:.4px}
+.inboxList{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:1100px){.inboxList{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:700px){.inboxList{grid-template-columns:1fr}}
+.inboxCard{
+  background:#121316;border:1px solid var(--soft);border-radius:12px;padding:10px;display:grid;gap:6px
+}
+.inboxRow{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.code{font-weight:900}
+.meta{font-size:12px;opacity:.8}
+.inboxBtns{display:flex;gap:8px}
+.btnMini{
+  background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:6px 10px;
+  font-weight:800;cursor:pointer
+}
+.btnMini.ok{background:#1f2a1f;border-color:#2a5a2a}
+.btnMini.bad{background:#3a1515;border-color:#8a1f1f}
+.noteMini{font-size:13px;color:#cfd6df}
+
 /* Grid */
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
@@ -32,9 +58,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .empty{padding:22px;text-align:center;border:1px dashed var(--soft);border-radius:12px;opacity:.8}
 
 /* Two-column layout for CANCELED view */
-.split{
-  display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:flex-start
-}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:flex-start}
 @media (max-width:900px){ .split{ grid-template-columns:1fr } }
 .split .col{display:grid;grid-template-columns:1fr;gap:14px}
 .sectionTitle{font-weight:900;color:#cfd6df;opacity:.9;margin-bottom:6px}
@@ -72,9 +96,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .btn.bad{background:#3a1515;border-color:#8a1f1f}
 
 /* Inline inputs */
-.inline{
-  display:inline-flex;gap:6px;align-items:center;background:#181a1f;border:1px solid var(--soft);border-radius:10px;padding:6px 8px
-}
+.inline{display:inline-flex;gap:6px;align-items:center;background:#181a1f;border:1px solid var(--soft);border-radius:10px;padding:6px 8px}
 .inline input{
   width:64px;background:transparent;border:none;color:#fff;outline:none;font-weight:800;text-align:center
 }
@@ -115,7 +137,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
     <div class="header-right">
       <div class="filter">
         <select id="statusFilter" title="Филтър по статус">
-          <option value="ALL">Всички (без ДОСТАВЕНО/ОТКАЗАНА)</option>
+          <option value="ALL">Всички (без преглед/отказ/доставено)</option>
           <option value="ПРЕГЛЕД">ПРЕГЛЕД</option>
           <option value="ПРИГОТВЯ СЕ">ПРИГОТВЯ СЕ</option>
           <option value="ДОСТАВЯ СЕ">ДОСТАВЯ СЕ</option>
@@ -130,9 +152,19 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
   </div>
 
   <div class="topUtil">
-    <span class="kbd">ETA: въведи минути → Enter / излизане (auto-save)</span>
+    <span class="kbd">Инбокс „Нова поръчка“: Приеми / Откажи</span>
     <span class="kbd">Авто-отказ: 20 мин без приемане</span>
-    <span class="kbd">„ОТКАЗАНА“: ляво — изтекло време, дясно — отказана от админ</span>
+    <span class="kbd">ETA: въведи мин → Enter / blur (auto-save)</span>
+  </div>
+
+  <!-- INBOX: НОВА ПОРЪЧКА -->
+  <div id="inbox" class="inbox" style="display:none">
+    <div class="inboxHead">
+      <span class="dot"></span>
+      <div class="ttl">Нова поръчка</div>
+      <div class="meta" id="inboxCount">0 чакащи</div>
+    </div>
+    <div id="inboxList" class="inboxList"></div>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -157,7 +189,7 @@ const fmtWhen = ts => {
     return d.toLocaleString();
   } catch(_){ return ''; }
 };
-const esc = s => String(s||'').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const esc = s => String(s||'').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&gt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const MINUTES = m => m*60*1000;
 
 /* ===== DOM ===== */
@@ -169,11 +201,15 @@ const selStatus = document.getElementById('statusFilter');
 const searchBox = document.getElementById('searchBox');
 const sound = document.getElementById('newOrderSound');
 
+const inboxWrap = document.getElementById('inbox');
+const inboxList = document.getElementById('inboxList');
+const inboxCount = document.getElementById('inboxCount');
+
 /* ===== Firebase ===== */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
 import {
   getFirestore, collection, query, orderBy, onSnapshot,
-  doc, updateDoc, deleteDoc, setDoc
+  doc, updateDoc, deleteDoc, setDoc, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
 
@@ -207,6 +243,7 @@ let firstLoad = true;
 const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
 onSnapshot(q, (snap)=>{
   const newOrders = snap.docs.map(d => ({ id: d.id, code: d.id, ...d.data() }));
+  // звук само при нови
   if (!firstLoad && newOrders.length > orders.length) {
     sound.currentTime = 0; sound.play().catch(()=>{});
   }
@@ -215,10 +252,10 @@ onSnapshot(q, (snap)=>{
   render();
 });
 
-/* ===== Helpers for business rules ===== */
+/* ===== Helpers ===== */
 const isDelivered = o => (o.status||'') === 'ДОСТАВЕНО';
 const isCanceled  = o => (o.status||'') === 'ОТКАЗАНА';
-const isPending   = o => (o.status||'') === 'ПРЕГЛЕД'; // „неприета“
+const isPending   = o => (o.status||'') === 'ПРЕГЛЕД'; // неприета
 const isAutoReason = o => typeof o.canceledReason === 'string' && o.canceledReason.startsWith('⏲️ Автоматично');
 
 function createdDate(o){
@@ -233,9 +270,8 @@ function isTimedOut(o, limitMs = MINUTES(20)){
   return (Date.now() - d.getTime()) >= limitMs;
 }
 
-/* ===== Auto-cancel loop ===== */
+/* ===== Auto-cancel loop (20 мин без приемане) ===== */
 async function autoCancelTimedOut(){
-  // вземаме само „ПРЕГЛЕД“, създадени преди ≥20 мин
   const toCancel = orders.filter(o => isTimedOut(o));
   for (const o of toCancel){
     try{
@@ -251,7 +287,6 @@ async function autoCancelTimedOut(){
     }
   }
 }
-// стартирай и повтаряй на 30 сек
 autoCancelTimedOut();
 setInterval(autoCancelTimedOut, 30000);
 
@@ -260,6 +295,13 @@ selStatus.addEventListener('change', render);
 searchBox.addEventListener('input', render);
 
 function render(){
+  // INBOX: само „ПРЕГЛЕД“ (неприети)
+  const inboxData = orders.filter(o => isPending(o));
+  inboxWrap.style.display = inboxData.length ? 'block' : 'none';
+  inboxCount.textContent = `${inboxData.length} чакащи`;
+  inboxList.innerHTML = inboxData.map(renderInboxCard).join('');
+  bindInbox();
+
   const fStatus = selStatus.value;
   const qTxt = (searchBox.value || '').trim().toLowerCase();
 
@@ -270,9 +312,9 @@ function render(){
 
   let data = orders.slice();
 
-  // „Всички“ = без ДОСТАВЕНО и без ОТКАЗАНА
+  // В изглед „ALL“: скриваме ПРЕГЛЕД (те са в INBOX), и скриваме ДОСТАВЕНО/ОТКАЗАНА
   if (fStatus === 'ALL'){
-    data = data.filter(o => !isDelivered(o) && !isCanceled(o));
+    data = data.filter(o => !isPending(o) && !isDelivered(o) && !isCanceled(o));
   } else if (fStatus !== 'ALL'){
     data = data.filter(o => (o.status||'') === fStatus);
   }
@@ -288,7 +330,6 @@ function render(){
   countE.textContent = String(data.length);
   emptyE.style.display = data.length ? 'none' : 'block';
 
-  // Специален изглед за ОТКАЗАНА: 2 колони
   if (fStatus === 'ОТКАЗАНА'){
     const autoCanceled  = data.filter(o => isAutoReason(o));
     const adminCanceled = data.filter(o => !isAutoReason(o));
@@ -316,6 +357,46 @@ function render(){
   bindUI();
 }
 
+/* ===== INBOX card ===== */
+function renderInboxCard(o){
+  const names = esc(o.customer?.names || '');
+  const phone = esc(o.customer?.phone || '');
+  const code  = o.id;
+  const total = lv(Number(o.total)||0);
+  const note  = o.note ? esc(o.note) : '';
+  const when  = fmtWhen(o.createdAt);
+
+  return `
+    <div class="inboxCard" data-id="${code}">
+      <div class="inboxRow">
+        <div class="code">#${code} · ${names}</div>
+        <div class="meta">${when}</div>
+      </div>
+      <div class="inboxRow">
+        <div class="meta">☎ ${phone || '—'}</div>
+        <div class="meta">Общо: <b>${total}</b></div>
+      </div>
+      ${note ? `<div class="noteMini">📝 ${note}</div>` : ''}
+      <div class="inboxRow">
+        <div class="inboxBtns">
+          <button class="btnMini ok"  data-inbox-action="accept" data-id="${code}">Приеми</button>
+          <button class="btnMini bad" data-inbox-action="decline" data-id="${code}">Откажи</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function bindInbox(){
+  inboxList.querySelectorAll('[data-inbox-action="accept"]').forEach(b=>{
+    b.addEventListener('click', ()=> acceptOrder(b.dataset.id));
+  });
+  inboxList.querySelectorAll('[data-inbox-action="decline"]').forEach(b=>{
+    b.addEventListener('click', ()=> declineOrder(b.dataset.id));
+  });
+}
+
+/* ===== Main cards ===== */
 function renderCard(o){
   const when   = fmtWhen(o.createdAt);
   const items  = Array.isArray(o.items) ? o.items : [];
@@ -410,11 +491,7 @@ function bindUI(){
       const id = btn.dataset.id;
       const reason = prompt('Причина за отказ (ще се вижда при клиента):','🛑 Админ: отказано');
       if (!reason) return;
-      try{
-        await updateDoc(doc(db,'orders',id), { status:'ОТКАЗАНА', canceledReason: reason });
-      }catch{
-        await setDoc(doc(db,'orders',id), { status:'ОТКАЗАНА', canceledReason: reason }, { merge:true });
-      }
+      await declineOrder(id, reason);
     });
   });
 
@@ -480,6 +557,30 @@ function bindUI(){
       window.open(url,'_blank');
     });
   });
+}
+
+/* ===== Inbox actions ===== */
+async function acceptOrder(id){
+  try{
+    await setDoc(doc(db,'orders',id), {
+      status:'ПРИГОТВЯ СЕ',
+      acceptedAt: serverTimestamp()
+    }, { merge:true });
+  }catch(e){
+    console.error(e);
+    alert('Неуспешно приемане.');
+  }
+}
+async function declineOrder(id, reason='🛑 Админ: отказано'){
+  try{
+    await setDoc(doc(db,'orders',id), {
+      status:'ОТКАЗАНА',
+      canceledReason: reason
+    }, { merge:true });
+  }catch(e){
+    console.error(e);
+    alert('Неуспешен отказ.');
+  }
 }
 
 /* ===== CRUD ===== */
