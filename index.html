@@ -138,50 +138,47 @@ a,button{touch-action:manipulation}
 .err{color:#ff9a9a;font-size:12px;margin-top:8px;display:none}
 .ok{color:#22cc88;font-weight:900;margin-top:8px}
 
-/* MOBILE */
-/* === Мобилен: фиксирани бутони най-горе === */
-/* === Мобилен: фиксирани бутони най-горе === */
-@media (max-width:640px){
-  body{ scroll-padding-top: 140px; }
+/* === FINAL FIXED MOBILE BUTTONS === */
+@media screen and (max-width: 768px) {
+  :root { --safe-top: env(safe-area-inset-top, 0px); }
 
-  #reviewsBtn, .admin-btn, .track-btn{
+  body {
+    scroll-padding-top: 160px !important;
+    overscroll-behavior-y: contain;
+  }
+
+  #reviewsBtn,
+  .admin-btn,
+  .track-btn {
     position: fixed !important;
-    top: auto;
-    z-index: 2000;
+    z-index: 9999 !important;
     transform: translateZ(0);
+    will-change: transform;
+    transition: opacity 0.25s ease, transform 0.25s ease;
   }
 
-  :root{ --safe-top: env(safe-area-inset-top, 0px); }
-
-  #reviewsBtn{
-    top: calc(var(--safe-top) + 12px);
-    left: 12px;
+  #reviewsBtn {
+    top: calc(var(--safe-top) + 12px) !important;
+    left: 14px !important;
   }
 
-  .admin-btn{
-    top: calc(var(--safe-top) + 12px);
-    right: 12px;
-    padding: 8px 10px;
-    font-size: 12px;
-    border-radius: 12px;
+  .admin-btn {
+    top: calc(var(--safe-top) + 12px) !important;
+    right: 14px !important;
   }
 
-  .track-btn{
-    top: calc(var(--safe-top) + 56px);
-    right: 12px;
-    padding: 8px 10px;
-    font-size: 12px;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  .track-btn {
+    top: calc(var(--safe-top) + 60px) !important;
+    right: 14px !important;
   }
 
-  .hero{
-    height: 52vh;
-    background-position: center 75%;
-    padding-top: calc(var(--safe-top) + 70px);
+  /* Корекция на hero да не влиза под бутоните */
+  .hero {
+    margin-top: calc(var(--safe-top) + 100px) !important;
+    height: 54vh !important;
+    background-position: center 75% !important;
   }
 }
-
 
 /* ================= REVIEWS PANEL (вграден стил) ================= */
 #reviewsBtn{
