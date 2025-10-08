@@ -602,46 +602,53 @@ if (trackBtn) {
   }
 
   // Рендер + (админ) изтриване
-  function renderList(snap, isAdmin){
-    list.innerHTML = '';
-    if (snap.empty){
-      list.innerHTML = '<div class="smallMuted">Все още няма отзиви. Бъди първи!</div>';
-      return;
-    }
-    snap.forEach(d=>{
-      const r = d.data();
-      const safeText = (r.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); // XSS защита
-      const item = document.createElement('div');
-      item.className = 'reviewItem';
-      item.innerHTML = `
-        <div class="reviewHead">
-          <div>
-            <div class="reviewName">${r.name || 'Анонимен'}</div>
-            <div class="smallMuted">${r.date || ''}</div>
-          </div>
-          ${isAdmin ? `<button class="delBtn" data-id="${d.id}">✖</button>` : ''}
-        </div>
-        <div class="stars">${fmtStars(r.stars) || 'Няма оценка'}</div>
-        <div class="reviewText">${safeText || '<i style="color:#9aa0a6">(без текст)</i>'}</div>
-        <div class="reviewMeta">Оценка: ${r.stars?`${r.stars}/6`:'—'}</div>
-      `;
-      list.appendChild(item);
-    });
-
-    if (isAdmin){
-      list.querySelectorAll('.delBtn').forEach(b=>{
-        b.onclick = async () => {
-          if (!confirm('Да изтрия ли отзива?')) return;
-          try{
-            await deleteDoc(doc(db,'reviews', b.dataset.id));
-          }catch(e){
-            console.error(e);
-            alert('❌ Нямаш права за изтриване (влез с админ имейл).');
-          }
-        };
-      });
-    }
+function renderList(snap, isAdmin){
+  list.innerHTML = '';
+  if (snap.empty){
+    list.innerHTML = '<div class="smallMuted">Все още няма отзиви. Бъди първи!</div>';
+    return;
   }
+
+  snap.forEach(d=>{
+    const r = d.data();
+    const safeText = (r.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); // защита от XSS
+    const item = document.createElement('div');
+    item.className = 'reviewItem';
+    item.innerHTML = `
+      <div class="reviewHead">
+        <div>
+          <div class="reviewName">${r.name || 'Анонимен'}</div>
+          <div class="smallMuted">${r.date || ''}</div>
+        </div>
+        <button class="delBtn" data-id="${d.id}" title="Изтрий отзива">✖</button>
+      </div>
+      <div class="stars">${fmtStars(r.stars) || 'Няма оценка'}</div>
+      <div class="reviewText">${safeText || '<i style="color:#9aa0a6">(без текст)</i>'}</div>
+      <div class="reviewMeta">Оценка: ${r.stars?`${r.stars}/6`:'—'}</div>
+    `;
+    list.appendChild(item);
+  });
+
+  // === Изтриване с локална парола ===
+  list.querySelectorAll('.delBtn').forEach(b=>{
+    b.onclick = async ()=>{
+      const pass = prompt('Въведи админ парола за изтриване:');
+      if (pass !== 'cornerabbq123') {
+        alert('❌ Грешна парола!');
+        return;
+      }
+      if (!confirm('Сигурен ли си, че искаш да изтриеш този отзив?')) return;
+      try {
+        await deleteDoc(doc(db,'reviews', b.dataset.id));
+        alert('✅ Отзивът е изтрит.');
+      } catch(e) {
+        console.error(e);
+        alert('❌ Грешка при изтриване.');
+      }
+    };
+  });
+}
+
 
   // Живо четене
   const qRef = query(collection(db,'reviews'), orderBy('createdAt','desc'));
