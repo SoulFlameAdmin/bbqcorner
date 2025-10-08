@@ -31,6 +31,14 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 @media (max-width:700px){.grid{grid-template-columns:1fr}}
 .empty{padding:22px;text-align:center;border:1px dashed var(--soft);border-radius:12px;opacity:.8}
 
+/* Two-column layout for CANCELED view */
+.split{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:flex-start
+}
+@media (max-width:900px){ .split{ grid-template-columns:1fr } }
+.split .col{display:grid;grid-template-columns:1fr;gap:14px}
+.sectionTitle{font-weight:900;color:#cfd6df;opacity:.9;margin-bottom:6px}
+
 /* Card */
 .card{
   background:#121316;border:1px solid var(--soft);border-radius:16px;padding:14px;box-shadow:0 8px 28px rgba(0,0,0,.28);
@@ -87,6 +95,11 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .noteText{white-space:pre-wrap;word-wrap:break-word;font-size:14px;color:#e6edf3}
 .noteHint{font-size:12px;color:#9aa6b2;margin-left:auto}
 
+/* Reason tag */
+.reason{margin-top:8px;padding:8px 10px;border-radius:10px;background:#1a1d22;border:1px dashed #ffffff2a;color:#d9e2ee;font-size:13px}
+.reason.auto{background:#231a1a;border-color:#ff9a9a55;color:#ffbdbd}
+.reason.admin{background:#221f17;border-color:#ffd16655;color:#ffe3a1}
+
 /* Top utility bar */
 .topUtil{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .kbd{
@@ -102,7 +115,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
     <div class="header-right">
       <div class="filter">
         <select id="statusFilter" title="Филтър по статус">
-          <option value="ALL">Всички (без ДОСТАВЕНО)</option>
+          <option value="ALL">Всички (без ДОСТАВЕНО/ОТКАЗАНА)</option>
           <option value="ПРЕГЛЕД">ПРЕГЛЕД</option>
           <option value="ПРИГОТВЯ СЕ">ПРИГОТВЯ СЕ</option>
           <option value="ДОСТАВЯ СЕ">ДОСТАВЯ СЕ</option>
@@ -118,8 +131,8 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 
   <div class="topUtil">
     <span class="kbd">ETA: въведи минути → Enter / излизане (auto-save)</span>
-    <span class="kbd">Статуси: Преглед → Приготвя се → Доставя се → Доставено</span>
-    <span class="kbd">Бележка: само за четене (от клиента)</span>
+    <span class="kbd">Авто-отказ: 20 мин без приемане</span>
+    <span class="kbd">„ОТКАЗАНА“: ляво — изтекло време, дясно — отказана от админ</span>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -129,17 +142,23 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 <audio id="newOrderSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
 <script type="module">
-/* ===== Достъп (локален флаг) ===== */
+/* ===== Gate ===== */
 const verified = localStorage.getItem('adminVerified') === '1';
 if (!verified) {
   alert('❌ Нямаш достъп до админ панела. Моля, влез през началната страница.');
   window.location.href = 'index.html';
 }
 
-/* ===== Помощни ===== */
+/* ===== Utils ===== */
 const lv = n => (Number(n)||0).toFixed(2).replace('.',',')+' лв.';
-const fmtWhen = ts => { try{ if (!ts) return ''; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString(); } catch(_){ return ''; } };
+const fmtWhen = ts => {
+  try{ if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleString();
+  } catch(_){ return ''; }
+};
 const esc = s => String(s||'').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const MINUTES = m => m*60*1000;
 
 /* ===== DOM ===== */
 const grid = document.getElementById('grid');
@@ -171,7 +190,7 @@ const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 const auth = getAuth(app);
 
-/* === Анонимен вход (ако правилата го изискват) === */
+/* === Anonymous sign-in (if rules require) === */
 try{
   await new Promise(res => {
     const unsub = onAuthStateChanged(auth, user => { if (user) {unsub();res();} });
@@ -180,10 +199,11 @@ try{
   });
 }catch(_){}
 
-/* ===== Live зареждане ===== */
+/* ===== State ===== */
 let orders = [];
 let firstLoad = true;
 
+/* ===== Live feed ===== */
 const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
 onSnapshot(q, (snap)=>{
   const newOrders = snap.docs.map(d => ({ id: d.id, code: d.id, ...d.data() }));
@@ -195,7 +215,47 @@ onSnapshot(q, (snap)=>{
   render();
 });
 
-/* ===== Филтри и рендер ===== */
+/* ===== Helpers for business rules ===== */
+const isDelivered = o => (o.status||'') === 'ДОСТАВЕНО';
+const isCanceled  = o => (o.status||'') === 'ОТКАЗАНА';
+const isPending   = o => (o.status||'') === 'ПРЕГЛЕД'; // „неприета“
+const isAutoReason = o => typeof o.canceledReason === 'string' && o.canceledReason.startsWith('⏲️ Автоматично');
+
+function createdDate(o){
+  const ts = o.createdAt;
+  if (!ts) return null;
+  try{ return ts.toDate ? ts.toDate() : new Date(ts); }catch(_){ return null; }
+}
+function isTimedOut(o, limitMs = MINUTES(20)){
+  if (!isPending(o)) return false;
+  const d = createdDate(o);
+  if (!d) return false;
+  return (Date.now() - d.getTime()) >= limitMs;
+}
+
+/* ===== Auto-cancel loop ===== */
+async function autoCancelTimedOut(){
+  // вземаме само „ПРЕГЛЕД“, създадени преди ≥20 мин
+  const toCancel = orders.filter(o => isTimedOut(o));
+  for (const o of toCancel){
+    try{
+      await updateDoc(doc(db,'orders', o.id), {
+        status: 'ОТКАЗАНА',
+        canceledReason: '⏲️ Автоматично: изтекли 20 мин без приемане'
+      });
+    }catch{
+      await setDoc(doc(db,'orders', o.id), {
+        status: 'ОТКАЗАНА',
+        canceledReason: '⏲️ Автоматично: изтекли 20 мин без приемане'
+      }, { merge:true });
+    }
+  }
+}
+// стартирай и повтаряй на 30 сек
+autoCancelTimedOut();
+setInterval(autoCancelTimedOut, 30000);
+
+/* ===== Filters + Render ===== */
 selStatus.addEventListener('change', render);
 searchBox.addEventListener('input', render);
 
@@ -204,125 +264,158 @@ function render(){
   const qTxt = (searchBox.value || '').trim().toLowerCase();
 
   const deliveredSum = orders
-    .filter(o => (o.status||'') === 'ДОСТАВЕНО')
+    .filter(o => isDelivered(o))
     .reduce((s,o)=> s + (Number(o.total)||0), 0);
   deliveredSumE.textContent = lv(deliveredSum);
 
-  let filtered = orders.slice();
+  let data = orders.slice();
 
-  filtered = filtered.filter(o=>{
-    const s = (o.status||'');
-    if (fStatus === 'ALL') return s !== 'ДОСТАВЕНО';
-    return s === fStatus;
-  });
+  // „Всички“ = без ДОСТАВЕНО и без ОТКАЗАНА
+  if (fStatus === 'ALL'){
+    data = data.filter(o => !isDelivered(o) && !isCanceled(o));
+  } else if (fStatus !== 'ALL'){
+    data = data.filter(o => (o.status||'') === fStatus);
+  }
 
   if (qTxt){
-    filtered = filtered.filter(o=>{
+    data = data.filter(o=>{
       const c = o.customer || {};
-      const hay = [o.id, c.names, c.phone, c.address, o.note].join(' ').toLowerCase();
+      const hay = [o.id, c.names, c.phone, c.address, o.note, o.canceledReason].join(' ').toLowerCase();
       return hay.includes(qTxt);
     });
   }
 
-  countE.textContent = String(filtered.length);
-  emptyE.style.display = filtered.length ? 'none' : 'block';
+  countE.textContent = String(data.length);
+  emptyE.style.display = data.length ? 'none' : 'block';
 
-  grid.innerHTML = filtered.map(o=>{
-    const when   = fmtWhen(o.createdAt);
-    const items  = Array.isArray(o.items) ? o.items : [];
-    const status = o.status || 'ПРЕГЛЕД';
+  // Специален изглед за ОТКАЗАНА: 2 колони
+  if (fStatus === 'ОТКАЗАНА'){
+    const autoCanceled  = data.filter(o => isAutoReason(o));
+    const adminCanceled = data.filter(o => !isAutoReason(o));
 
-    // НЕ насилвай 0 – остави празно, ако липсва
-    const prep = (o.prepEtaMin ?? '');
-    const delv = (o.deliveryEtaMin ?? '');
-
-    const address = esc(o.customer?.address || '');
-    const names   = esc(o.customer?.names || '');
-    const phone   = esc(o.customer?.phone || '');
-    const code    = o.id;
-    const noteTxt = o.note || '';
-
-    return `
-      <div class="card" data-id="${code}">
-        <button class="close" title="Изтрий" data-id="${code}">×</button>
-
-        <div class="row">
-          <span class="badge">Код: #${code}</span>
-          <span class="small">${when}</span>
-          <span class="status" data-s="${status}">${status}</span>
+    grid.innerHTML = `
+      <div class="split">
+        <div>
+          <div class="sectionTitle">⏲️ Отказани заради изтекло време</div>
+          <div class="col" id="colAuto"></div>
         </div>
-
-        <div class="row"><strong>${names}</strong> <span class="small">(${phone})</span></div>
-        <div class="addr">📍 ${address || '(без адрес)'}</div>
-
-        <div class="items">
-          ${items.map(it=>`
-            <div class="item"><span>${esc(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>
-          `).join('')}
-        </div>
-
-        <div class="total">Общо: ${lv(Number(o.total)||0)}</div>
-
-        <div class="row" style="gap:10px;margin-top:10px;flex-wrap:wrap">
-          <div class="inline">
-            <label for="prep_${code}">Приготвяне</label>
-            <input id="prep_${code}" type="number" inputmode="numeric" min="1" step="1"
-                   value="${prep!=='' ? prep : ''}" data-type="prep" data-id="${code}">
-            <span class="small">мин</span>
-          </div>
-          <div class="inline">
-            <label for="deliv_${code}">Доставка</label>
-            <input id="deliv_${code}" type="number" inputmode="numeric" min="1" step="1"
-                   value="${delv!=='' ? delv : ''}" data-type="deliv" data-id="${code}">
-            <span class="small">мин</span>
-          </div>
-        </div>
-
-        <div class="noteWrap">
-          <div class="noteHead">
-            <strong>📝 Бележка от клиента</strong>
-            <span class="noteHint">само за четене</span>
-          </div>
-          <div class="noteBody">
-            <div class="noteText">${esc(noteTxt) || '<span class="small" style="opacity:.8">(няма бележка)</span>'}</div>
-          </div>
-        </div>
-
-        <div class="util" style="margin-top:10px">
-          <button class="btn" data-action="copy" data-code="${code}">📋 Копирай кода</button>
-          <button class="btn" data-action="link" data-code="${code}">🔗 Линк за клиента</button>
-          <button class="btn" data-action="maps" data-address="${address}">🚗 Достави</button>
-        </div>
-
-        <div class="btns">
-          ${status !== 'ДОСТАВЕНО' && status !== 'ОТКАЗАНА' ? `
-            <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${code}">ПРЕГЛЕД</button>
-            <button class="btn ok"  data-action="s" data-target="ПРИГОТВЯ СЕ"  data-id="${code}">ПРИГОТВЯ СЕ</button>
-            <button class="btn warn"data-action="s" data-target="ДОСТАВЯ СЕ"   data-id="${code}">ДОСТАВЯ СЕ</button>
-            <button class="btn ok"  data-action="s" data-target="ДОСТАВЕНО"    data-id="${code}">ДОСТАВЕНО</button>
-            <button class="btn bad" data-action="cancel" data-id="${code}">ОТКАЗАНА</button>
-          ` : `
-            <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${code}">ПРЕГЛЕД</button>
-            <button class="btn bad" data-action="cancel" data-id="${code}">ОТКАЗАНА</button>
-          `}
+        <div>
+          <div class="sectionTitle">🛑 Отказани от админ</div>
+          <div class="col" id="colAdmin"></div>
         </div>
       </div>
     `;
-  }).join('');
+    const colAuto  = document.getElementById('colAuto');
+    const colAdmin = document.getElementById('colAdmin');
+    colAuto.innerHTML  = autoCanceled.map(renderCard).join('');
+    colAdmin.innerHTML = adminCanceled.map(renderCard).join('');
+  } else {
+    grid.innerHTML = data.map(renderCard).join('');
+  }
 
   bindUI();
 }
 
-/* ===== Свързване на събития ===== */
+function renderCard(o){
+  const when   = fmtWhen(o.createdAt);
+  const items  = Array.isArray(o.items) ? o.items : [];
+  const status = o.status || 'ПРЕГЛЕД';
+  const prep   = Number(o.prepEtaMin)||0;
+  const delv   = Number(o.deliveryEtaMin)||0;
+  const address= esc(o.customer?.address || '');
+  const names  = esc(o.customer?.names || '');
+  const phone  = esc(o.customer?.phone || '');
+  const code   = o.id;
+  const noteTxt= o.note || '';
+  const reason = o.canceledReason || '';
+  const reasonClass = isAutoReason(o) ? 'auto' : 'admin';
+
+  return `
+    <div class="card" data-id="${code}">
+      <button class="close" title="Изтрий" data-id="${code}">×</button>
+      <div class="row">
+        <span class="badge">Код: #${code}</span>
+        <span class="small">${when}</span>
+        <span class="status" data-s="${status}">${status}</span>
+      </div>
+
+      <div class="row"><strong>${names}</strong> <span class="small">(${phone})</span></div>
+      <div class="addr">📍 ${address || '(без адрес)'}</div>
+
+      <div class="items">
+        ${items.map(it=>`
+          <div class="item"><span>${esc(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>
+        `).join('')}
+      </div>
+
+      <div class="total">Общо: ${lv(Number(o.total)||0)}</div>
+
+      <div class="row" style="gap:10px;margin-top:10px;flex-wrap:wrap">
+        <div class="inline">
+          <label for="prep_${code}">Приготвяне</label>
+          <input id="prep_${code}" type="number" inputmode="numeric" min="0" step="1" value="${prep}" data-type="prep" data-id="${code}">
+          <span class="small">мин</span>
+        </div>
+        <div class="inline">
+          <label for="deliv_${code}">Доставка</label>
+          <input id="deliv_${code}" type="number" inputmode="numeric" min="0" step="1" value="${delv}" data-type="deliv" data-id="${code}">
+          <span class="small">мин</span>
+        </div>
+      </div>
+
+      <div class="noteWrap">
+        <div class="noteHead">
+          <strong>📝 Бележка от клиента</strong>
+          <span class="noteHint">само за четене</span>
+        </div>
+        <div class="noteBody">
+          <div class="noteText">${esc(noteTxt) || '<span class="small" style="opacity:.8">(няма бележка)</span>'}</div>
+        </div>
+      </div>
+
+      ${isCanceled(o) ? `<div class="reason ${reason ? reasonClass : ''}">${reason ? esc(reason) : 'Отказана'}</div>` : ''}
+
+      <div class="util" style="margin-top:10px">
+        <button class="btn" data-action="copy" data-code="${code}">📋 Копирай кода</button>
+        <button class="btn" data-action="link" data-code="${code}">🔗 Линк за клиента</button>
+        <button class="btn" data-action="maps" data-address="${address}">🚗 Достави</button>
+      </div>
+
+      <div class="btns">
+        ${(status!=='ДОСТАВЕНО' && status!=='ОТКАЗАНА') ? `
+          <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${code}">ПРЕГЛЕД</button>
+          <button class="btn ok"  data-action="s" data-target="ПРИГОТВЯ СЕ"  data-id="${code}">ПРИГОТВЯ СЕ</button>
+          <button class="btn warn"data-action="s" data-target="ДОСТАВЯ СЕ"   data-id="${code}">ДОСТАВЯ СЕ</button>
+          <button class="btn ok"  data-action="s" data-target="ДОСТАВЕНО"    data-id="${code}">ДОСТАВЕНО</button>
+          <button class="btn bad" data-action="cancel" data-id="${code}">ОТКАЗАНА</button>
+        ` : `
+          <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${code}">ПРЕГЛЕД</button>
+          <button class="btn bad" data-action="cancel" data-id="${code}">ОТКАЗАНА</button>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+/* ===== Bindings ===== */
 function bindUI(){
   // Промяна на статус
   grid.querySelectorAll('[data-action="s"]').forEach(btn=>{
     btn.addEventListener('click', ()=> changeStatus(btn.dataset.id, btn.dataset.target));
   });
 
-  // Отказ
+  // Отказ (ръчен)
   grid.querySelectorAll('[data-action="cancel"]').forEach(btn=>{
-    btn.addEventListener('click', ()=> cancelOrder(btn.dataset.id));
+    btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.id;
+      const reason = prompt('Причина за отказ (ще се вижда при клиента):','🛑 Админ: отказано');
+      if (!reason) return;
+      try{
+        await updateDoc(doc(db,'orders',id), { status:'ОТКАЗАНА', canceledReason: reason });
+      }catch{
+        await setDoc(doc(db,'orders',id), { status:'ОТКАЗАНА', canceledReason: reason }, { merge:true });
+      }
+    });
   });
 
   // Изтриване
@@ -330,19 +423,19 @@ function bindUI(){
     b.addEventListener('click', ()=> deleteOrder(b.dataset.id));
   });
 
-  // ETA (приготвяне/доставка): blur, Enter и debounce запис
+  // ETA save (blur, Enter, debounce input)
   const debouncers = new Map();
   const doSave = async (id, type, val, inpEl) => {
     const raw = String(val ?? '').trim();
-    if (raw === '') return;                  // не записвай празно => не нулирай
+    if (raw === '') return;
     let v = parseInt(raw, 10);
     if (Number.isNaN(v)) return;
-    v = Math.max(1, v);                      // минимум 1 минута
+    v = Math.max(0, v);
     const patch = (type === 'prep') ? { prepEtaMin: v } : { deliveryEtaMin: v };
     try{ await updateDoc(doc(db,'orders',id), patch); }
     catch{ await setDoc(doc(db,'orders',id), patch, { merge:true }); }
-    inpEl.value = String(v);                 // нормализирай
-    inpEl.style.borderColor = '#4cff84';     // feedback
+    inpEl.value = String(v);
+    inpEl.style.borderColor = '#4cff84';
     setTimeout(()=> inpEl.style.borderColor='', 900);
   };
 
@@ -360,11 +453,11 @@ function bindUI(){
     });
   });
 
-  // Утилити: копиране/линк/карта
+  // Утилити
   grid.querySelectorAll('[data-action="copy"]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       const code = b.dataset.code;
-      try{ await navigator.clipboard.writeText(code); b.textContent='✔ Копирано'; setTimeout(()=>b.textContent='📋 Копирай кода',1200); }
+      try{ await navigator.clipboard.writeText(code); b.textContent='✔ Копирано'; setTimeout(()=>b.textContent='📋 Копирай кода',1200);}
       catch{ alert('Копирайте ръчно: '+code); }
     });
   });
@@ -374,7 +467,7 @@ function bindUI(){
       const code = b.dataset.code;
       const base = (location.protocol==='file:') ? 'index6.html' : new URL('index6.html', location.href).toString();
       const url = (base.includes('?')?base:base) + (base.includes('?')?'&':'?') + 'code=' + encodeURIComponent(code);
-      try{ await navigator.clipboard.writeText(url); b.textContent='✔ Линк копиран'; setTimeout(()=>b.textContent='🔗 Линк за клиента',1200); }
+      try{ await navigator.clipboard.writeText(url); b.textContent='✔ Линк копиран'; setTimeout(()=>b.textContent='🔗 Линк за клиента',1200);}
       catch{ prompt('Копирай линка:', url); }
     });
   });
@@ -389,10 +482,9 @@ function bindUI(){
   });
 }
 
-/* ===== Операции (CRUD) ===== */
+/* ===== CRUD ===== */
 async function changeStatus(id, targetStatus){
   try{
-    // НЕ трием ETA полета автоматично (без deleteField), за да не се нулират
     await updateDoc(doc(db,'orders',id), { status: targetStatus });
   }catch(err){
     try{
@@ -400,21 +492,6 @@ async function changeStatus(id, targetStatus){
     }catch(e){
       console.error(e);
       alert('Неуспешна промяна на статус.');
-    }
-  }
-}
-
-async function cancelOrder(id){
-  try{
-    const reason = prompt('Причина за отказ:');
-    if (!reason) return;
-    await updateDoc(doc(db,'orders',id), { status:'ОТКАЗАНА', canceledReason: reason });
-  }catch(err){
-    try{
-      await setDoc(doc(db,'orders',id), { status:'ОТКАЗАНА', canceledReason: reason }, { merge:true });
-    }catch(e){
-      console.error(e);
-      alert('Неуспешен отказ.');
     }
   }
 }
@@ -427,7 +504,7 @@ async function deleteOrder(id){
   }catch(err){ console.error(err); alert('Грешка при изтриване.'); }
 }
 
-/* ===== Локален лог на кликове (по избор) ===== */
+/* ===== Local click log (optional) ===== */
 (function(){
   const who = (localStorage.getItem('adminName') || '').trim();
   if(!who) return;
