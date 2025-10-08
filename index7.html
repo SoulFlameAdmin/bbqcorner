@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Corner BBQ — Промоции</title>
+<link rel="icon" type="image/png" href="/bbqsaitlogo.jpg">
+<link rel="apple-touch-icon" href="/bbqsaitlogo.jpg">
+<meta name="theme-color" content="#ff7a00">
+<style>
+  :root{
+    --bg:#0e0f10; --panel:#15161a; --soft:#ffffff14; --text:#fff; --muted:#a5adb7; --accent:#ff7a00;
+    --radius:18px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:linear-gradient(180deg,#0009,transparent);backdrop-filter:blur(6px)}
+  .title{font-weight:900;letter-spacing:.3px;color:var(--accent)}
+  .btn{border:1px solid #ffffff1f;background:#ffffff14;color:#fff;border-radius:12px;padding:8px 12px;cursor:pointer}
+  .wrap{max-width:1300px;margin:0 auto;padding:16px}
+
+  /* ПУБЛИЧНА ЧАСТ: големи промо карти с изображения */
+  .promo-grid{display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:900px){ .promo-grid{grid-template-columns:1fr 1fr} }
+  .promo-card{
+    position:relative;display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:260px;
+    background:linear-gradient(180deg,#111, #0c0d10);border:1px solid #ffffff18;border-radius:var(--radius);overflow:hidden;
+    box-shadow:0 16px 50px rgba(0,0,0,.35)
+  }
+  .promo-img{position:relative;isolation:isolate}
+  .promo-img img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.05) contrast(1.02)}
+  .promo-overlay{
+    position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%, rgba(0,0,0,.55) 100%);
+  }
+  .promo-tag{
+    position:absolute;top:10px;left:10px;background:#ffffff16;border:1px solid #ffffff2a;padding:6px 10px;border-radius:999px;font-size:12px;backdrop-filter:blur(4px)
+  }
+  .promo-info{
+    position:absolute;left:10px;right:10px;bottom:10px;display:flex;flex-direction:column;gap:2px
+  }
+  .promo-name{font-weight:800;text-shadow:0 2px 14px #000}
+  .promo-desc{font-size:12px;color:#e3e6ebcc;text-shadow:0 2px 8px #000}
+
+  .promo-price{
+    position:absolute;top:12px;right:12px;background:linear-gradient(180deg,#ff8a2a,#ff7a00);
+    border:0;color:#111;font-weight:900;border-radius:14px;padding:10px 12px;box-shadow:0 10px 26px rgba(255,122,0,.45)
+  }
+  .promo-plus{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    background:#000d;border:1px solid #ffffff2a;color:#fff;font-weight:900;border-radius:12px;padding:6px 9px;
+    box-shadow:0 10px 26px rgba(0,0,0,.5)
+  }
+
+  /* БИЛДЕР (видим само за admin) */
+  .builder{margin-top:18px;background:#13151a;border:1px solid #ffffff22;border-radius:var(--radius);padding:12px;display:none}
+  .builder-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .rows{display:grid;gap:12px}
+  .row{display:grid;grid-template-columns:1fr 54px 1fr 140px;gap:12px;align-items:stretch}
+  .drop{
+    min-height:86px;border:2px dashed #ffffff2f;border-radius:14px;background:#0c0e12;padding:8px;display:flex;gap:8px;flex-wrap:wrap;align-content:flex-start
+  }
+  .chip{
+    display:flex;gap:8px;align-items:center;background:#20232b;border:1px solid #ffffff22;border-radius:12px;padding:6px 8px
+  }
+  .chip img{width:36px;height:36px;border-radius:10px;object-fit:cover}
+  .chip .meta{display:flex;flex-direction:column;line-height:1.05}
+  .chip .nm{font-weight:700}
+  .chip .ds{font-size:12px;color:#cbd3ddaa}
+  .chip .x{cursor:pointer;opacity:.75;margin-left:4px}
+  .pluscell{display:flex;align-items:center;justify-content:center;font-weight:900;opacity:.8}
+  .price-input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #ffffff22;background:#0c0e12;color:#fff;font-weight:800}
+  .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+
+  /* ДЕСЕН SLIDEBAR каталог (Admin) */
+  .slide{position:fixed;top:0;right:0;height:100dvh;width:360px;max-width:92vw;background:#14171d;border-left:1px solid #ffffff22;
+         transform:translateX(100%);transition:transform .28s ease;z-index:30;display:flex;flex-direction:column}
+  .slide.open{transform:translateX(0)}
+  .slide-head{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid #ffffff1e}
+  .slide-search{padding:10px 12px;border:1px solid #ffffff22;background:#0c0e12;color:#fff;border-radius:12px;margin:10px}
+  .catalog{flex:1;overflow:auto;padding:10px;display:grid;gap:10px}
+  .product{display:flex;gap:10px;align-items:center;background:#0f1116;border:1px solid #ffffff1a;border-radius:14px;padding:8px;cursor:grab}
+  .product img{width:56px;height:56px;border-radius:12px;object-fit:cover}
+  .product .meta{display:flex;flex-direction:column;gap:2px}
+  .product .nm{font-weight:800}
+  .product .ds{font-size:12px;color:#cbd3ddaa}
+  .product .pr{font-weight:800}
+  .hint{font-size:12px;color:#cbd3dd99;padding:0 12px 10px}
+
+  .toast{position:fixed;bottom:16px;right:16px;background:#111;border:1px solid #ffffff24;color:#fff;border-radius:12px;padding:10px 12px;display:none;z-index:50}
+</style>
+</head>
+<body>
+  <header>
+    <div class="title">🔥 Corner BBQ — Промоции</div>
+    <div style="display:flex;gap:8px">
+      <button id="adminBtn" class="btn">Admin</button>
+      <button id="catalogBtn" class="btn" title="Каталог">Каталог</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <h2 style="margin:0 0 8px 0">Текущи промоции</h2>
+    <div class="promo-grid" id="promoGrid"></div>
+
+    <!-- Билдер за админ -->
+    <section id="builder" class="builder">
+      <div class="builder-head">
+        <strong>Създай промо пакет</strong>
+        <span class="hint">Плъзни продукт в поле A и поле B, въведи цена и „Запази“.</span>
+      </div>
+      <div class="rows" id="rows"></div>
+      <div class="actions">
+        <button class="btn" id="addRow">+ Ред</button>
+        <button class="btn" id="save">Запази</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Десен slide-in каталог -->
+  <aside id="slide" class="slide" aria-hidden="true">
+    <div class="slide-head">
+      <strong>Каталог продукти</strong>
+      <button class="btn" id="closeSlide">✕</button>
+    </div>
+    <input id="search" class="slide-search" placeholder="Търси: бургер, Hell…">
+    <div class="hint">Drag & drop към поле A или B.</div>
+    <div id="catalog" class="catalog"></div>
+  </aside>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <script>
+    // === Firebase init ===
+    const firebaseConfig = {
+      /* ПОСТАВИ РЕАЛНИЯ ТИ CONFIG */
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // === Елементи ===
+    const adminBtn   = document.getElementById('adminBtn');
+    const builder    = document.getElementById('builder');
+    const promoGrid  = document.getElementById('promoGrid');
+    const addRowBtn  = document.getElementById('addRow');
+    const saveBtn    = document.getElementById('save');
+    const rowsWrap   = document.getElementById('rows');
+
+    const slide      = document.getElementById('slide');
+    const catalogEl  = document.getElementById('catalog');
+    const searchEl   = document.getElementById('search');
+    const catalogBtn = document.getElementById('catalogBtn');
+    const closeSlide = document.getElementById('closeSlide');
+
+    const ADMIN_PASS = "bbqcornera123";
+    let isAdmin = false;
+
+    // === Състояние ===
+    let catalog = []; // {name, desc, price, image}
+    let rows = [];    // {A: product|null, B: product|null, price:number}
+
+    // === Помощни ===
+    const toast = (msg)=>{ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',1600); };
+    const money = (n)=> (Number(n).toFixed(2)+' лв');
+    const el = (tag, props={}, ...children)=>{
+      const x=document.createElement(tag); Object.assign(x, props);
+      for(const c of children){ if(typeof c==='string') x.appendChild(document.createTextNode(c)); else if(c) x.appendChild(c); }
+      return x;
+    };
+
+    // === КАТАЛОГ: зареждане от /products (както index4) ===
+    async function loadCatalog(){
+      try{
+        const snap = await db.ref('/products').get();
+        if(snap.exists()){
+          const val = snap.val();
+          catalog = Object.values(val).map(p=>({
+            name: p.name || p.title || 'Продукт',
+            desc: p.desc || '',
+            price: Number(p.price||0),
+            image: p.image || p.img || '/bbqsaitlogo.jpg'
+          }));
+        }
+      }catch(e){ /* ignore */ }
+
+      if(!catalog || catalog.length===0){
+        catalog = [
+          {name:'Бургер', desc:'Сочен на жар', price:5, image:'/images/burger.jpg'},
+          {name:'Hell Energy', desc:'Енергийна напитка', price:3, image:'/images/hell.jpg'},
+          {name:'Кола 330мл', desc:'Газирана напитка', price:2.5, image:'/images/cola.jpg'},
+          {name:'Вода 500мл', desc:'Минерална', price:2, image:'/images/water.jpg'},
+          {name:'Палачинка', desc:'Нутела/сладко', price:3.5, image:'/images/pancake.jpg'},
+          {name:'Странджанка', desc:'Класика', price:3, image:'/images/strandjanka.jpg'},
+        ];
+      }
+      renderCatalog(catalog);
+    }
+
+    function renderCatalog(list){
+      catalogEl.innerHTML='';
+      list.forEach(p=>{
+        const card = el('div', {className:'product', draggable:true});
+        card.addEventListener('dragstart', (e)=>{
+          e.dataTransfer.setData('application/json', JSON.stringify(p));
+        });
+        card.append(
+          el('img',{src:p.image, alt:p.name, loading:'lazy'}),
+          el('div',{className:'meta'},
+            el('div',{className:'nm'}, p.name),
+            el('div',{className:'ds'}, p.desc || ''),
+            el('div',{className:'pr'}, money(p.price))
+          )
+        );
+        catalogEl.appendChild(card);
+      });
+    }
+
+    searchEl.addEventListener('input', ()=>{
+      const q = searchEl.value.toLowerCase().trim();
+      if(!q) return renderCatalog(catalog);
+      const f = catalog.filter(p => (p.name+' '+(p.desc||'')).toLowerCase().includes(q));
+      renderCatalog(f);
+    });
+
+    // === SLIDE open/close ===
+    const openSlide  = ()=> slide.classList.add('open');
+    const closeSlideFn = ()=> slide.classList.remove('open');
+    catalogBtn.addEventListener('click', openSlide);
+    closeSlide.addEventListener('click', closeSlideFn);
+
+    // === БИЛДЕР ===
+    function dropzone(onDrop){
+      const dz = el('div',{className:'drop'});
+      dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.style.borderColor='#ffffff66'; });
+      dz.addEventListener('dragleave', ()=>{ dz.style.borderColor='#ffffff2f'; });
+      dz.addEventListener('drop', e=>{
+        e.preventDefault(); dz.style.borderColor='#ffffff2f';
+        try{
+          const data = e.dataTransfer.getData('application/json');
+          if(!data) return;
+          const p = JSON.parse(data);
+          onDrop(p);
+        }catch(_){}
+      });
+      return dz;
+    }
+
+    function renderChip(container, product, onClear){
+      container.innerHTML='';
+      if(!product){
+        container.appendChild(el('div', {style:'color:#cbd3dd88;font-size:13px'}, 'Празно поле'));
+        return;
+      }
+      container.appendChild(
+        el('span', {className:'chip'},
+          el('img',{src:product.image, alt:product.name}),
+          el('span',{className:'meta'},
+            el('span',{className:'nm'}, product.name),
+            el('span',{className:'ds'}, product.desc || '')
+          ),
+          el('span',{className:'x', title:'Премахни', onclick:onClear}, '✕')
+        )
+      );
+    }
+
+    function addRow(init){
+      const row = {A: init?.A || null, B: init?.B || null, price: init?.price || 0};
+      rows.push(row);
+
+      const dzA = dropzone(p=>{ row.A = p; renderChip(dzA, row.A, ()=>{row.A=null; renderChip(dzA,null,()=>{});}); });
+      const dzB = dropzone(p=>{ row.B = p; renderChip(dzB, row.B, ()=>{row.B=null; renderChip(dzB,null,()=>{});}); });
+
+      renderChip(dzA, row.A, ()=>{row.A=null; renderChip(dzA,null,()=>{});});
+      renderChip(dzB, row.B, ()=>{row.B=null; renderChip(dzB,null,()=>{});});
+
+      const plus = el('div',{className:'pluscell'}, '+');
+
+      const price = el('input',{className:'price-input',type:'number',min:'0',step:'0.10',placeholder:'Цена', value: row.price || ''});
+      price.addEventListener('input', ()=>{ row.price = Number(price.value||0); });
+
+      rowsWrap.appendChild( el('div',{className:'row'}, dzA, plus, dzB, price) );
+    }
+
+    // Първи ред по подразбиране
+    function ensureOneRow(){ if(rows.length===0) addRow(); }
+
+    addRowBtn.addEventListener('click', ()=> addRow());
+
+    // === ЗАПАЗВАНЕ: записваме снимки/имена/описания/цена ===
+    async function savePromos(){
+      const valid = rows
+        .filter(r => r.A && r.B && Number(r.price)>0)
+        .map(r => ({
+          parts: [
+            {name:r.A.name, desc:r.A.desc||'', image:r.A.image||'', price:Number(r.A.price||0)},
+            {name:r.B.name, desc:r.B.desc||'', image:r.B.image||'', price:Number(r.B.price||0)}
+          ],
+          price: Number(r.price)
+        }));
+      if(valid.length===0){ toast('Добави поне 1 ред с A + B и цена.'); return; }
+
+      await db.ref('/promotions').set({
+        updatedAt: Date.now(),
+        items: valid
+      });
+      toast('Запазено. Показано е публично.');
+    }
+    saveBtn.addEventListener('click', savePromos);
+
+    // === РЕНДЕР: публично голямо показване на промоциите ===
+    db.ref('/promotions').on('value', snap=>{
+      promoGrid.innerHTML='';
+      const val = snap.val();
+      const items = val?.items || [];
+      if(items.length===0){
+        promoGrid.appendChild(
+          el('div', {style:'opacity:.7'}, 'Няма активни промоции в момента.')
+        );
+        return;
+      }
+      items.forEach(p=>{
+        const A = p.parts?.[0] || {};
+        const B = p.parts?.[1] || {};
+        const card = el('div',{className:'promo-card'},
+          // Лява снимка (A)
+          el('div',{className:'promo-img'},
+            el('img',{src:A.image || '/bbqsaitlogo.jpg', alt:A.name || 'Продукт A', loading:'lazy'}),
+            el('div',{className:'promo-overlay'}),
+            el('span',{className:'promo-tag'}, 'ПРОМО — A'),
+            el('div',{className:'promo-info'},
+              el('div',{className:'promo-name'}, A.name || '—'),
+              el('div',{className:'promo-desc'}, A.desc || '')
+            )
+          ),
+          // Дясна снимка (B)
+          el('div',{className:'promo-img'},
+            el('img',{src:B.image || '/bbqsaitlogo.jpg', alt:B.name || 'Продукт B', loading:'lazy'}),
+            el('div',{className:'promo-overlay'}),
+            el('span',{className:'promo-tag'}, 'ПРОМО — B'),
+            el('div',{className:'promo-info'},
+              el('div',{className:'promo-name'}, B.name || '—'),
+              el('div',{className:'promo-desc'}, B.desc || '')
+            )
+          )
+        );
+        // централни елементи
+        const priceBadge = el('div',{className:'promo-price'}, money(p.price||0));
+        const plus = el('div',{className:'promo-plus'}, '+');
+        card.appendChild(priceBadge);
+        card.appendChild(plus);
+        promoGrid.appendChild(card);
+      });
+    });
+
+    // === ADMIN UNLOCK ===
+    adminBtn.addEventListener('click', ()=>{
+      if(isAdmin){
+        isAdmin=false; builder.style.display='none'; toast('Admin изключен');
+        return;
+      }
+      const pass = prompt('Въведи парола (admin):');
+      if(pass===ADMIN_PASS){
+        isAdmin=true; builder.style.display='block'; ensureOneRow(); toast('Admin активен'); openSlide();
+      }else{
+        toast('Грешна парола.');
+      }
+    });
+
+    // Старт
+    loadCatalog();
+  </script>
+</body>
+</html>
