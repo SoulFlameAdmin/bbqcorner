@@ -3,71 +3,96 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Corner BBQ — Админ</title>
+<title>Corner BBQ — Админ панел</title>
 <style>
-:root{ --bg:#0e0f10; --soft:#ffffff1a; --accent:#ff7a00; --text:#fff; }
+:root{
+  --bg:#0e0f10; --soft:#ffffff1a; --accent:#ff7a00; --text:#fff;
+  --ok:#86ff86; --warn:#ffcf7a; --bad:#ff8686;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+html,body{height:100%}
+body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
 .wrap{max-width:1200px;margin:0 auto;padding:18px}
+
+/* Header */
 .header{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap}
-.title{font-weight:900;font-size:20px;color:var(--accent)}
+.title{font-weight:900;font-size:22px;color:var(--accent);letter-spacing:.4px}
 .header-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.small{font-size:12px;opacity:.75}
 .stat{padding:6px 10px;border-radius:10px;background:#121316;border:1px solid var(--soft);font-weight:800}
 .filter{display:flex;gap:6px;align-items:center}
-.filter select, .filter input{
-  background:#121316;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:6px 10px;outline:none
+.filter select,.filter input{
+  background:#121316;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;outline:none;min-height:38px
 }
+.filter input{min-width:240px}
+
+/* Grid */
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-@media (max-width:1024px){.grid{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:640px){.grid{grid-template-columns:1fr}}
+@media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.empty{padding:22px;text-align:center;border:1px dashed var(--soft);border-radius:12px;opacity:.8}
+
+/* Card */
 .card{
   background:#121316;border:1px solid var(--soft);border-radius:16px;padding:14px;box-shadow:0 8px 28px rgba(0,0,0,.28);
   position:relative;overflow:hidden
 }
 .row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
-.badge{padding:4px 8px;border-radius:999px;background:#1a1c20;border:1px solid var(--soft);font-size:12px;font-weight:800}
+.badge{padding:4px 8px;border-radius:999px;background:#1a1c20;border:1px solid var(--soft);font-size:12px;font-weight:900}
+.small{font-size:12px;opacity:.75}
+.addr{margin-top:6px;font-size:14px;opacity:.95}
+.items{margin-top:8px;border-top:1px dashed var(--soft);padding-top:8px;display:flex;flex-direction:column;gap:4px}
+.item{display:flex;justify-content:space-between;font-size:14px}
+.total{margin-top:10px;font-weight:900;display:flex;justify-content:flex-end}
+
+/* Status */
 .status{padding:4px 10px;border-radius:10px;font-size:12px;font-weight:900;background:#1a1c20;border:1px solid var(--soft)}
 .status[data-s='ПРЕГЛЕД']{color:#f0f0f0}
 .status[data-s='ПРИГОТВЯ СЕ']{background:#1e2a18;color:#95ff6b;border-color:#2c4a23}
 .status[data-s='ДОСТАВЯ СЕ']{background:#262017;color:#ffcf7a;border-color:#554125}
 .status[data-s='ДОСТАВЕНО']{background:#1c2a1c;color:#86ff86;border-color:#2a5a2a}
-.items{margin-top:8px;border-top:1px dashed var(--soft);padding-top:8px}
-.item{display:flex;justify-content:space-between;margin:4px 0;font-size:14px}
-.total{margin-top:10px;font-weight:900;display:flex;justify-content:flex-end}
-.addr{margin-top:6px;font-size:14px;opacity:.95}
+.status[data-s='ОТКАЗАНА']{background:#2a1c1c;color:#ff9a9a;border-color:#5a2a2a}
+
+/* Buttons */
 .btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.btn{background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
+.btn{
+  background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;
+  font-weight:800;cursor:pointer;transition:border-color .15s ease
+}
 .btn:hover{border-color:#ffffff33}
-.empty{padding:20px;text-align:center;border:1px dashed var(--soft);border-radius:12px}
+.btn.ok{background:#1f2a1f;border-color:#2a5a2a}
+.btn.warn{background:#2a2418;border-color:#554125}
+.btn.bad{background:#3a1515;border-color:#8a1f1f}
+
+/* Inline inputs (ETA) */
+.inline{
+  display:inline-flex;gap:6px;align-items:center;background:#181a1f;border:1px solid var(--soft);border-radius:10px;padding:6px 8px
+}
+.inline input{
+  width:64px;background:transparent;border:none;color:#fff;outline:none;font-weight:800;text-align:center
+}
+.inline label{font-size:12px;opacity:.75}
+
+/* Close (delete) */
 .close{
   position:absolute;top:8px;right:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
   border-radius:999px;background:#3a1515;border:1px solid #8a1f1f;color:#fff;font-weight:900;line-height:1;cursor:pointer
 }
 .close:hover{background:#4a1919;border-color:#b32626}
 
-/* 💡 Flash ефект за нови бележки */
-.note-flash {
-  animation: flashNote 2.5s ease-in-out;
-}
-@keyframes flashNote {
-  0% { background-color: rgba(255,122,0,.25); }
-  100% { background-color: transparent; }
-}
+/* Flash note */
+.note{margin-top:8px;color:#ffcf7a}
+.note-flash{animation:flashNote 2.2s ease-in-out}
+@keyframes flashNote{0%{background:rgba(255,122,0,.18)}100%{background:transparent}}
 
-/* 🚗 бутон */
-.map-btn{
-  margin-top:8px;
-  display:inline-block;
-  background:#ff7a00;
-  color:#fff;
-  padding:6px 12px;
-  border-radius:8px;
-  font-weight:800;
-  cursor:pointer;
-  border:none;
+.util{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.util .btn{padding:6px 8px;font-size:13px}
+
+/* Top utility bar */
+.topUtil{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.kbd{
+  background:#1a1c20;border:1px solid var(--soft);border-bottom-color:#00000044;border-radius:8px;
+  padding:4px 8px;font-size:12px;color:#cfd6d6
 }
-.map-btn:hover{background:#ff9933;}
 </style>
 </head>
 <body>
@@ -77,26 +102,34 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
     <div class="header-right">
       <div class="filter">
         <select id="statusFilter" title="Филтър по статус">
-          <option value="ALL">Всички</option>
+          <option value="ALL">Всички (без ДОСТАВЕНО)</option>
           <option value="ПРЕГЛЕД">ПРЕГЛЕД</option>
           <option value="ПРИГОТВЯ СЕ">ПРИГОТВЯ СЕ</option>
           <option value="ДОСТАВЯ СЕ">ДОСТАВЯ СЕ</option>
           <option value="ДОСТАВЕНО">ДОСТАВЕНО</option>
+          <option value="ОТКАЗАНА">ОТКАЗАНА</option>
         </select>
-        <input id="searchBox" type="search" placeholder="Търси по име/телефон/адрес…">
+        <input id="searchBox" type="search" placeholder="Търси по име/телефон/адрес/код…">
       </div>
       <div class="stat"><span id="count">0</span> поръчки</div>
       <div class="stat">Оборот (Доставени): <span id="deliveredSum">0,00 лв.</span></div>
     </div>
   </div>
 
+  <div class="topUtil">
+    <span class="kbd">Клик върху „мин“ полета = запазва ETA</span>
+    <span class="kbd">Статуси: Преглед → Приготвя се → Доставя се → Доставено</span>
+    <span class="kbd">ОТКАЗАНА добавя причина</span>
+  </div>
+
   <div class="grid" id="grid"></div>
-  <div id="emptyState" class="empty" style="display:none">Няма поръчки.</div>
+  <div id="emptyState" class="empty" style="display:none">Няма поръчки по текущия филтър.</div>
 </div>
 
 <audio id="newOrderSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
 <script type="module">
+/* ===== Достъп (флаг от login overlay) ===== */
 const verified = localStorage.getItem('adminVerified') === '1';
 if (!verified) {
   alert('❌ Нямаш достъп до админ панела. Моля, влез през началната страница.');
@@ -112,6 +145,9 @@ const fmtWhen = ts => {
     return d.toLocaleString();
   } catch(_){ return ''; }
 };
+const escapeHTML = s => String(s||'').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
+/* ===== Елементи ===== */
 const grid = document.getElementById('grid');
 const countE = document.getElementById('count');
 const deliveredSumE = document.getElementById('deliveredSum');
@@ -122,7 +158,10 @@ const sound = document.getElementById('newOrderSound');
 
 /* ===== Firebase ===== */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
-import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+import {
+  getFirestore, collection, query, orderBy, onSnapshot,
+  doc, updateDoc, deleteDoc, setDoc, serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
@@ -134,25 +173,36 @@ const firebaseConfig = {
   measurementId: "G-FWBDL96GN0"
 };
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db  = getFirestore(app);
 
-/* ===== Настройки ===== */
-const ADMIN_PASSWORD = 'mitakathebest!';
+/* ===== Live зареждане ===== */
 let orders = [];
 let firstLoad = true;
 
 const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
 onSnapshot(q, (snap)=>{
-  const newOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const newOrders = snap.docs.map(d => ({ id: d.id, code: d.id, ...d.data() }));
   if (!firstLoad && newOrders.length > orders.length) {
-    sound.currentTime = 0;
-    sound.play().catch(()=>{});
+    sound.currentTime = 0; sound.play().catch(()=>{});
   }
   firstLoad = false;
   orders = newOrders;
   render();
 });
 
+/* ===== (Опция) Ръчно създаване с 4-цифрен код ===== */
+async function createOrder(customer, items, total) {
+  const code = Math.floor(1000 + Math.random() * 9000).toString();
+  await setDoc(doc(db,'orders',code), {
+    customer, items, total,
+    status:'ПРЕГЛЕД',
+    prepEtaMin:0, deliveryEtaMin:0, canceledReason:'',
+    createdAt: serverTimestamp(), source:'admin'
+  });
+  return code;
+}
+
+/* ===== Филтри и рендер ===== */
 selStatus.addEventListener('change', render);
 searchBox.addEventListener('input', render);
 
@@ -165,17 +215,19 @@ function render(){
     .reduce((s,o)=> s + (Number(o.total)||0), 0);
   deliveredSumE.textContent = lv(deliveredSum);
 
-  let filtered = orders.filter(o=>{
+  let filtered = orders.slice();
+
+  filtered = filtered.filter(o=>{
     const s = (o.status||'');
     if (fStatus === 'ALL') return s !== 'ДОСТАВЕНО';
-    if (fStatus === 'ДОСТАВЕНО') return s === 'ДОСТАВЕНО';
     return s === fStatus;
   });
 
   if (queryTxt){
     filtered = filtered.filter(o=>{
       const c = o.customer || {};
-      return [c.names, c.phone, c.address].join(' ').toLowerCase().includes(queryTxt);
+      const hay = [o.id, c.names, c.phone, c.address, o.note].join(' ').toLowerCase();
+      return hay.includes(queryTxt);
     });
   }
 
@@ -183,108 +235,176 @@ function render(){
   emptyE.style.display = filtered.length ? 'none' : 'block';
 
   grid.innerHTML = filtered.map(o=>{
-    const when = fmtWhen(o.createdAt);
-    const items = Array.isArray(o.items) ? o.items : [];
+    const when   = fmtWhen(o.createdAt);
+    const items  = Array.isArray(o.items) ? o.items : [];
     const status = o.status || 'ПРЕГЛЕД';
-    const noteClass = o.note ? 'note-flash' : '';
-    const address = escapeHTML(o.customer?.address || o.note || 'Haskovo');
-
-    const statusBtns = status === 'ДОСТАВЕНО' ? '' : `
-      <button class="btn btn-prev" data-id="${o.id}">ПРЕГЛЕД</button>
-      <button class="btn btn-cook" data-id="${o.id}">ПРИГОТВЯ СЕ</button>
-      <button class="btn btn-deliver" data-id="${o.id}">ДОСТАВЯ СЕ</button>
-      <button class="btn btn-done" data-id="${o.id}">ДОСТАВЕНО</button>
-    `;
+    const hasNote = !!o.note;
+    const prep = Number(o.prepEtaMin)||0;
+    const delv = Number(o.deliveryEtaMin)||0;
+    const address = escapeHTML(o.customer?.address || '');
+    const names   = escapeHTML(o.customer?.names || '');
+    const phone   = escapeHTML(o.customer?.phone || '');
+    const codeShort = o.id;
 
     return `
       <div class="card" data-id="${o.id}">
         <button class="close" title="Изтрий" data-id="${o.id}">×</button>
         <div class="row">
-          <span class="badge">#${o.id.slice(0,6)}</span>
-          <span class="small muted">${when}</span>
+          <span class="badge">Код: #${codeShort}</span>
+          <span class="small">${when}</span>
           <span class="status" data-s="${status}">${status}</span>
         </div>
-        <div class="row"><strong>${escapeHTML(o.customer?.names||'')}</strong>
-          <span class="small">(${escapeHTML(o.customer?.phone||'')})</span>
-        </div>
-        <div class="addr">📍 ${address}</div>
+
+        <div class="row"><strong>${names}</strong> <span class="small">(${phone})</span></div>
+        <div class="addr">📍 ${address || '(без адрес)'}</div>
+
         <div class="items">
           ${items.map(it=>`
-             <div class="item"><span>${escapeHTML(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>
+            <div class="item"><span>${escapeHTML(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>
           `).join('')}
         </div>
+
         <div class="total">Общо: ${lv(Number(o.total)||0)}</div>
-        ${o.note ? `<div class="addr ${noteClass}" style="margin-top:8px;color:#ffcf7a;">
-          📝 <strong>Бележка:</strong> ${escapeHTML(o.note)}
-        </div>` : ''}
-        <button class="map-btn" data-address="${address}">🚗 Достави тази поръчка</button>
-        <div class="btns">${statusBtns}</div>
+
+        ${hasNote ? `<div class="note note-flash">📝 <strong>Бележка:</strong> ${escapeHTML(o.note)}</div>`:''}
+
+        <div class="row" style="gap:10px;margin-top:10px;flex-wrap:wrap">
+          <div class="inline">
+            <label for="prep_${o.id}">Приготвяне</label>
+            <input id="prep_${o.id}" type="number" min="0" step="1" value="${prep}" data-type="prep" data-id="${o.id}">
+            <span class="small">мин</span>
+          </div>
+          <div class="inline">
+            <label for="deliv_${o.id}">Доставка</label>
+            <input id="deliv_${o.id}" type="number" min="0" step="1" value="${delv}" data-type="deliv" data-id="${o.id}">
+            <span class="small">мин</span>
+          </div>
+        </div>
+
+        <div class="util">
+          <button class="btn" data-action="copy" data-code="${codeShort}">📋 Копирай кода</button>
+          <button class="btn" data-action="link" data-code="${codeShort}">🔗 Линк за клиента</button>
+          <button class="btn" data-action="maps" data-address="${address}">🚗 Достави</button>
+        </div>
+
+        <div class="btns">
+          ${status !== 'ДОСТАВЕНО' && status !== 'ОТКАЗАНА' ? `
+            <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${o.id}">ПРЕГЛЕД</button>
+            <button class="btn ok"  data-action="s" data-target="ПРИГОТВЯ СЕ"  data-id="${o.id}">ПРИГОТВЯ СЕ</button>
+            <button class="btn warn"data-action="s" data-target="ДОСТАВЯ СЕ"   data-id="${o.id}">ДОСТАВЯ СЕ</button>
+            <button class="btn ok"  data-action="s" data-target="ДОСТАВЕНО"    data-id="${o.id}">ДОСТАВЕНО</button>
+            <button class="btn bad" data-action="cancel" data-id="${o.id}">ОТКАЗАНА</button>
+          ` : `
+            <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${o.id}">ПРЕГЛЕД</button>
+            <button class="btn bad" data-action="cancel" data-id="${o.id}">ОТКАЗАНА</button>
+          `}
+        </div>
       </div>
     `;
   }).join('');
 
-  bindButtons();
+  bindUI();
 }
 
-function escapeHTML(s){
-  return String(s||'').replace(/[&<>"']/g, ch => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[ch]));
+/* ===== Поведение ===== */
+function bindUI(){
+  // статуси
+  grid.querySelectorAll('[data-action="s"]').forEach(btn=>{
+    btn.addEventListener('click', ()=> changeStatus(btn.dataset.id, btn.dataset.target));
+  });
+
+  // отказ
+  grid.querySelectorAll('[data-action="cancel"]').forEach(btn=>{
+    btn.addEventListener('click', ()=> cancelOrder(btn.dataset.id));
+  });
+
+  // изтриване
+  grid.querySelectorAll('.close').forEach(b=>{
+    b.addEventListener('click', ()=> deleteOrder(b.dataset.id));
+  });
+
+  // ETA инпутите (ПОПРАВЕНО: вече вървят по отделно за всеки input)
+  grid.querySelectorAll('.inline input').forEach(inp=>{
+    const save = async ()=>{
+      const id = inp.dataset.id;
+      const type = inp.dataset.type;
+      const val = Math.max(0, Number(inp.value)||0);
+      const patch = (type === 'prep') ? { prepEtaMin: val } : { deliveryEtaMin: val };
+
+      try {
+        await updateDoc(doc(db, 'orders', id), patch);
+        inp.style.borderColor = '#4cff84';
+        setTimeout(()=> inp.style.borderColor='', 900);
+      } catch(e) {
+        console.error('ETA update error', e);
+        alert('Неуспешно записване на ETA.');
+      }
+    };
+    inp.addEventListener('blur', save);
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); }});
+  });
+
+  // утилити: копиране/линк/карта
+  grid.querySelectorAll('[data-action="copy"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const code = b.dataset.code;
+      try{ await navigator.clipboard.writeText(code); b.textContent='✔ Копирано'; setTimeout(()=>b.textContent='📋 Копирай кода',1200);}
+      catch(_){ alert('Копирайте ръчно: '+code); }
+    });
+  });
+
+  grid.querySelectorAll('[data-action="link"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const code = b.dataset.code;
+      const base = (location.protocol==='file:') ? 'index6.html' : new URL('index6.html', location.href).toString();
+      const url = (base.includes('?')?base:base) + (base.includes('?')?'&':'?') + 'code=' + encodeURIComponent(code);
+      try{ await navigator.clipboard.writeText(url); b.textContent='✔ Линк копиран'; setTimeout(()=>b.textContent='🔗 Линк за клиента',1200);}
+      catch(_){ prompt('Копирай линка:', url); }
+    });
+  });
+
+  grid.querySelectorAll('[data-action="maps"]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const address = b.dataset.address || '';
+      if(!address.trim()) return alert('Адресът липсва.');
+      const url = `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(address)}`;
+      window.open(url,'_blank');
+    });
+  });
 }
 
-function bindButtons(){
-  grid.querySelectorAll('.btn-prev').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ПРЕГЛЕД')));
-  grid.querySelectorAll('.btn-cook').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ПРИГОТВЯ СЕ')));
-  grid.querySelectorAll('.btn-deliver').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ДОСТАВЯ СЕ')));
-  grid.querySelectorAll('.btn-done').forEach(b=>b.addEventListener('click', ()=> changeStatus(idOf(b),'ДОСТАВЕНО')));
-  grid.querySelectorAll('.close').forEach(b=>b.addEventListener('click', ()=> deleteOrder(idOf(b))));
-  grid.querySelectorAll('.map-btn').forEach(b=>b.addEventListener('click', ()=> openInMaps(b.dataset.address)));
-}
-
-const idOf = (btn) => btn.dataset.id;
-
-/* 🚗 Автоматично Directions в Google Maps */
-function openInMaps(address){
-  if(!address){ alert('Адресът липсва.'); return; }
-  const encoded = encodeURIComponent(address.trim());
-  const url = `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encoded}`;
-  window.open(url, '_blank');
-}
-
+/* ===== Операции ===== */
 async function changeStatus(id, targetStatus){
   try{
-    const o = orders.find(x=>x.id===id);
-    if (!o) return;
-    if ((o.status||'') === 'ДОСТАВЕНО'){
-      alert('Тази поръчка вече е ДОСТАВЕНО и не може да се променя.');
-      return;
-    }
-    await updateDoc(doc(db,'orders',id), { status: targetStatus });
-    o.status = targetStatus;
-    if (targetStatus === 'ДОСТАВЕНО' && selStatus.value !== 'ДОСТАВЕНО'){
-      const card = grid.querySelector(`.card[data-id="${id}"]`);
-      if (card) card.remove();
-    }
-    render();
-  }catch(err){ console.error(err); alert('Неуспешна промяна.'); }
+    const update = { status: targetStatus };
+    if (targetStatus === 'ПРИГОТВЯ СЕ') update.prepEtaMin = null ?? undefined;
+    if (targetStatus === 'ДОСТАВЯ СЕ')  update.deliveryEtaMin = null ?? undefined;
+    if (targetStatus === 'ДОСТАВЕНО')   update.deliveryEtaMin = 0;
+
+    await updateDoc(doc(db,'orders',id), update);
+  }catch(err){
+    console.error(err);
+    alert('Неуспешна промяна на статус.');
+  }
+}
+
+async function cancelOrder(id){
+  try{
+    const reason = prompt('Причина за отказ:');
+    if (!reason) return;
+    await updateDoc(doc(db,'orders',id), { status:'ОТКАЗАНА', canceledReason: reason });
+  }catch(err){ console.error(err); alert('Неуспешен отказ.'); }
 }
 
 async function deleteOrder(id){
   try{
-    const o = orders.find(x => x.id === id);
-    if (!o) return;
-    if ((o.status||'') === 'ДОСТАВЕНО'){
-      const pwd = prompt('Парола за изтриване на ДОСТАВЕНА поръчка:');
-      if (pwd !== ADMIN_PASSWORD){ alert('❌ Грешна парола.'); return; }
-    } else if (!confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?')) return;
+    const ok = confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?');
+    if (!ok) return;
     await deleteDoc(doc(db,'orders',id));
-    const card = grid.querySelector(`.card[data-id="${id}"]`);
-    if(card) card.remove();
   }catch(err){ console.error(err); alert('Грешка при изтриване.'); }
 }
-</script>
 
-<script>
+/* ===== Клик лог (по избор) ===== */
 (function(){
   const who = (localStorage.getItem('adminName') || '').trim();
   if(!who) return;

@@ -105,6 +105,25 @@ a,button{touch-action:manipulation}
   padding:10px 14px;border-radius:14px;background:#111;color:#fff;border:1px solid #ffffff1a;font-weight:900;cursor:pointer;box-shadow:var(--shadow)
 }
 
+
+/* TRACK BUTTON (под АДМИН) */
+.track-btn{
+  position:fixed;
+  right:20px;
+  top:60px;                 /* точно под admin-btn (който е top:16px) */
+  z-index:1100;
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-radius:14px;
+  background:#fff;color:#111;
+  border:1px solid #00000014;
+  font-weight:900;cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
+}
+@media (max-width:640px){
+  .track-btn{ top:48px; right:10px; padding:8px 10px; font-size:12px; border-radius:12px }
+}
+
+
 /* AUTH overlay */
 :root{ --soft:#ffffff1a; --accent:#ff7a00; --text:#fff; }
 .auth{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:9999}
@@ -200,6 +219,11 @@ a,button{touch-action:manipulation}
 
   <!-- ADMIN BUTTON -->
   <button class="admin-btn" id="adminBtn">АДМИН</button>
+
+<!-- TRACK ORDER BUTTON -->
+<button class="track-btn" id="trackBtn" aria-label="Проследи поръчката">
+  ПРОСЛЕДИ ПОРЪЧКАТА
+</button>
 
   <!-- HERO -->
   <header class="hero">
@@ -391,6 +415,26 @@ nameEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault();
 pwdEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doLogin(); }});
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') authEl.classList.remove('show'); });
 authEl.addEventListener('click', e=>{ if(e.target===authEl) authEl.classList.remove('show'); });
+
+/* ========== TRACK ORDER BUTTON logic ========== */
+const trackBtn = document.getElementById('trackBtn');
+if (trackBtn) {
+  trackBtn.addEventListener('click', () => {
+    const panel = document.getElementById('trackPanel');   // ако има модал на страницата
+    if (panel) {
+      panel.classList.add('show');
+      const codeInput = document.getElementById('trackCode');
+      if (codeInput) {
+        const last = (localStorage.getItem('trackCode') || '').trim();
+        if (last) codeInput.value = last;
+        setTimeout(() => codeInput.focus(), 0);
+      }
+      return;
+    }
+    // fallback: пренасочване към тракинг страница
+    window.location.href = 'index6.html?tab=tracking';
+  });
+}
 
 /* ========== GLOBAL ADMIN CLICK LOGGER (existing) ========== */
 (function(){
