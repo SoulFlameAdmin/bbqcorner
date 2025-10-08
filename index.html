@@ -500,9 +500,10 @@ if (trackBtn) {
 </script>
 
 <!-- ========== REVIEWS FUNCTIONALITY (Firebase) ========== -->
+<!-- Firebase Reviews (само този блок!) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
@@ -515,42 +516,45 @@ if (trackBtn) {
   };
 
   const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  const db  = getFirestore(app);
 
-  const btn = document.getElementById('reviewsBtn');
-  const panel = document.getElementById('reviewsPanel');
-  const list = document.getElementById('reviewsList');
-  const revName = document.getElementById('revName');
-  const revText = document.getElementById('revText');
-  const send = document.getElementById('sendReview');
+  // UI hooks
+  const btn      = document.getElementById('reviewsBtn');
+  const panel    = document.getElementById('reviewsPanel');
+  const list     = document.getElementById('reviewsList');
+  const revName  = document.getElementById('revName');
+  const revText  = document.getElementById('revText');
+  const send     = document.getElementById('sendReview');
   const clearBtn = document.getElementById('clearReview');
   const starsBox = document.getElementById('starSelect');
-  const CLOSE_REV = document.getElementById('closeReviews');
+  const CLOSE_REV= document.getElementById('closeReviews');
 
   let currentStars = 0;
-
   function renderStars(){
     starsBox.innerHTML = '';
-    for(let i=1;i<=6;i++){
+    for (let i=1;i<=6;i++){
       const s = document.createElement('span');
       s.textContent = '★';
-      s.className = i<=currentStars ? 'active' : '';
-      s.onclick = () => { currentStars = i; renderStars(); };
+      s.className   = i<=currentStars ? 'active' : '';
+      s.onclick     = () => { currentStars = i; renderStars(); };
       starsBox.appendChild(s);
     }
   }
   renderStars();
 
+  const qRef = query(collection(db, "reviews"), orderBy("createdAt", "desc"));
+
   function formatStars(n){
-    if(!n || n<=0) return '';
+    if(!n || n<=0) return 'Няма оценка';
     return '★'.repeat(n) + '☆'.repeat(6-n);
   }
 
-  async function loadReviews(){
-    list.innerHTML = '<div class="smallMuted">⏳ Зареждане...</div>';
-    const snap = await getDocs(collection(db, "reviews"));
+  function safe(s=''){ return String(s).replace(/[<>]/g,'').replace(/\n/g,'<br>'); }
+
+  // Живо обновяване – всички виждат веднага
+  onSnapshot(qRef, (snap)=>{
     list.innerHTML = '';
-    if(snap.empty){
+    if (snap.empty){
       list.innerHTML = '<div class="smallMuted">Все още няма отзиви. Бъди първи!</div>';
       return;
     }
@@ -561,17 +565,19 @@ if (trackBtn) {
       el.innerHTML = `
         <div class="reviewHead">
           <div>
-            <div class="reviewName">${r.name || 'Анонимен'}</div>
+            <div class="reviewName">${safe(r.name || 'Анонимен')}</div>
             <div class="smallMuted">${r.date || ''}</div>
           </div>
         </div>
         <div class="stars">${formatStars(r.stars)}</div>
-        <div class="reviewText">${r.text || '<i style="color:#999">(без текст)</i>'}</div>
+        <div class="reviewText">${r.text ? safe(r.text) : '<i style="color:#9aa0a6">(без текст)</i>'}</div>
+        <div class="reviewMeta">Оценка: ${r.stars ? `${r.stars}/6` : '—'}</div>
       `;
       list.appendChild(el);
     });
-  }
+  });
 
+  // Публикуване (всеки може — според правилата)
   send.onclick = async ()=>{
     const name = (revName.value||'').trim() || 'Анонимен';
     const text = (revText.value||'').trim();
@@ -583,19 +589,23 @@ if (trackBtn) {
       name,
       text,
       stars: currentStars,
-      date: new Date().toLocaleString()
+      date: new Date().toLocaleString(),
+      createdAt: serverTimestamp()
     });
-    alert('✅ Благодарим! Отзивът е публикуван.');
     revName.value=''; revText.value=''; currentStars=0; renderStars();
-    loadReviews();
+    alert('✅ Благодарим! Отзивът е публикуван.');
   };
 
   clearBtn.onclick = ()=>{ revName.value=''; revText.value=''; currentStars=0; renderStars(); };
-  btn.onclick = ()=>{ panel.classList.add('show'); loadReviews(); };
-  CLOSE_REV.onclick = ()=> panel.classList.remove('show');
+
+  // Отваряне/затваряне на панела
+  const openPanel = ()=> panel.classList.add('show');
+  btn.onclick      = openPanel;
+  CLOSE_REV.onclick= ()=> panel.classList.remove('show');
   panel.onclick = e => { if(e.target===panel) panel.classList.remove('show'); };
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') panel.classList.remove('show'); });
 </script>
+
 </body>
 </html>
 
