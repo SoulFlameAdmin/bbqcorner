@@ -22,70 +22,6 @@
 {"@context":"https://schema.org","@type":"Organization","name":"Corner BBQ","url":"https://bbqcorner.vercel.app","logo":"https://bbqcorner.vercel.app/bbqsaitlogo.jpg"}
 </script>
 
-<!--
-  🔥 Firestore Rules (постави ги в Firebase Console > Firestore > Rules и натисни Publish)
-  =========================================================================================
-  rules_version = '2';
-  service cloud.firestore {
-    match /databases/{database}/documents {
-
-      // === 📦 ПОРЪЧКИ ===
-      match /orders/{orderId} {
-        allow read: if true;
-
-        allow create: if
-          request.resource.data.keys().hasAll(
-            ['items','total','customer','status','createdAt','source']
-          ) &&
-          request.resource.data.items is list &&
-          request.resource.data.total is number &&
-          request.resource.data.customer is map &&
-          request.resource.data.status is string;
-
-        allow update: if
-          resource.data.status != 'ДОСТАВЕНО' &&
-          request.resource.data.diff(resource.data).changedKeys()
-            .hasOnly(['status','prepEtaMin','deliveryEtaMin','canceledReason']) &&
-          (!('prepEtaMin' in request.resource.data) ||
-             (request.resource.data.prepEtaMin is number &&
-              request.resource.data.prepEtaMin >= 0)) &&
-          (!('deliveryEtaMin' in request.resource.data) ||
-             (request.resource.data.deliveryEtaMin is number &&
-              request.resource.data.deliveryEtaMin >= 0)) &&
-          (!('canceledReason' in request.resource.data) ||
-             (request.resource.data.canceledReason is string &&
-              request.resource.data.canceledReason.size() <= 300));
-
-        allow delete: if true;
-      }
-
-      // === ⭐ ОТЗИВИ ===
-      match /reviews/{reviewId} {
-
-        // Четене: всички
-        allow read: if true;
-
-        // Създаване: всички (име, текст, звезди, дата, createdAt)
-        allow create: if
-          request.resource.data.keys().hasAll(['name','text','stars','date','createdAt']) &&
-          request.resource.data.name is string &&
-          request.resource.data.text is string &&
-          request.resource.data.stars is number &&
-          request.resource.data.stars >= 0 && request.resource.data.stars <= 6 &&
-          request.resource.data.date is string;
-
-        // Изтриване: само админ имейл
-        allow delete: if request.auth != null &&
-                       request.auth.token.email == 'soulflame.mitko@gmail.com';
-
-        // Забрана за update
-        allow update: if false;
-      }
-    }
-  }
-  =========================================================================================
--->
-
 <style>
 :root{
   --gap:22px; --cardRadius:18px; --shadow:0 12px 36px rgba(0,0,0,.18);
@@ -133,7 +69,7 @@ a,button{touch-action:manipulation}
   font-size:48px;line-height:1.05;margin:0;color:#fff;text-shadow:0 4px 10px rgba(0,0,0,.9),0 2px 1px rgba(255,255,255,.12)
 }
 @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-@keyframes shadowPulse{0%,100%{transform:scale(1);opacity:.46}50%{transform:scale(.9);opacity:.36)}
+@keyframes shadowPulse{0%,100%{transform:scale(1);opacity:.46}50%{transform:scale(.9);opacity:.36}}
 
 /* GRID */
 .tab-wrap{display:flex;justify-content:center;margin-top:-28px;position:relative;z-index:2}
@@ -169,11 +105,23 @@ a,button{touch-action:manipulation}
   padding:10px 14px;border-radius:14px;background:#111;color:#fff;border:1px solid #ffffff1a;font-weight:900;cursor:pointer;box-shadow:var(--shadow)
 }
 
-/* TRACK BUTTON */
+
+/* TRACK BUTTON (под АДМИН) */
 .track-btn{
-  position:fixed;right:20px;top:60px;z-index:1100;display:flex;align-items:center;gap:10px;
-  padding:10px 14px;border-radius:14px;background:#fff;color:#111;border:1px solid #00000014;font-weight:900;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.18);
+  position:fixed;
+  right:20px;
+  top:60px;                 /* точно под admin-btn (който е top:16px) */
+  z-index:1100;
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-radius:14px;
+  background:#fff;color:#111;
+  border:1px solid #00000014;
+  font-weight:900;cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
 }
+/* === Поправка за мобилен изглед (бутоните да не закриват логото) === */
+
+
 
 /* AUTH overlay */
 :root{ --soft:#ffffff1a; --accent:#ff7a00; --text:#fff; }
@@ -193,46 +141,101 @@ a,button{touch-action:manipulation}
 /* === FINAL FIXED MOBILE BUTTONS === */
 @media screen and (max-width: 768px) {
   :root { --safe-top: env(safe-area-inset-top, 0px); }
-  body { scroll-padding-top: 160px !important; overscroll-behavior-y: contain; }
-  #reviewsBtn, .admin-btn, .track-btn { position: fixed !important; z-index: 9999 !important; transform: translateZ(0); will-change: transform; transition: opacity .25s ease, transform .25s ease; }
-  #reviewsBtn { top: calc(var(--safe-top) + 12px) !important; left: 14px !important; }
-  .admin-btn { top: calc(var(--safe-top) + 12px) !important; right: 14px !important; }
-  .track-btn { top: calc(var(--safe-top) + 60px) !important; right: 14px !important; }
-  .hero { margin-top: calc(var(--safe-top) + 100px) !important; height: 54vh !important; background-position: center 75% !important; }
+
+  body {
+    scroll-padding-top: 160px !important;
+    overscroll-behavior-y: contain;
+  }
+
+  #reviewsBtn,
+  .admin-btn,
+  .track-btn {
+    position: fixed !important;
+    z-index: 9999 !important;
+    transform: translateZ(0);
+    will-change: transform;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  #reviewsBtn {
+    top: calc(var(--safe-top) + 12px) !important;
+    left: 14px !important;
+  }
+
+  .admin-btn {
+    top: calc(var(--safe-top) + 12px) !important;
+    right: 14px !important;
+  }
+
+  .track-btn {
+    top: calc(var(--safe-top) + 60px) !important;
+    right: 14px !important;
+  }
+
+  /* Корекция на hero да не влиза под бутоните */
+  .hero {
+    margin-top: calc(var(--safe-top) + 100px) !important;
+    height: 54vh !important;
+    background-position: center 75% !important;
+  }
 }
 
-/* ================= REVIEWS PANEL ================= */
+/* ================= REVIEWS PANEL (вграден стил) ================= */
 #reviewsBtn{
-  position:fixed;top:16px;left:20px;z-index:1200;background:var(--accent);color:#fff;border:none;
-  font-weight:900;padding:10px 16px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.4);cursor:pointer;transition:transform .2s ease;
+  position:fixed;top:16px;left:20px;z-index:1200;
+  background:var(--accent);color:#fff;border:none;
+  font-weight:900;padding:10px 16px;border-radius:14px;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);cursor:pointer;
+  transition:transform .2s ease;
 }
 #reviewsBtn:hover{transform:scale(1.05)}
-#reviewsPanel{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:1300;}
+
+#reviewsPanel{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;
+  z-index:1300;
+}
 #reviewsPanel.show{display:flex}
-#reviewsBox{background:#111418;border-radius:18px;padding:20px;max-width:700px;width:94%;color:#fff;font-family:Inter,system-ui;box-shadow:0 18px 60px rgba(0,0,0,.7);overflow:auto;max-height:85vh;}
+#reviewsBox{
+  background:#111418;border-radius:18px;padding:20px;
+  max-width:700px;width:94%;color:#fff;font-family:Inter,system-ui;
+  box-shadow:0 18px 60px rgba(0,0,0,.7);overflow:auto;max-height:85vh;
+}
 #reviewsBox h2{margin-top:0;color:var(--accent);display:flex;align-items:center;gap:12px;justify-content:space-between}
 #reviewsList{margin-top:10px}
-.reviewItem{background:#1a1c1f;border:1px solid #ffffff12;border-radius:14px;padding:12px;margin-bottom:10px;position:relative;}
+.reviewItem{
+  background:#1a1c1f;border:1px solid #ffffff12;border-radius:14px;
+  padding:12px;margin-bottom:10px;position:relative;
+}
 .stars{color:#ffb300;font-size:18px;letter-spacing:1px;margin-bottom:6px}
 .reviewHead{display:flex;justify-content:space-between;align-items:center}
 .reviewName{font-weight:800;color:#ffdca8}
 .reviewText{font-size:14px;margin-top:6px;color:#e6e6e6}
 .reviewMeta{font-size:12px;color:#9aa0a6;margin-top:8px}
-#addReview textarea{width:100%;background:#0f1115;border:1px solid #ffffff12;border-radius:10px;padding:8px;color:#fff;resize:none;height:70px;}
-#addReview input{width:100%;margin-top:8px;padding:8px;border-radius:10px;border:1px solid #ffffff12;background:#0f1115;color:#fff;}
-.starSelect span{font-size:22px;cursor:pointer;color:#777;margin-right:4px;}
+#addReview textarea{
+  width:100%;background:#0f1115;border:1px solid #ffffff12;
+  border-radius:10px;padding:8px;color:#fff;resize:none;height:70px;
+}
+#addReview input{
+  width:100%;margin-top:8px;padding:8px;border-radius:10px;
+  border:1px solid #ffffff12;background:#0f1115;color:#fff;
+}
+.starSelect span{
+  font-size:22px;cursor:pointer;color:#777;margin-right:4px;
+}
 .starSelect span.active{color:#ffb300;text-shadow:0 0 6px #ffb300}
-#closeReviews{margin-top:12px;background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer}
-.delBtn{background:transparent;border:none;color:#ff6767;cursor:pointer;font-size:16px;position:absolute;right:12px;top:12px;}
+#closeReviews{margin-top:12px;background:var(--accent);border:none;
+  color:#fff;padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+.delBtn{
+  background:transparent;border:none;color:#ff6767;cursor:pointer;
+  font-size:16px;position:absolute;right:12px;top:12px;
+}
+.delBtn[aria-hidden="true"]{display:none}
+.reviewItem.adminView .delBtn{display:inline}
 .smallMuted{font-size:12px;color:#9aa0a6;margin-top:6px}
-
-/* Firebase admin login (в панела) */
-.adminAuthBox{margin-top:10px;border-top:1px dashed #ffffff1a;padding-top:10px;display:none}
-.adminAuthBox.show{display:block}
-.adminAuthBox input{width:100%;margin-top:6px;padding:8px;border-radius:10px;border:1px solid #ffffff12;background:#0f1115;color:#fff}
-.adminAuthBox .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.adminAuthBox .btn{padding:8px 12px;border-radius:10px;border:1px solid #ffffff12;background:#1b1e23;color:#fff;font-weight:800;cursor:pointer}
-.adminAuthToggle{font-size:12px;color:#bfc7c7;text-decoration:underline;cursor:pointer;margin-top:8px}
+@media (max-width:640px){
+  #reviewsBox{max-width:94%;padding:16px}
+}
 </style>
 </head>
 <body>
@@ -244,14 +247,16 @@ a,button{touch-action:manipulation}
   <!-- ADMIN BUTTON -->
   <button class="admin-btn" id="adminBtn">АДМИН</button>
 
-  <!-- TRACK ORDER BUTTON -->
-  <button class="track-btn" id="trackBtn" aria-label="Проследи поръчката">ПРОСЛЕДИ ПОРЪЧКАТА</button>
+<!-- TRACK ORDER BUTTON -->
+<button class="track-btn" id="trackBtn" aria-label="Проследи поръчката">
+  ПРОСЛЕДИ ПОРЪЧКАТА
+</button>
 
   <!-- HERO -->
   <header class="hero">
     <div class="hero-inner">
       <div class="logo-card"><img src="snimki/logo.png" alt="Corner BBQ Logo"></div>
-    </div>
+         </div>
   </header>
 
   <div class="tab-wrap"><div class="tab-title">WEB МЕНЮ</div></div>
@@ -291,31 +296,36 @@ a,button{touch-action:manipulation}
 
 <button id="toTop" class="to-top" title="Към началото">↑</button>
 
-<!-- ===== AUTH OVERLAY (локален UI достъп) ===== -->
+<!-- ===== AUTH OVERLAY (Име + Парола + Запомни ме) ===== -->
 <div id="auth" class="auth" aria-hidden="true">
   <div class="box">
     <h2>Админ достъп</h2>
+
     <div class="field">
       <label for="adminName">Име</label>
       <input id="adminName" type="text" placeholder="Въведи име (напр. Иван)">
     </div>
+
     <div class="field">
       <label for="pwd">Парола</label>
       <input id="pwd" type="password" placeholder="Въведи админ парола" autocomplete="current-password">
     </div>
+
     <div class="rowc">
       <input id="remember" type="checkbox">
       <label for="remember">Запомни ме на това устройство</label>
     </div>
+
     <div class="actions">
       <button id="loginBtn" class="btn primary">Вход</button>
     </div>
+
     <div id="msg" class="ok" style="display:none">✅ Успешен вход като админ !</div>
     <div id="err" class="err">❌ Грешна парола или липсва име.</div>
   </div>
 </div>
 
-<!-- ===== REVIEWS PANEL ===== -->
+<!-- ===== REVIEWS PANEL MARKUP ===== -->
 <div id="reviewsPanel" aria-hidden="true">
   <div id="reviewsBox" role="dialog" aria-modal="true" aria-labelledby="reviewsTitle">
     <h2 id="reviewsTitle">⭐ Отзиви и препоръки
@@ -326,7 +336,7 @@ a,button{touch-action:manipulation}
 
     <div id="addReview" style="margin-top:12px">
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
-        <div class="starSelect" id="starSelect" aria-label="Оцени със звезди" role="radiogroup"></div>
+        <div class="starSelect" id="starSelect" aria-label="Оцени със звезди" role="radiogroup" ></div>
         <div style="font-size:13px;color:#bfc7c7">Може да изпратиш само звезда, само текст или и двете</div>
       </div>
       <input id="revName" type="text" placeholder="Вашето име (по желание)">
@@ -336,42 +346,14 @@ a,button{touch-action:manipulation}
         <button id="clearReview" class="btn">Изчисти</button>
         <button id="closeReviews" class="btn" style="background:transparent;border:1px solid #ffffff12;color:#fff">Затвори</button>
       </div>
-
-      <!-- По желание: Firebase админ вход за триене на отзиви -->
-      <div class="adminAuthToggle" id="adminAuthToggle">Вход за админ (Firebase) за изтриване ▼</div>
-      <div class="adminAuthBox" id="adminAuthBox">
-        <input id="fbEmail" type="email" placeholder="Админ имейл (напр. soulflame.mitko@gmail.com)" value="soulflame.mitko@gmail.com">
-        <input id="fbPass" type="password" placeholder="Firebase парола">
-        <div class="row">
-          <button id="fbLoginBtn" class="btn">Вход</button>
-          <button id="fbLogoutBtn" class="btn">Изход</button>
-          <span id="fbState" style="align-self:center;font-size:12px;color:#bfc7c7">Не си логнат</span>
-        </div>
-      </div>
     </div>
+
   </div>
 </div>
 
 <script>
-/* ========== ИНФО ЗА КАРТИНАТА ========== */
-const FILE_MAP={
-  burgeri:'snimki/produkti/1menu/burger.jpg',
-  palachinki:'snimki/produkti/1menu/palachinki.jpg',
-  strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',
-  kartofi:'snimki/produkti/1menu/kartofi.jpg',
-  salati:'snimki/produkti/1menu/salata.jpg',
-  portsii:'snimki/produkti/1menu/porciq.jpg',
-  dobavki:'snimki/produkti/1menu/dobavki.jpg',
-  hell:'snimki/produkti/1menu/hell.jpg',
-  voda:'snimki/produkti/ВОДА/voda_snimka.jpg',
-  gazirana_voda:'snimki/produkti/ГАЗИРАНА_ВОДА/gaziranavoda_snimka.jpg',
-  fanta:'snimki/produkti/ФАНТА/fanta_logo.jpg',
-  studen_chai:'snimki/produkti/СТУДЕН_ЧАЙ/studen_chai_logo.jpg',
-  kola:'snimki/produkti/КОЛА/kola_logo.jpg',
-  sok:'snimki/produkti/СОК/cappy_logo.jpg',
-  xixo:'snimki/produkti/ХИХО/xixo_logo.jpg',
-  airqn:'snimki/produkti/АЙРАН/vereq_logo.jpg'
-};
+/* ========== ИНФО ЗА КАРТИНИТА ========== */
+const FILE_MAP={burgeri:'snimki/produkti/1menu/burger.jpg',palachinki:'snimki/produkti/1menu/palachinki.jpg',strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',kartofi:'snimki/produkti/1menu/kartofi.jpg',salati:'snimki/produkti/1menu/salata.jpg',portsii:'snimki/produkti/1menu/porciq.jpg',dobavki:'snimki/produkti/1menu/dobavki.jpg',hell:'snimki/produkti/1menu/hell.jpg',voda:'snimki/produkti/ВОДА/voda_snimka.jpg',gazirana_voda:'snimki/produkti/ГАЗИРАНА_ВОДА/gaziranavoda_snimka.jpg',fanta:'snimki/produkti/ФАНТА/fanta_logo.jpg',studen_chai:'snimki/produkti/СТУДЕН_ЧАЙ/studen_chai_logo.jpg',kola:'snimki/produkti/КОЛА/kola_logo.jpg',sok:'snimki/produkti/СОК/cappy_logo.jpg',xixo:'snimki/produkti/ХИХО/xixo_logo.jpg',airqn:'snimki/produkti/АЙРАН/vereq_logo.jpg'};
 document.querySelectorAll('[data-key]').forEach(el=>{
   const key=el.getAttribute('data-key'), path=FILE_MAP[key];
   if(path) el.querySelector('.img').style.backgroundImage=`url("${path}")`;
@@ -397,8 +379,9 @@ const toggle = () => toTop.style.display = scrollY > 300 ? 'grid' : 'none';
 toggle(); addEventListener('scroll', toggle);
 toTop.addEventListener('click', () => scrollTo({ top:0, behavior:'smooth' }));
 
-/* ========== ADMIN LOGIN (локален) ========== */
+/* ========== ADMIN LOGIN ========== */
 const ADMIN_PASSWORD='bbqcornera123';
+
 const adminBtn=document.getElementById('adminBtn');
 const authEl=document.getElementById('auth');
 const nameEl=document.getElementById('adminName');
@@ -409,33 +392,51 @@ const errEl=document.getElementById('err');
 const msgEl=document.getElementById('msg');
 
 function openPanel(){ window.location.href='index4.html'; }
+
 adminBtn.addEventListener('click',()=>{
   const remembered = localStorage.getItem('adminRemembered')==='1';
   const savedName = (localStorage.getItem('adminName')||'').trim();
+
   if(remembered && savedName){
     localStorage.setItem('adminVerified','1');
     openPanel();
     return;
   }
-  errEl.style.display='none'; msgEl.style.display='none';
-  nameEl.value=''; pwdEl.value=''; rememberEl.checked=false;
-  authEl.classList.add('show'); setTimeout(()=>nameEl.focus(),0);
+
+  errEl.style.display='none';
+  msgEl.style.display='none';
+  nameEl.value='';
+  pwdEl.value='';
+  rememberEl.checked=false;
+  authEl.classList.add('show');
+  setTimeout(()=>nameEl.focus(),0);
 });
+
 function doLogin(){
   const name=(nameEl.value||'').trim();
   const pwd=(pwdEl.value||'').trim();
   const remember = rememberEl.checked;
+
   if(!name || pwd!==ADMIN_PASSWORD){
     msgEl.style.display='none';
     errEl.textContent = !name ? '❌ Въведи име.' : '❌ Грешна парола.';
-    errEl.style.display='block'; return;
+    errEl.style.display='block';
+    return;
   }
-  errEl.style.display='none'; msgEl.style.display='block';
+
+  errEl.style.display='none';
+  msgEl.style.display='block';
   localStorage.setItem('adminVerified','1');
   localStorage.setItem('adminName', name);
-  if(remember){ localStorage.setItem('adminRemembered','1'); } else { localStorage.removeItem('adminRemembered'); }
+  if(remember){
+    localStorage.setItem('adminRemembered','1');
+  }else{
+    localStorage.removeItem('adminRemembered');
+  }
+
   setTimeout(()=>{ authEl.classList.remove('show'); openPanel(); }, 900);
 }
+
 loginBtn.addEventListener('click', doLogin);
 nameEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); pwdEl.focus(); }});
 pwdEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doLogin(); }});
@@ -446,7 +447,7 @@ authEl.addEventListener('click', e=>{ if(e.target===authEl) authEl.classList.rem
 const trackBtn = document.getElementById('trackBtn');
 if (trackBtn) {
   trackBtn.addEventListener('click', () => {
-    const panel = document.getElementById('trackPanel');
+    const panel = document.getElementById('trackPanel');   // ако има модал на страницата
     if (panel) {
       panel.classList.add('show');
       const codeInput = document.getElementById('trackCode');
@@ -457,14 +458,16 @@ if (trackBtn) {
       }
       return;
     }
+    // fallback: пренасочване към тракинг страница
     window.location.href = 'index6.html?tab=tracking';
   });
 }
 
-/* ========== GLOBAL ADMIN CLICK LOGGER ========== */
+/* ========== GLOBAL ADMIN CLICK LOGGER (existing) ========== */
 (function(){
   const who = (localStorage.getItem('adminName') || '').trim();
   if(!who) return;
+
   function logAction(text){
     const k = `logs_${who}`;
     const now = new Date();
@@ -472,10 +475,12 @@ if (trackBtn) {
     const arr = JSON.parse(localStorage.getItem(k) || '[]');
     arr.unshift(entry);
     localStorage.setItem(k, JSON.stringify(arr));
+
     const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
     known.add(who);
     localStorage.setItem('logs__admins', JSON.stringify([...known]));
   }
+
   document.addEventListener('click', e=>{
     let desc = '';
     if(e.target.closest('button, a, input, select')){
@@ -489,11 +494,12 @@ if (trackBtn) {
     const page = location.pathname.split('/').pop() || 'непозната страница';
     logAction(`${desc} [${page}]`);
   });
+
   logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
 })();
 </script>
 
-<!-- ========== REVIEWS (Firebase) ========== -->
+<!-- ========== REVIEWS FUNCTIONALITY (Firebase) ========== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
   import {
@@ -501,10 +507,10 @@ if (trackBtn) {
     addDoc, doc, deleteDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
   import {
-    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+    getAuth, signInWithEmailAndPassword, onAuthStateChanged
   } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 
-  // === 1) Firebase config — реален, от твоя проект ===
+  // --- 1) ТВОЯТ REAL config ---
   const firebaseConfig = {
     apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
     authDomain: "corner-bbq.firebaseapp.com",
@@ -515,12 +521,12 @@ if (trackBtn) {
     measurementId: "G-FWBDL96GN0"
   };
 
-  // === 2) Инициализация
+  // --- 2) Инициализация ---
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
 
-  // === 3) Елементи на отзивите
+  // --- 3) Елементи ---
   const panel     = document.getElementById('reviewsPanel');
   const btnOpen   = document.getElementById('reviewsBtn');
   const btnClose  = document.getElementById('closeReviews');
@@ -531,20 +537,7 @@ if (trackBtn) {
   const btnSend   = document.getElementById('sendReview');
   const btnClear  = document.getElementById('clearReview');
 
-  // Firebase admin login UI
-  const adminAuthToggle = document.getElementById('adminAuthToggle');
-  const adminAuthBox    = document.getElementById('adminAuthBox');
-  const fbEmail         = document.getElementById('fbEmail');
-  const fbPass          = document.getElementById('fbPass');
-  const fbLoginBtn      = document.getElementById('fbLoginBtn');
-  const fbLogoutBtn     = document.getElementById('fbLogoutBtn');
-  const fbState         = document.getElementById('fbState');
-
-  adminAuthToggle.addEventListener('click', ()=>{
-    adminAuthBox.classList.toggle('show');
-  });
-
-  // === 4) Звезди (0..6)
+  // --- 4) Звезди (0..6) ---
   let stars = 0;
   function drawStars(){
     starBox.innerHTML = '';
@@ -559,32 +552,22 @@ if (trackBtn) {
   drawStars();
   const fmtStars = n => (!n||n<=0) ? '' : '★'.repeat(n)+'☆'.repeat(6-n);
 
-  // === 5) Публикуване
-  let sending = false;
+  // --- 5) Публикуване ---
   async function publishReview(){
-    if (sending) return;
     const name = (nameInp.value||'').trim() || 'Анонимен';
     const text = (textInp.value||'').trim();
     if (!text && stars===0){ alert('Моля, звезди или текст.'); return; }
 
-    sending = true; btnSend.disabled = true;
-    try{
-      await addDoc(collection(db,'reviews'), {
-        name, text, stars,
-        date: new Date().toLocaleString(),
-        createdAt: serverTimestamp()
-      });
-      alert('✅ Благодарим! Отзивът е публикуван.');
-      nameInp.value=''; textInp.value=''; stars=0; drawStars();
-    }catch(e){
-      console.error(e);
-      alert('❌ Грешка при публикуване. Опитай пак.');
-    }finally{
-      sending = false; btnSend.disabled = false;
-    }
+    await addDoc(collection(db,'reviews'), {
+      name, text, stars,
+      date: new Date().toLocaleString(),
+      createdAt: serverTimestamp()
+    });
+
+    nameInp.value=''; textInp.value=''; stars=0; drawStars();
   }
 
-  // === 6) Рендер + изтриване (само при логнат админ)
+  // --- 6) Рендер + изтриване (само за админ) ---
   function renderList(snap, isAdmin){
     list.innerHTML = '';
     if (snap.empty){
@@ -604,7 +587,7 @@ if (trackBtn) {
           ${isAdmin ? `<button class="delBtn" data-id="${d.id}">✖</button>`:''}
         </div>
         <div class="stars">${fmtStars(r.stars) || 'Няма оценка'}</div>
-        <div class="reviewText">${r.text ? r.text.replace(/</g,"&lt;").replace(/>/g,"&gt;") : '<i style="color:#9aa0a6">(без текст)</i>'}</div>
+        <div class="reviewText">${r.text || '<i style="color:#9aa0a6">(без текст)</i>'}</div>
         <div class="reviewMeta">Оценка: ${r.stars?`${r.stars}/6`:'—'}</div>
       `;
       list.appendChild(item);
@@ -614,56 +597,46 @@ if (trackBtn) {
       list.querySelectorAll('.delBtn').forEach(b=>{
         b.onclick = async () => {
           if (!confirm('Да изтрия ли отзива?')) return;
-          try{
-            await deleteDoc(doc(db,'reviews', b.dataset.id));
-          }catch(e){
-            console.error(e);
-            alert('❌ Нямаш права за изтриване. Увери се, че си логнат с админ имейла.');
-          }
+          await deleteDoc(doc(db,'reviews', b.dataset.id));
         };
       });
     }
   }
 
-  // === 7) Живо четене за всички (public read в правилата)
+  // --- 7) Живо четене за всички (public read в правилата) ---
   const qRef = query(collection(db,'reviews'), orderBy('createdAt','desc'));
   let unsub = null;
   onAuthStateChanged(auth, user=>{
-    const isAdmin = !!user && user.email === 'soulflame.mitko@gmail.com';
-    fbState.textContent = isAdmin ? `Логнат: ${user.email}` : 'Не си логнат';
     if (unsub) { unsub(); unsub=null; }
+    const isAdmin = !!user && user.email === 'soulflame.mitko@gmail.com';
     unsub = onSnapshot(qRef, snap => renderList(snap, isAdmin));
   });
 
-  // === 8) Отваряне/затваряне на панела
-  const btnOpen = document.getElementById('reviewsBtn');
+  // --- 8) Отваряне/затваряне ---
   btnOpen.onclick  = ()=>{ panel.classList.add('show'); };
   btnClose.onclick = ()=>{ panel.classList.remove('show'); };
   panel.onclick    = e=>{ if(e.target===panel) panel.classList.remove('show'); };
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') panel.classList.remove('show'); });
 
-  // === 9) Бутони
+  // --- 9) Бутони ---
   btnSend.onclick  = publishReview;
   btnClear.onclick = ()=>{ nameInp.value=''; textInp.value=''; stars=0; drawStars(); };
 
-  // === 10) Firebase admin login в панела (по желание)
-  fbLoginBtn.addEventListener('click', async ()=>{
-    try {
-      const email = (fbEmail.value||'').trim();
-      const pass  = (fbPass.value||'').trim();
-      if(!email || !pass){ alert('Въведи имейл и парола.'); return; }
-      await signInWithEmailAndPassword(auth, email, pass);
-      fbPass.value='';
-      alert('✅ Успешен вход (Firebase).');
-    } catch(e){
-      console.error(e);
-      alert('❌ Firebase вход неуспешен.');
-    }
-  });
-  fbLogoutBtn.addEventListener('click', async ()=>{
-    try { await signOut(auth); alert('✅ Излезе от Firebase.'); }
-    catch(e){ console.error(e); }
-  });
+  // --- 10) Админ login hook (по избор) ---
+  const ADMIN_EMAIL = 'soulflame.mitko@gmail.com';
+  const ADMIN_PASS  = ''; // <- по-добре логин от админ-панела; ако сложиш тук, ще е публично!
+  async function adminLogin(){
+    if (!ADMIN_PASS) return; // предпазно
+    try { await signInWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASS); }
+    catch(e){ console.warn('Admin login failed:', e.message); }
+  }
+  // ако вече си натиснал „АДМИН“ и пазиш флаг:
+  if (localStorage.getItem('adminVerified')==='1') {
+    // adminLogin(); // ако решиш да го ползваш
+  }
 </script>
+
+
 </body>
 </html>
+
