@@ -168,49 +168,54 @@ a,button{touch-action:manipulation}
 .ok{color:#22cc88;font-weight:900;margin-top:8px}
 
 /* MOBILE */
-/* MOBILE */
+/* === Мобилен: фиксирани бутони най-горе === */
 @media (max-width:640px){
+  /* място отгоре, за да не ги покрива съдържанието при скрол */
+  body{ scroll-padding-top: 140px; }
+
+  /* общи настройки */
+  #reviewsBtn, .admin-btn, .track-btn{
+    position: fixed !important;
+    z-index: 2000;           /* над всичко */
+    transform: translateZ(0);/* по-гладка анимация */
+  }
+
+  /* безопасно отстояние при notch */
+  :root{ --safe-top: env(safe-area-inset-top, 0px); }
+
+  /* Отзиви (вляво) */
+  #reviewsBtn{
+    top: calc(var(--safe-top) + 12px);
+    left: 12px;
+  }
+
+  /* Админ (вдясно) */
+  .admin-btn{
+    top: calc(var(--safe-top) + 12px);
+    right: 12px;
+    padding: 8px 10px;
+    font-size: 12px;
+    border-radius: 12px;
+  }
+
+  /* Проследи поръчката – точно под Админ */
+  .track-btn{
+    top: calc(var(--safe-top) + 56px);
+    right: 12px;
+    padding: 8px 10px;
+    font-size: 12px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  }
+
+  /* хедърът може да стои по-ниско и корицата да е изместена надолу */
   .hero{
-    height:52vh;
-    padding:16px 16px 24px;
-    filter:contrast(1.15) saturate(1.1) brightness(1.06);
-    background-position:center 75%; /* по-надолу за да не закрива логото */
+    height: 52vh;
+    background-position: center 75%;
+    padding-top: calc(var(--safe-top) + 70px); /* да не се блъска в бутоните */
   }
-  .hero-inner{
-    max-width:100%;
-    display:grid;
-    place-items:center;
-    text-align:center;
-    gap:10px;
-    margin-top:30px;
-  }
-  .logo-card{
-    width:96px;
-    height:96px;
-    margin:6px auto 4px;
-    border-radius:16px;
-    box-shadow:0 14px 28px rgba(0,0,0,.24), inset 0 1px 0 #ffffffb0;
-  }
-
-  /* преместени бутони */
-  #reviewsBtn{top:90px;left:14px;}
-  .admin-btn{top:90px;right:14px;}
-  .track-btn{top:135px;right:14px;}
-
-  .phone-banner{
-    position:static;
-    transform:none;
-    margin:2px 0 0;
-    font-size:22px;
-    line-height:1.15;
-    letter-spacing:.3px;
-    text-align:center;
-    text-shadow:0 2px 6px rgba(0,0,0,.7);
-  }
-
-  .tab-wrap{margin-top:-8px}
-  .tab-title{padding:8px 14px;font-size:13px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.12)}
 }
+
 
 
 /* ================= REVIEWS PANEL (вграден стил) ================= */
