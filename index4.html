@@ -84,10 +84,8 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .noteHead{display:flex;justify-content:space-between;align-items:center;padding:8px 10px}
 .noteHead strong{font-size:13px}
 .noteBody{padding:10px 12px}
-.noteText{
-  white-space:pre-wrap; word-wrap:break-word; font-size:14px; color:#e6edf3
-}
-.noteHint{font-size:12px; color:#9aa6b2; margin-left:auto}
+.noteText{white-space:pre-wrap;word-wrap:break-word;font-size:14px;color:#e6edf3}
+.noteHint{font-size:12px;color:#9aa6b2;margin-left:auto}
 
 /* Top utility bar */
 .topUtil{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -119,7 +117,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
   </div>
 
   <div class="topUtil">
-    <span class="kbd">ETA: въвеждаш минути → Enter / клик извън полето (авто-save)</span>
+    <span class="kbd">ETA: въведи минути → Enter / излизане (auto-save)</span>
     <span class="kbd">Статуси: Преглед → Приготвя се → Доставя се → Доставено</span>
     <span class="kbd">Бележка: само за четене (от клиента)</span>
   </div>
@@ -140,10 +138,7 @@ if (!verified) {
 
 /* ===== Помощни ===== */
 const lv = n => (Number(n)||0).toFixed(2).replace('.',',')+' лв.';
-const fmtWhen = ts => {
-  try{ if (!ts) return ''; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString(); }
-  catch(_){ return ''; }
-};
+const fmtWhen = ts => { try{ if (!ts) return ''; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString(); } catch(_){ return ''; } };
 const esc = s => String(s||'').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
 /* ===== DOM ===== */
@@ -159,7 +154,7 @@ const sound = document.getElementById('newOrderSound');
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
 import {
   getFirestore, collection, query, orderBy, onSnapshot,
-  doc, updateDoc, deleteDoc, setDoc, serverTimestamp
+  doc, updateDoc, deleteDoc, setDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
 
@@ -268,12 +263,12 @@ function render(){
         <div class="row" style="gap:10px;margin-top:10px;flex-wrap:wrap">
           <div class="inline">
             <label for="prep_${code}">Приготвяне</label>
-            <input id="prep_${code}" type="number" min="0" step="1" value="${prep}" data-type="prep" data-id="${code}">
+            <input id="prep_${code}" type="number" inputmode="numeric" min="1" step="1" value="${prep}" data-type="prep" data-id="${code}">
             <span class="small">мин</span>
           </div>
           <div class="inline">
             <label for="deliv_${code}">Доставка</label>
-            <input id="deliv_${code}" type="number" min="0" step="1" value="${delv}" data-type="deliv" data-id="${code}">
+            <input id="deliv_${code}" type="number" inputmode="numeric" min="1" step="1" value="${delv}" data-type="deliv" data-id="${code}">
             <span class="small">мин</span>
           </div>
         </div>
@@ -330,35 +325,32 @@ function bindUI(){
     b.addEventListener('click', ()=> deleteOrder(b.dataset.id));
   });
 
-  // ETA (приготвяне/доставка): blur, Enter и auto-save (debounce)
+  // ETA (приготвяне/доставка): blur, Enter и debounce запис
   const debouncers = new Map();
   const doSave = async (id, type, val, inpEl) => {
-    const v = Math.max(0, Number(val)||0);
+    const raw = String(val ?? '').trim();
+    if (raw === '') return;                  // не записвай празно => не нулирай
+    let v = parseInt(raw, 10);
+    if (Number.isNaN(v)) return;
+    v = Math.max(1, v);                      // минимум 1 минута
     const patch = (type === 'prep') ? { prepEtaMin: v } : { deliveryEtaMin: v };
-    try{
-      await updateDoc(doc(db,'orders',id), patch);
-    }catch(_){
-      await setDoc(doc(db,'orders',id), patch, { merge:true });
-    }
-    // визуален feedback
-    inpEl.style.borderColor = '#4cff84';
+    try{ await updateDoc(doc(db,'orders',id), patch); }
+    catch{ await setDoc(doc(db,'orders',id), patch, { merge:true }); }
+    inpEl.value = String(v);                 // нормализирай
+    inpEl.style.borderColor = '#4cff84';     // feedback
     setTimeout(()=> inpEl.style.borderColor='', 900);
   };
 
   grid.querySelectorAll('.inline input').forEach(inp=>{
     const id = inp.dataset.id;
     const type = inp.dataset.type;
-
-    // blur / Enter
     const saveNow = ()=> doSave(id, type, inp.value, inp);
     inp.addEventListener('blur', saveNow);
     inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); }});
-
-    // input debounce
     inp.addEventListener('input', ()=>{
       const key = id + '|' + type;
       clearTimeout(debouncers.get(key));
-      const t = setTimeout(()=> doSave(id, type, inp.value, inp), 600);
+      const t = setTimeout(saveNow, 600);
       debouncers.set(key, t);
     });
   });
@@ -367,8 +359,8 @@ function bindUI(){
   grid.querySelectorAll('[data-action="copy"]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       const code = b.dataset.code;
-      try{ await navigator.clipboard.writeText(code); b.textContent='✔ Копирано'; setTimeout(()=>b.textContent='📋 Копирай кода',1200);}
-      catch(_){ alert('Копирайте ръчно: '+code); }
+      try{ await navigator.clipboard.writeText(code); b.textContent='✔ Копирано'; setTimeout(()=>b.textContent='📋 Копирай кода',1200); }
+      catch{ alert('Копирайте ръчно: '+code); }
     });
   });
 
@@ -377,8 +369,8 @@ function bindUI(){
       const code = b.dataset.code;
       const base = (location.protocol==='file:') ? 'index6.html' : new URL('index6.html', location.href).toString();
       const url = (base.includes('?')?base:base) + (base.includes('?')?'&':'?') + 'code=' + encodeURIComponent(code);
-      try{ await navigator.clipboard.writeText(url); b.textContent='✔ Линк копиран'; setTimeout(()=>b.textContent='🔗 Линк за клиента',1200);}
-      catch(_){ prompt('Копирай линка:', url); }
+      try{ await navigator.clipboard.writeText(url); b.textContent='✔ Линк копиран'; setTimeout(()=>b.textContent='🔗 Линк за клиента',1200); }
+      catch{ prompt('Копирай линка:', url); }
     });
   });
 
@@ -395,9 +387,8 @@ function bindUI(){
 /* ===== Операции (CRUD) ===== */
 async function changeStatus(id, targetStatus){
   try{
-    const patch = { status: targetStatus };
-    // НИЩО не трием автоматично (без deleteField) -> няма да „изяжда“ ETA
-    await updateDoc(doc(db,'orders',id), patch);
+    // НЕ трием ETA полета автоматично (без deleteField), за да не се нулират
+    await updateDoc(doc(db,'orders',id), { status: targetStatus });
   }catch(err){
     try{
       await setDoc(doc(db,'orders',id), { status: targetStatus }, { merge:true });
