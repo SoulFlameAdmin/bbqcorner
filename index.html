@@ -326,6 +326,7 @@ a,button{touch-action:manipulation}
 </div>
 
 <!-- ===== REVIEWS PANEL MARKUP ===== -->
+<!-- ===== REVIEWS PANEL (с админ вход в панела) ===== -->
 <div id="reviewsPanel" aria-hidden="true">
   <div id="reviewsBox" role="dialog" aria-modal="true" aria-labelledby="reviewsTitle">
     <h2 id="reviewsTitle">⭐ Отзиви и препоръки
@@ -336,7 +337,7 @@ a,button{touch-action:manipulation}
 
     <div id="addReview" style="margin-top:12px">
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
-        <div class="starSelect" id="starSelect" aria-label="Оцени със звезди" role="radiogroup" ></div>
+        <div class="starSelect" id="starSelect" aria-label="Оцени със звезди" role="radiogroup"></div>
         <div style="font-size:13px;color:#bfc7c7">Може да изпратиш само звезда, само текст или и двете</div>
       </div>
       <input id="revName" type="text" placeholder="Вашето име (по желание)">
@@ -346,10 +347,22 @@ a,button{touch-action:manipulation}
         <button id="clearReview" class="btn">Изчисти</button>
         <button id="closeReviews" class="btn" style="background:transparent;border:1px solid #ffffff12;color:#fff">Затвори</button>
       </div>
-    </div>
 
+      <!-- Админ вход (Firebase) за изтриване -->
+      <div class="adminAuthToggle" id="adminAuthToggle">Вход за админ (Firebase) за изтриване ▼</div>
+      <div class="adminAuthBox" id="adminAuthBox">
+        <input id="fbEmail" type="email" placeholder="Админ имейл" value="soulflame.mitko@gmail.com">
+        <input id="fbPass" type="password" placeholder="Firebase парола">
+        <div class="row">
+          <button id="fbLoginBtn" class="btn">Вход</button>
+          <button id="fbLogoutBtn" class="btn">Изход</button>
+          <span id="fbState" style="align-self:center;font-size:12px;color:#bfc7c7">Не си логнат</span>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+
 
 <script>
 /* ========== ИНФО ЗА КАРТИНИТА ========== */
@@ -500,6 +513,7 @@ if (trackBtn) {
 </script>
 
 <!-- ========== REVIEWS FUNCTIONALITY (Firebase) ========== -->
+<!-- ========== REVIEWS (Firebase, realtime, admin delete) ========== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
   import {
@@ -507,10 +521,10 @@ if (trackBtn) {
     addDoc, doc, deleteDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
   import {
-    getAuth, signInWithEmailAndPassword, onAuthStateChanged
+    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
   } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 
-  // --- 1) ТВОЯТ REAL config ---
+  // === Firebase config (твоя реален проект) ===
   const firebaseConfig = {
     apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
     authDomain: "corner-bbq.firebaseapp.com",
@@ -521,12 +535,12 @@ if (trackBtn) {
     measurementId: "G-FWBDL96GN0"
   };
 
-  // --- 2) Инициализация ---
+  // Инициализация
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
 
-  // --- 3) Елементи ---
+  // UI елементи
   const panel     = document.getElementById('reviewsPanel');
   const btnOpen   = document.getElementById('reviewsBtn');
   const btnClose  = document.getElementById('closeReviews');
@@ -537,14 +551,24 @@ if (trackBtn) {
   const btnSend   = document.getElementById('sendReview');
   const btnClear  = document.getElementById('clearReview');
 
-  // --- 4) Звезди (0..6) ---
+  const adminAuthToggle = document.getElementById('adminAuthToggle');
+  const adminAuthBox    = document.getElementById('adminAuthBox');
+  const fbEmail         = document.getElementById('fbEmail');
+  const fbPass          = document.getElementById('fbPass');
+  const fbLoginBtn      = document.getElementById('fbLoginBtn');
+  const fbLogoutBtn     = document.getElementById('fbLogoutBtn');
+  const fbState         = document.getElementById('fbState');
+
+  if (adminAuthToggle) adminAuthToggle.addEventListener('click', ()=> adminAuthBox.classList.toggle('show'));
+
+  // Звезди (0..6)
   let stars = 0;
   function drawStars(){
     starBox.innerHTML = '';
     for (let i=1;i<=6;i++){
       const s = document.createElement('span');
       s.textContent = '★';
-      s.className = i<=stars ? 'active':'';
+      s.className = i<=stars ? 'active' : '';
       s.onclick = () => { stars = i; drawStars(); };
       starBox.appendChild(s);
     }
@@ -552,22 +576,32 @@ if (trackBtn) {
   drawStars();
   const fmtStars = n => (!n||n<=0) ? '' : '★'.repeat(n)+'☆'.repeat(6-n);
 
-  // --- 5) Публикуване ---
+  // Публикуване
+  let sending = false;
   async function publishReview(){
+    if (sending) return;
     const name = (nameInp.value||'').trim() || 'Анонимен';
     const text = (textInp.value||'').trim();
     if (!text && stars===0){ alert('Моля, звезди или текст.'); return; }
 
-    await addDoc(collection(db,'reviews'), {
-      name, text, stars,
-      date: new Date().toLocaleString(),
-      createdAt: serverTimestamp()
-    });
-
-    nameInp.value=''; textInp.value=''; stars=0; drawStars();
+    sending = true; btnSend.disabled = true;
+    try{
+      await addDoc(collection(db,'reviews'), {
+        name, text, stars,
+        date: new Date().toLocaleString(),
+        createdAt: serverTimestamp()
+      });
+      alert('✅ Благодарим! Отзивът е публикуван.');
+      nameInp.value=''; textInp.value=''; stars=0; drawStars();
+    }catch(e){
+      console.error(e);
+      alert('❌ Грешка при публикуване.');
+    }finally{
+      sending = false; btnSend.disabled = false;
+    }
   }
 
-  // --- 6) Рендер + изтриване (само за админ) ---
+  // Рендер + (админ) изтриване
   function renderList(snap, isAdmin){
     list.innerHTML = '';
     if (snap.empty){
@@ -576,6 +610,7 @@ if (trackBtn) {
     }
     snap.forEach(d=>{
       const r = d.data();
+      const safeText = (r.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); // XSS защита
       const item = document.createElement('div');
       item.className = 'reviewItem';
       item.innerHTML = `
@@ -584,10 +619,10 @@ if (trackBtn) {
             <div class="reviewName">${r.name || 'Анонимен'}</div>
             <div class="smallMuted">${r.date || ''}</div>
           </div>
-          ${isAdmin ? `<button class="delBtn" data-id="${d.id}">✖</button>`:''}
+          ${isAdmin ? `<button class="delBtn" data-id="${d.id}">✖</button>` : ''}
         </div>
         <div class="stars">${fmtStars(r.stars) || 'Няма оценка'}</div>
-        <div class="reviewText">${r.text || '<i style="color:#9aa0a6">(без текст)</i>'}</div>
+        <div class="reviewText">${safeText || '<i style="color:#9aa0a6">(без текст)</i>'}</div>
         <div class="reviewMeta">Оценка: ${r.stars?`${r.stars}/6`:'—'}</div>
       `;
       list.appendChild(item);
@@ -597,45 +632,56 @@ if (trackBtn) {
       list.querySelectorAll('.delBtn').forEach(b=>{
         b.onclick = async () => {
           if (!confirm('Да изтрия ли отзива?')) return;
-          await deleteDoc(doc(db,'reviews', b.dataset.id));
+          try{
+            await deleteDoc(doc(db,'reviews', b.dataset.id));
+          }catch(e){
+            console.error(e);
+            alert('❌ Нямаш права за изтриване (влез с админ имейл).');
+          }
         };
       });
     }
   }
 
-  // --- 7) Живо четене за всички (public read в правилата) ---
+  // Живо четене
   const qRef = query(collection(db,'reviews'), orderBy('createdAt','desc'));
   let unsub = null;
   onAuthStateChanged(auth, user=>{
-    if (unsub) { unsub(); unsub=null; }
     const isAdmin = !!user && user.email === 'soulflame.mitko@gmail.com';
+    if (fbState) fbState.textContent = isAdmin ? `Логнат: ${user.email}` : 'Не си логнат';
+    if (unsub) { unsub(); unsub=null; }
     unsub = onSnapshot(qRef, snap => renderList(snap, isAdmin));
   });
 
-  // --- 8) Отваряне/затваряне ---
-  btnOpen.onclick  = ()=>{ panel.classList.add('show'); };
-  btnClose.onclick = ()=>{ panel.classList.remove('show'); };
-  panel.onclick    = e=>{ if(e.target===panel) panel.classList.remove('show'); };
+  // Отваряне/затваряне
+  if (btnOpen)  btnOpen.onclick  = ()=> panel.classList.add('show');
+  if (btnClose) btnClose.onclick = ()=> panel.classList.remove('show');
+  panel.onclick = e=>{ if(e.target===panel) panel.classList.remove('show'); };
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') panel.classList.remove('show'); });
 
-  // --- 9) Бутони ---
+  // Бутони
   btnSend.onclick  = publishReview;
   btnClear.onclick = ()=>{ nameInp.value=''; textInp.value=''; stars=0; drawStars(); };
 
-  // --- 10) Админ login hook (по избор) ---
-  const ADMIN_EMAIL = 'soulflame.mitko@gmail.com';
-  const ADMIN_PASS  = ''; // <- по-добре логин от админ-панела; ако сложиш тук, ще е публично!
-  async function adminLogin(){
-    if (!ADMIN_PASS) return; // предпазно
-    try { await signInWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASS); }
-    catch(e){ console.warn('Admin login failed:', e.message); }
-  }
-  // ако вече си натиснал „АДМИН“ и пазиш флаг:
-  if (localStorage.getItem('adminVerified')==='1') {
-    // adminLogin(); // ако решиш да го ползваш
-  }
+  // Firebase admin вход/изход в панела
+  if (fbLoginBtn) fbLoginBtn.addEventListener('click', async ()=>{
+    try {
+      const email = (fbEmail.value||'').trim();
+      const pass  = (fbPass.value||'').trim();
+      if(!email || !pass){ alert('Въведи имейл и парола.'); return; }
+      await signInWithEmailAndPassword(auth, email, pass);
+      fbPass.value='';
+      alert('✅ Успешен вход.');
+    } catch(e){
+      console.error(e);
+      alert('❌ Неуспешен вход.');
+    }
+  });
+  if (fbLogoutBtn) fbLogoutBtn.addEventListener('click', async ()=>{
+    try { await signOut(auth); alert('✅ Излезе от Firebase.'); }
+    catch(e){ console.error(e); }
+  });
 </script>
-
 
 </body>
 </html>
