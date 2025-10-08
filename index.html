@@ -636,18 +636,21 @@ function renderList(snap, isAdmin){
   list.querySelectorAll('.delBtn').forEach(b=>{
     b.onclick = async ()=>{
       const pass = prompt('🔐 Въведи админ паролата за изтриване:');
-      if (pass !== 'bbqcornera123') {
-        alert('❌ Грешна парола!');
-        return;
-      }
-      if (!confirm('Сигурен ли си, че искаш да изтриеш този отзив?')) return;
-      try {
-        await deleteDoc(doc(db,'reviews', b.dataset.id));
-        alert('✅ Отзивът е изтрит успешно.');
-      } catch(e) {
-        console.error(e);
-        alert('❌ Грешка при изтриване.');
-      }
+if (pass !== 'bbqcornera123') {
+  alert('❌ Грешна парола!');
+  return;
+}
+
+await firebaseAdminLogin(); // 🧠 влиза автоматично във Firebase преди изтриване
+if (!confirm('Сигурен ли си, че искаш да изтриеш този отзив?')) return;
+
+try {
+  await deleteDoc(doc(db, 'reviews', b.dataset.id));
+  alert('✅ Отзивът е изтрит успешно.');
+} catch(e) {
+  console.error(e);
+  alert('❌ Грешка при изтриване.');
+}
     };
   });
 }
