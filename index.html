@@ -120,35 +120,6 @@ a,button{touch-action:manipulation}
   box-shadow:0 8px 24px rgba(0,0,0,.18);
 }
 /* === Поправка за мобилен изглед (бутоните да не закриват логото) === */
-@media (max-width:640px){
-  /* местим хедъра малко по-надолу */
-  .hero{
-    height: 52vh; /* увеличава малко височината */
-    background-position: center 75%; /* мести снимката надолу */
-  }
-
-  /* логото и текстът да се виждат по-добре */
-  .hero-inner{
-    margin-top: 30px;
-  }
-
-  /* бутоните да се спускат надолу */
-  .admin-btn{
-    top: 90px;  /* беше 10px — местим под логото */
-    right: 14px;
-  }
-  .track-btn{
-    top: 135px; /* точно под админ бутона */
-    right: 14px;
-  }
-
-  /* отзивите – също по-надолу и вляво */
-  #reviewsBtn{
-    top: 90px;
-    left: 14px;
-  }
-}
-
 
 
 
@@ -169,27 +140,24 @@ a,button{touch-action:manipulation}
 
 /* MOBILE */
 /* === Мобилен: фиксирани бутони най-горе === */
+/* === Мобилен: фиксирани бутони най-горе === */
 @media (max-width:640px){
-  /* място отгоре, за да не ги покрива съдържанието при скрол */
   body{ scroll-padding-top: 140px; }
 
-  /* общи настройки */
   #reviewsBtn, .admin-btn, .track-btn{
     position: fixed !important;
-    z-index: 2000;           /* над всичко */
-    transform: translateZ(0);/* по-гладка анимация */
+    top: auto;
+    z-index: 2000;
+    transform: translateZ(0);
   }
 
-  /* безопасно отстояние при notch */
   :root{ --safe-top: env(safe-area-inset-top, 0px); }
 
-  /* Отзиви (вляво) */
   #reviewsBtn{
     top: calc(var(--safe-top) + 12px);
     left: 12px;
   }
 
-  /* Админ (вдясно) */
   .admin-btn{
     top: calc(var(--safe-top) + 12px);
     right: 12px;
@@ -198,7 +166,6 @@ a,button{touch-action:manipulation}
     border-radius: 12px;
   }
 
-  /* Проследи поръчката – точно под Админ */
   .track-btn{
     top: calc(var(--safe-top) + 56px);
     right: 12px;
@@ -208,14 +175,12 @@ a,button{touch-action:manipulation}
     box-shadow: 0 8px 24px rgba(0,0,0,.18);
   }
 
-  /* хедърът може да стои по-ниско и корицата да е изместена надолу */
   .hero{
     height: 52vh;
     background-position: center 75%;
-    padding-top: calc(var(--safe-top) + 70px); /* да не се блъска в бутоните */
+    padding-top: calc(var(--safe-top) + 70px);
   }
 }
-
 
 
 /* ================= REVIEWS PANEL (вграден стил) ================= */
