@@ -63,7 +63,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 .btn.warn{background:#2a2418;border-color:#554125}
 .btn.bad{background:#3a1515;border-color:#8a1f1f}
 
-/* Inline inputs (ETA) */
+/* Inline inputs */
 .inline{
   display:inline-flex;gap:6px;align-items:center;background:#181a1f;border:1px solid var(--soft);border-radius:10px;padding:6px 8px
 }
@@ -79,13 +79,15 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 }
 .close:hover{background:#4a1919;border-color:#b32626}
 
-/* Flash note */
-.note{margin-top:8px;color:#ffcf7a}
-.note-flash{animation:flashNote 2.2s ease-in-out}
-@keyframes flashNote{0%{background:rgba(255,122,0,.18)}100%{background:transparent}}
-
-.util{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-.util .btn{padding:6px 8px;font-size:13px}
+/* Note editor */
+.noteWrap{margin-top:10px;border:1px solid var(--soft);border-radius:12px;overflow:hidden;background:#181a1f}
+.noteHead{display:flex;justify-content:space-between;align-items:center;padding:8px 10px}
+.noteHead strong{font-size:13px}
+.noteBody{padding:8px 10px}
+.noteBody textarea{
+  width:100%;min-height:64px;background:#101215;border:1px solid #0000;color:#fff;border-radius:8px;padding:8px;outline:none;resize:vertical
+}
+.noteActions{display:flex;gap:8px;justify-content:flex-end;padding:8px 10px}
 
 /* Top utility bar */
 .topUtil{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -119,7 +121,7 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
   <div class="topUtil">
     <span class="kbd">Клик върху „мин“ полета = запазва ETA</span>
     <span class="kbd">Статуси: Преглед → Приготвя се → Доставя се → Доставено</span>
-    <span class="kbd">ОТКАЗАНА добавя причина</span>
+    <span class="kbd">Бележка: редактирай и „Запази бележка“</span>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -129,25 +131,19 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 <audio id="newOrderSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
 <script type="module">
-/* ===== Достъп (флаг от login overlay) ===== */
+/* ===== Gate (локален флаг) ===== */
 const verified = localStorage.getItem('adminVerified') === '1';
 if (!verified) {
   alert('❌ Нямаш достъп до админ панела. Моля, влез през началната страница.');
   window.location.href = 'index.html';
 }
 
-/* ===== Помощни ===== */
+/* ===== Utils ===== */
 const lv = n => (Number(n)||0).toFixed(2).replace('.',',')+' лв.';
-const fmtWhen = ts => {
-  try{
-    if (!ts) return '';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleString();
-  } catch(_){ return ''; }
-};
-const escapeHTML = s => String(s||'').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const fmtWhen = ts => { try{ if (!ts) return ''; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString(); }catch(_){ return ''; } };
+const esc = s => String(s||'').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
-/* ===== Елементи ===== */
+/* ===== DOM ===== */
 const grid = document.getElementById('grid');
 const countE = document.getElementById('count');
 const deliveredSumE = document.getElementById('deliveredSum');
@@ -162,6 +158,9 @@ import {
   getFirestore, collection, query, orderBy, onSnapshot,
   doc, updateDoc, deleteDoc, setDoc, serverTimestamp, deleteField
 } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+import {
+  getAuth, signInAnonymously, onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
@@ -174,41 +173,32 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
+const auth = getAuth(app);
 
-/* ===== Live зареждане ===== */
+/* === Sign-in (анонимен), за да минават rules === */
+await signInAnonymously(auth).catch(()=>{});
+await new Promise(res => onAuthStateChanged(auth, () => res(), { once: true }));
+
+/* ===== Live ===== */
 let orders = [];
 let firstLoad = true;
 
 const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
 onSnapshot(q, (snap)=>{
   const newOrders = snap.docs.map(d => ({ id: d.id, code: d.id, ...d.data() }));
-  if (!firstLoad && newOrders.length > orders.length) {
-    sound.currentTime = 0; sound.play().catch(()=>{});
-  }
+  if (!firstLoad && newOrders.length > orders.length) { sound.currentTime = 0; sound.play().catch(()=>{}); }
   firstLoad = false;
   orders = newOrders;
   render();
 });
 
-/* ===== (Опция) Ръчно създаване с 4-цифрен код ===== */
-async function createOrder(customer, items, total) {
-  const code = Math.floor(1000 + Math.random() * 9000).toString();
-  await setDoc(doc(db,'orders',code), {
-    customer, items, total,
-    status:'ПРЕГЛЕД',
-    prepEtaMin:0, deliveryEtaMin:0, canceledReason:'',
-    createdAt: serverTimestamp(), source:'admin'
-  });
-  return code;
-}
-
-/* ===== Филтри и рендер ===== */
+/* ===== Render + Filters ===== */
 selStatus.addEventListener('change', render);
 searchBox.addEventListener('input', render);
 
 function render(){
   const fStatus = selStatus.value;
-  const queryTxt = (searchBox.value || '').trim().toLowerCase();
+  const qTxt = (searchBox.value || '').trim().toLowerCase();
 
   const deliveredSum = orders
     .filter(o => (o.status||'') === 'ДОСТАВЕНО')
@@ -216,18 +206,16 @@ function render(){
   deliveredSumE.textContent = lv(deliveredSum);
 
   let filtered = orders.slice();
-
   filtered = filtered.filter(o=>{
     const s = (o.status||'');
     if (fStatus === 'ALL') return s !== 'ДОСТАВЕНО';
     return s === fStatus;
   });
-
-  if (queryTxt){
+  if (qTxt){
     filtered = filtered.filter(o=>{
       const c = o.customer || {};
       const hay = [o.id, c.names, c.phone, c.address, o.note].join(' ').toLowerCase();
-      return hay.includes(queryTxt);
+      return hay.includes(qTxt);
     });
   }
 
@@ -238,19 +226,20 @@ function render(){
     const when   = fmtWhen(o.createdAt);
     const items  = Array.isArray(o.items) ? o.items : [];
     const status = o.status || 'ПРЕГЛЕД';
-    const hasNote = !!o.note;
     const prep = Number(o.prepEtaMin)||0;
     const delv = Number(o.deliveryEtaMin)||0;
-    const address = escapeHTML(o.customer?.address || '');
-    const names   = escapeHTML(o.customer?.names || '');
-    const phone   = escapeHTML(o.customer?.phone || '');
-    const codeShort = o.id;
+    const address = esc(o.customer?.address || '');
+    const names   = esc(o.customer?.names || '');
+    const phone   = esc(o.customer?.phone || '');
+    const code    = o.id;
+    const noteTxt = o.note || '';
 
     return `
-      <div class="card" data-id="${o.id}">
-        <button class="close" title="Изтрий" data-id="${o.id}">×</button>
+      <div class="card" data-id="${code}">
+        <button class="close" title="Изтрий" data-id="${code}">×</button>
+
         <div class="row">
-          <span class="badge">Код: #${codeShort}</span>
+          <span class="badge">Код: #${code}</span>
           <span class="small">${when}</span>
           <span class="status" data-s="${status}">${status}</span>
         </div>
@@ -260,43 +249,51 @@ function render(){
 
         <div class="items">
           ${items.map(it=>`
-            <div class="item"><span>${escapeHTML(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>
+            <div class="item"><span>${esc(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>
           `).join('')}
         </div>
 
         <div class="total">Общо: ${lv(Number(o.total)||0)}</div>
 
-        ${hasNote ? `<div class="note note-flash">📝 <strong>Бележка:</strong> ${escapeHTML(o.note)}</div>`:''}
-
         <div class="row" style="gap:10px;margin-top:10px;flex-wrap:wrap">
           <div class="inline">
-            <label for="prep_${o.id}">Приготвяне</label>
-            <input id="prep_${o.id}" type="number" min="0" step="1" value="${prep}" data-type="prep" data-id="${o.id}">
+            <label for="prep_${code}">Приготвяне</label>
+            <input id="prep_${code}" type="number" min="0" step="1" value="${prep}" data-type="prep" data-id="${code}">
             <span class="small">мин</span>
           </div>
           <div class="inline">
-            <label for="deliv_${o.id}">Доставка</label>
-            <input id="deliv_${o.id}" type="number" min="0" step="1" value="${delv}" data-type="deliv" data-id="${o.id}">
+            <label for="deliv_${code}">Доставка</label>
+            <input id="deliv_${code}" type="number" min="0" step="1" value="${delv}" data-type="deliv" data-id="${code}">
             <span class="small">мин</span>
           </div>
         </div>
 
+        <div class="noteWrap">
+          <div class="noteHead"><strong>📝 Бележка към поръчката</strong></div>
+          <div class="noteBody">
+            <textarea id="note_${code}" placeholder="Въведи/редактирай бележка…">${esc(noteTxt)}</textarea>
+          </div>
+          <div class="noteActions">
+            <button class="btn" data-action="save-note" data-id="${code}">Запази бележка</button>
+          </div>
+        </div>
+
         <div class="util">
-          <button class="btn" data-action="copy" data-code="${codeShort}">📋 Копирай кода</button>
-          <button class="btn" data-action="link" data-code="${codeShort}">🔗 Линк за клиента</button>
+          <button class="btn" data-action="copy" data-code="${code}">📋 Копирай кода</button>
+          <button class="btn" data-action="link" data-code="${code}">🔗 Линк за клиента</button>
           <button class="btn" data-action="maps" data-address="${address}">🚗 Достави</button>
         </div>
 
         <div class="btns">
           ${status !== 'ДОСТАВЕНО' && status !== 'ОТКАЗАНА' ? `
-            <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${o.id}">ПРЕГЛЕД</button>
-            <button class="btn ok"  data-action="s" data-target="ПРИГОТВЯ СЕ"  data-id="${o.id}">ПРИГОТВЯ СЕ</button>
-            <button class="btn warn"data-action="s" data-target="ДОСТАВЯ СЕ"   data-id="${o.id}">ДОСТАВЯ СЕ</button>
-            <button class="btn ok"  data-action="s" data-target="ДОСТАВЕНО"    data-id="${o.id}">ДОСТАВЕНО</button>
-            <button class="btn bad" data-action="cancel" data-id="${o.id}">ОТКАЗАНА</button>
+            <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${code}">ПРЕГЛЕД</button>
+            <button class="btn ok"  data-action="s" data-target="ПРИГОТВЯ СЕ"  data-id="${code}">ПРИГОТВЯ СЕ</button>
+            <button class="btn warn"data-action="s" data-target="ДОСТАВЯ СЕ"   data-id="${code}">ДОСТАВЯ СЕ</button>
+            <button class="btn ok"  data-action="s" data-target="ДОСТАВЕНО"    data-id="${code}">ДОСТАВЕНО</button>
+            <button class="btn bad" data-action="cancel" data-id="${code}">ОТКАЗАНА</button>
           ` : `
-            <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${o.id}">ПРЕГЛЕД</button>
-            <button class="btn bad" data-action="cancel" data-id="${o.id}">ОТКАЗАНА</button>
+            <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${code}">ПРЕГЛЕД</button>
+            <button class="btn bad" data-action="cancel" data-id="${code}">ОТКАЗАНА</button>
           `}
         </div>
       </div>
@@ -306,7 +303,7 @@ function render(){
   bindUI();
 }
 
-/* ===== Поведение ===== */
+/* ===== Bindings ===== */
 function bindUI(){
   // статуси
   grid.querySelectorAll('[data-action="s"]').forEach(btn=>{
@@ -323,28 +320,57 @@ function bindUI(){
     b.addEventListener('click', ()=> deleteOrder(b.dataset.id));
   });
 
-  // ETA инпутите
+  // ETA inputs
   grid.querySelectorAll('.inline input').forEach(inp=>{
     const save = async ()=>{
       const id = inp.dataset.id;
       const type = inp.dataset.type;
       const val = Math.max(0, Number(inp.value)||0);
       const patch = (type === 'prep') ? { prepEtaMin: val } : { deliveryEtaMin: val };
-
       try {
         await updateDoc(doc(db, 'orders', id), patch);
         inp.style.borderColor = '#4cff84';
         setTimeout(()=> inp.style.borderColor='', 900);
       } catch(e) {
-        console.error('ETA update error', e);
-        alert('Неуспешно записване на ETA.');
+        // fallback
+        try{
+          await setDoc(doc(db,'orders',id), patch, { merge: true });
+          inp.style.borderColor = '#4cff84';
+          setTimeout(()=> inp.style.borderColor='', 900);
+        }catch(err){
+          console.error('ETA update error', err);
+          alert('Неуспешно записване на ETA.');
+        }
       }
     };
     inp.addEventListener('blur', save);
     inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); }});
   });
 
-  // утилити: копиране/линк/карта
+  // бележка – запис
+  grid.querySelectorAll('[data-action="save-note"]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.id;
+      const ta = document.getElementById('note_'+id);
+      const note = (ta?.value || '').trim();
+      try{
+        await updateDoc(doc(db,'orders',id), { note });
+        btn.textContent = '✔ Записано';
+        setTimeout(()=> btn.textContent = 'Запази бележка', 1200);
+      }catch(e){
+        try{
+          await setDoc(doc(db,'orders',id), { note }, { merge:true });
+          btn.textContent = '✔ Записано';
+          setTimeout(()=> btn.textContent = 'Запази бележка', 1200);
+        }catch(err){
+          console.error('note save error', err);
+          alert('Неуспешно записване на бележката.');
+        }
+      }
+    });
+  });
+
+  // утилити – копиране/линк/карта
   grid.querySelectorAll('[data-action="copy"]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       const code = b.dataset.code;
@@ -373,20 +399,23 @@ function bindUI(){
   });
 }
 
-/* ===== Операции ===== */
+/* ===== Ops ===== */
 async function changeStatus(id, targetStatus){
   try{
     const patch = { status: targetStatus };
-
-    // Премахваме полетата (не пращаме undefined)
     if (targetStatus === 'ПРИГОТВЯ СЕ')  patch.prepEtaMin     = deleteField();
     if (targetStatus === 'ДОСТАВЯ СЕ')   patch.deliveryEtaMin = deleteField();
-    if (targetStatus === 'ДОСТАВЕНО')    patch.deliveryEtaMin = 0; // финал
+    if (targetStatus === 'ДОСТАВЕНО')    patch.deliveryEtaMin = 0;
 
     await updateDoc(doc(db,'orders',id), patch);
   }catch(err){
-    console.error(err);
-    alert('Неуспешна промяна на статус.');
+    // fallback
+    try{
+      await setDoc(doc(db,'orders',id), { status: targetStatus }, { merge:true });
+    }catch(e){
+      console.error(e);
+      alert('Неуспешна промяна на статус.');
+    }
   }
 }
 
@@ -395,7 +424,14 @@ async function cancelOrder(id){
     const reason = prompt('Причина за отказ:');
     if (!reason) return;
     await updateDoc(doc(db,'orders',id), { status:'ОТКАЗАНА', canceledReason: reason });
-  }catch(err){ console.error(err); alert('Неуспешен отказ.'); }
+  }catch(err){
+    try{
+      await setDoc(doc(db,'orders',id), { status:'ОТКАЗАНА', canceledReason: reason }, { merge:true });
+    }catch(e){
+      console.error(e);
+      alert('Неуспешен отказ.');
+    }
+  }
 }
 
 async function deleteOrder(id){
@@ -406,7 +442,7 @@ async function deleteOrder(id){
   }catch(err){ console.error(err); alert('Грешка при изтриване.'); }
 }
 
-/* ===== Клик лог (по избор) ===== */
+/* ===== Optional local click log ===== */
 (function(){
   const who = (localStorage.getItem('adminName') || '').trim();
   if(!who) return;
@@ -423,8 +459,8 @@ async function deleteOrder(id){
   }
   document.addEventListener('click', e=>{
     let desc = '';
-    if(e.target.closest('button, a, input, select')){
-      const el = e.target.closest('button, a, input, select');
+    if(e.target.closest('button, a, input, select, textarea')){
+      const el = e.target.closest('button, a, input, select, textarea');
       const tag = el.tagName.toLowerCase();
       const label = el.innerText || el.value || el.id || '(без текст)';
       desc = `кликна върху ${tag} → "${label.trim().slice(0,60)}"`;
