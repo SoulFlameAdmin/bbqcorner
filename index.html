@@ -605,14 +605,13 @@ if (trackBtn) {
   }
 
   // Рендер + (админ) изтриване
-function renderList(snap, isAdmin){
+// === Рендер + просто триене с парола ===
+function renderList(snap) {
   list.innerHTML = '';
   if (snap.empty){
     list.innerHTML = '<div class="smallMuted">Все още няма отзиви. Бъди първи!</div>';
     return;
   }
-
-  const isLocalAdmin = localStorage.getItem('adminVerified') === '1';
 
   snap.forEach(d=>{
     const r = d.data();
@@ -625,35 +624,29 @@ function renderList(snap, isAdmin){
           <div class="reviewName">${r.name || 'Анонимен'}</div>
           <div class="smallMuted">${r.date || ''}</div>
         </div>
-        <button class="delBtn" data-id="${d.id}" title="Изтрий отзива"
-          style="display:${(isAdmin || isLocalAdmin)?'inline':'none'}">✖</button>
+        <button class="delBtn" data-id="${d.id}" title="Изтрий отзива">✖</button>
       </div>
-      <div class="stars">${fmtStars(r.stars) || 'Няма оценка'}</div>
+      <div class="stars">${r.stars ? '★'.repeat(r.stars)+'☆'.repeat(6-r.stars) : 'Няма оценка'}</div>
       <div class="reviewText">${safeText || '<i style="color:#9aa0a6">(без текст)</i>'}</div>
       <div class="reviewMeta">Оценка: ${r.stars?`${r.stars}/6`:'—'}</div>
     `;
     list.appendChild(item);
   });
 
-  // === Изтриване с админ парола bbqcornera123 ===
+  // просто питаме за парола и трием
   list.querySelectorAll('.delBtn').forEach(b=>{
-    b.onclick = async ()=>{
+    b.onclick = async () => {
       const pass = prompt('🔐 Въведи админ паролата за изтриване:');
-if (pass !== 'bbqcornera123') {
-  alert('❌ Грешна парола!');
-  return;
-}
+      if (pass !== 'bbqcornera123') { alert('❌ Грешна парола!'); return; }
+      if (!confirm('Сигурен ли си, че искаш да изтриеш този отзив?')) return;
 
-await firebaseAdminLogin(); // 🧠 влиза автоматично във Firebase преди изтриване
-if (!confirm('Сигурен ли си, че искаш да изтриеш този отзив?')) return;
-
-try {
-  await deleteDoc(doc(db, 'reviews', b.dataset.id));
-  alert('✅ Отзивът е изтрит успешно.');
-} catch(e) {
-  console.error(e);
-  alert('❌ Грешка при изтриване.');
-}
+      try {
+        await deleteDoc(doc(db, 'reviews', b.dataset.id));
+        alert('✅ Отзивът е изтрит успешно.');
+      } catch (e) {
+        console.error(e);
+        alert('❌ Грешка при изтриване.');
+      }
     };
   });
 }
