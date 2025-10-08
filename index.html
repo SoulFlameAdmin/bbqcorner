@@ -497,147 +497,105 @@ if (trackBtn) {
 
   logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
 })();
+</script>
 
-/* ========== REVIEWS FUNCTIONALITY ========== */
-const btn = document.getElementById('reviewsBtn');
-const panel = document.getElementById('reviewsPanel');
-const list = document.getElementById('reviewsList');
-const revName = document.getElementById('revName');
-const revText = document.getElementById('revText');
-const send = document.getElementById('sendReview');
-const clearBtn = document.getElementById('clearReview');
-const starsBox = document.getElementById('starSelect');
-const CLOSE_REV = document.getElementById('closeReviews');
-const ADMIN_PASS = 'bbqcornera123';
+<!-- ========== REVIEWS FUNCTIONALITY (Firebase) ========== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-let currentStars = 0;
+  const firebaseConfig = {
+    apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
+    authDomain: "corner-bbq.firebaseapp.com",
+    projectId: "corner-bbq",
+    storageBucket: "corner-bbq.firebasestorage.app",
+    messagingSenderId: "878314744141",
+    appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
+    measurementId: "G-FWBDL96GN0"
+  };
 
-// render star selector (1..6)
-function renderStars(){
-  starsBox.innerHTML = '';
-  for(let i=1;i<=6;i++){
-    const s = document.createElement('span');
-    s.textContent = '★';
-    s.setAttribute('role','radio');
-    s.setAttribute('aria-checked', i<=currentStars ? 'true' : 'false');
-    s.className = i<=currentStars ? 'active' : '';
-    s.addEventListener('click', ()=>{ currentStars = i; renderStars(); });
-    starsBox.appendChild(s);
-  }
-}
-renderStars();
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-function formatStars(n){
-  if(!n || n<=0) return 'Няма оценка';
-  return '★'.repeat(n) + '☆'.repeat(6-n);
-}
+  const btn = document.getElementById('reviewsBtn');
+  const panel = document.getElementById('reviewsPanel');
+  const list = document.getElementById('reviewsList');
+  const revName = document.getElementById('revName');
+  const revText = document.getElementById('revText');
+  const send = document.getElementById('sendReview');
+  const clearBtn = document.getElementById('clearReview');
+  const starsBox = document.getElementById('starSelect');
+  const CLOSE_REV = document.getElementById('closeReviews');
 
-function safeText(str){
-  return String(str||'').replace(/[<>]/g,'').replace(/\n/g,'<br>');
-}
+  let currentStars = 0;
 
-function loadReviews(){
-  const data = JSON.parse(localStorage.getItem('reviews')||'[]');
-  list.innerHTML = '';
-  const isAdmin = localStorage.getItem('adminVerified')==='1';
-  if(data.length===0){
-    const empty = document.createElement('div');
-    empty.className = 'smallMuted';
-    empty.textContent = 'Все още няма отзиви. Бъди първи!';
-    list.appendChild(empty);
-    return;
-  }
-
-  data.forEach((r,i)=>{
-    const el = document.createElement('div');
-    el.className = 'reviewItem' + (isAdmin ? ' adminView' : '');
-    el.innerHTML = `
-      <div class="reviewHead">
-        <div>
-          <div class="reviewName">${safeText(r.name || 'Анонимен')}</div>
-          <div class="smallMuted">${r.date || ''}</div>
-        </div>
-        <button class="delBtn" title="Изтрий отзива" aria-hidden="true">✖</button>
-      </div>
-      <div class="stars" aria-hidden="true">${formatStars(r.stars)}</div>
-      <div class="reviewText">${r.text ? safeText(r.text) : '<i style="color:#9aa0a6">(без текст)</i>'}</div>
-      <div class="reviewMeta">${r.stars ? `Оценка: ${r.stars}/6` : 'Оценка: —'}</div>
-    `;
-    // attach index
-    el.querySelector('.delBtn').dataset.i = i;
-    list.appendChild(el);
-  });
-
-  // show/hide delete based on admin flag and set up click handler
-  document.querySelectorAll('.delBtn').forEach(btn=>{
-    const isAdmin = localStorage.getItem('adminVerified')==='1';
-    // if adminVerified then show, otherwise hidden (but click still prompts for password)
-    if(isAdmin){
-      btn.removeAttribute('aria-hidden');
-    } else {
-      btn.setAttribute('aria-hidden','true');
+  function renderStars(){
+    starsBox.innerHTML = '';
+    for(let i=1;i<=6;i++){
+      const s = document.createElement('span');
+      s.textContent = '★';
+      s.className = i<=currentStars ? 'active' : '';
+      s.onclick = () => { currentStars = i; renderStars(); };
+      starsBox.appendChild(s);
     }
-
-    btn.addEventListener('click', async (ev)=>{
-      ev.stopPropagation();
-      const idx = parseInt(btn.dataset.i,10);
-      // if adminVerified -> delete immediately
-      if(localStorage.getItem('adminVerified')==='1'){
-        if(!confirm('Сигурни ли сте, че искате да изтриете този отзив?')) return;
-        const arr = JSON.parse(localStorage.getItem('reviews')||'[]');
-        arr.splice(idx,1);
-        localStorage.setItem('reviews', JSON.stringify(arr));
-        loadReviews();
-        return;
-      }
-
-      // otherwise prompt for password (allowed only if correct)
-      const pass = prompt('Въведи паролата за изтриване:');
-      if(pass===null) return;
-      if(pass===ADMIN_PASS){
-        const arr = JSON.parse(localStorage.getItem('reviews')||'[]');
-        arr.splice(idx,1);
-        localStorage.setItem('reviews', JSON.stringify(arr));
-        alert('✔️ Отзивът е изтрит.');
-        loadReviews();
-      } else {
-        alert('❌ Грешна парола.');
-      }
-    });
-  });
-}
-
-send.addEventListener('click', ()=>{
-  const name = (revName.value||'').trim() || 'Анонимен';
-  const text = (revText.value||'').trim();
-  // allow posting only stars or only text or both
-  if(!text && currentStars===0){
-    alert('Моля, въведете коментар или изберете звезди.');
-    return;
   }
-  const r = { name, stars: currentStars, text, date: new Date().toLocaleString() };
-  const arr = JSON.parse(localStorage.getItem('reviews')||'[]');
-  arr.unshift(r); // newest first
-  localStorage.setItem('reviews', JSON.stringify(arr));
-  revText.value=''; revName.value=''; currentStars=0; renderStars();
-  loadReviews();
-  alert('Благодарим! Отзивът е публикуван.');
-});
+  renderStars();
 
-clearBtn.addEventListener('click', ()=>{
-  revText.value=''; revName.value=''; currentStars=0; renderStars();
-});
+  function formatStars(n){
+    if(!n || n<=0) return '';
+    return '★'.repeat(n) + '☆'.repeat(6-n);
+  }
 
-btn.addEventListener('click', ()=>{ panel.classList.add('show'); loadReviews(); });
-CLOSE_REV.addEventListener('click', ()=> panel.classList.remove('show'));
-panel.addEventListener('click', e => { if(e.target===panel) panel.classList.remove('show'); });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') panel.classList.remove('show'); });
+  async function loadReviews(){
+    list.innerHTML = '<div class="smallMuted">⏳ Зареждане...</div>';
+    const snap = await getDocs(collection(db, "reviews"));
+    list.innerHTML = '';
+    if(snap.empty){
+      list.innerHTML = '<div class="smallMuted">Все още няма отзиви. Бъди първи!</div>';
+      return;
+    }
+    snap.forEach(doc=>{
+      const r = doc.data();
+      const el = document.createElement('div');
+      el.className = 'reviewItem';
+      el.innerHTML = `
+        <div class="reviewHead">
+          <div>
+            <div class="reviewName">${r.name || 'Анонимен'}</div>
+            <div class="smallMuted">${r.date || ''}</div>
+          </div>
+        </div>
+        <div class="stars">${formatStars(r.stars)}</div>
+        <div class="reviewText">${r.text || '<i style="color:#999">(без текст)</i>'}</div>
+      `;
+      list.appendChild(el);
+    });
+  }
 
-/* initialize: make delete buttons visible to admin if already logged in */
-(function init(){
-  // ensure reviews key exists
-  if(!localStorage.getItem('reviews')) localStorage.setItem('reviews', JSON.stringify([]));
-})();
+  send.onclick = async ()=>{
+    const name = (revName.value||'').trim() || 'Анонимен';
+    const text = (revText.value||'').trim();
+    if(!text && currentStars===0){
+      alert('Моля, въведете коментар или изберете звезди.');
+      return;
+    }
+    await addDoc(collection(db, "reviews"), {
+      name,
+      text,
+      stars: currentStars,
+      date: new Date().toLocaleString()
+    });
+    alert('✅ Благодарим! Отзивът е публикуван.');
+    revName.value=''; revText.value=''; currentStars=0; renderStars();
+    loadReviews();
+  };
+
+  clearBtn.onclick = ()=>{ revName.value=''; revText.value=''; currentStars=0; renderStars(); };
+  btn.onclick = ()=>{ panel.classList.add('show'); loadReviews(); };
+  CLOSE_REV.onclick = ()=> panel.classList.remove('show');
+  panel.onclick = e => { if(e.target===panel) panel.classList.remove('show'); };
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') panel.classList.remove('show'); });
 </script>
 </body>
 </html>
+
