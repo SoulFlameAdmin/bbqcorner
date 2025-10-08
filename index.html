@@ -609,9 +609,11 @@ function renderList(snap, isAdmin){
     return;
   }
 
+  const isLocalAdmin = localStorage.getItem('adminVerified') === '1';
+
   snap.forEach(d=>{
     const r = d.data();
-    const safeText = (r.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); // защита от XSS
+    const safeText = (r.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const item = document.createElement('div');
     item.className = 'reviewItem';
     item.innerHTML = `
@@ -620,7 +622,8 @@ function renderList(snap, isAdmin){
           <div class="reviewName">${r.name || 'Анонимен'}</div>
           <div class="smallMuted">${r.date || ''}</div>
         </div>
-        <button class="delBtn" data-id="${d.id}" title="Изтрий отзива">✖</button>
+        <button class="delBtn" data-id="${d.id}" title="Изтрий отзива"
+          style="display:${(isAdmin || isLocalAdmin)?'inline':'none'}">✖</button>
       </div>
       <div class="stars">${fmtStars(r.stars) || 'Няма оценка'}</div>
       <div class="reviewText">${safeText || '<i style="color:#9aa0a6">(без текст)</i>'}</div>
@@ -629,18 +632,18 @@ function renderList(snap, isAdmin){
     list.appendChild(item);
   });
 
-  // === Изтриване с локална парола ===
+  // === Изтриване с админ парола bbqcornera123 ===
   list.querySelectorAll('.delBtn').forEach(b=>{
     b.onclick = async ()=>{
-      const pass = prompt('Въведи админ парола за изтриване:');
-      if (pass !== 'cornerabbq123') {
+      const pass = prompt('🔐 Въведи админ паролата за изтриване:');
+      if (pass !== 'bbqcornera123') {
         alert('❌ Грешна парола!');
         return;
       }
       if (!confirm('Сигурен ли си, че искаш да изтриеш този отзив?')) return;
       try {
         await deleteDoc(doc(db,'reviews', b.dataset.id));
-        alert('✅ Отзивът е изтрит.');
+        alert('✅ Отзивът е изтрит успешно.');
       } catch(e) {
         console.error(e);
         alert('❌ Грешка при изтриване.');
