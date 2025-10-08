@@ -42,22 +42,19 @@ body{
 }
 .title .dot{width:10px;height:10px;border-radius:999px;background:var(--accent);box-shadow:0 0 16px var(--accent)}
 
-/* INPUT + BUTTON (фиксове за клик) */
-.input-row{
-  display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px;
-  position:relative;
-}
+/* INPUT ROW + HITBOX FIX */
+.input-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; position:relative; }
 .input-row input{
-  flex:1; min-width:240px; background:#0e1217; color:#fff; border:1px solid var(--soft);
+  flex:1; min-width:240px;
+  background:#0e1217; color:#fff; border:1px solid var(--soft);
   border-radius:14px; padding:12px 14px; outline:none; font-weight:700; letter-spacing:1px;
 }
 .input-row input::placeholder{color:#7e8794}
 .input-row button{
   background:var(--accent); border:none; color:#fff; font-weight:900;
   padding:12px 16px; border-radius:14px; cursor:pointer; box-shadow:0 10px 28px rgba(255,122,0,.25);
-  position:relative; z-index:2; pointer-events:auto;
+  position:relative; z-index:2; pointer-events:auto; /* <-- винаги кликаем */
 }
-.input-row button:disabled{opacity:.6; cursor:not-allowed}
 
 .help{color:var(--muted); font-size:13px; margin:2px 2px 14px}
 
@@ -69,7 +66,10 @@ body{
 .value{ font-size:18px; font-weight:900; letter-spacing:.4px }
 .value.ok{color:var(--success)} .value.warn{color:var(--warn)} .value.bad{color:var(--danger)} .value.accent{color:var(--accent)}
 
-.banner{ margin-top:16px; padding:12px 14px; border-radius:14px; border:1px dashed var(--soft); color:#cfd6df; background:#0d1217; }
+.banner{
+  margin-top:16px; padding:12px 14px; border-radius:14px; border:1px dashed var(--soft);
+  color:#cfd6df; background:#0d1217;
+}
 
 .footer-note{margin-top:20px; text-align:center; color:#7f8a97; font-size:12px}
 hr.sep{border:none; height:1px; background:linear-gradient(90deg,transparent,#ffffff14,transparent); margin:14px 0}
@@ -96,7 +96,7 @@ hr.sep{border:none; height:1px; background:linear-gradient(90deg,transparent,#ff
 
     <div class="input-row">
       <input id="codeInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Въведи 4-цифрен код на поръчка" autocomplete="one-time-code" />
-      <button id="checkBtn">Провери</button>
+      <button id="checkBtn" type="button">Провери</button>
     </div>
     <div class="help">Въведи кода, който виждаш накрая при поръчка. Последно ползван: <span id="lastCode" class="small">—</span></div>
 
@@ -110,7 +110,7 @@ hr.sep{border:none; height:1px; background:linear-gradient(90deg,transparent,#ff
         <div class="chip">Код: <b id="outCode">—</b></div>
         <div class="chip">Общо: <b id="outTotal">—</b></div>
         <div class="chip">Клиент: <b id="outName">—</b></div>
-        <button class="copy" id="copyLink">Копирай линк за проследяване</button>
+        <button class="copy" id="copyLink" type="button">Копирай линк за проследяване</button>
       </div>
 
       <div class="status-card">
@@ -141,6 +141,7 @@ hr.sep{border:none; height:1px; background:linear-gradient(90deg,transparent,#ff
 
 <!-- Firebase (модулен SDK) + логика -->
 <script type="module">
+// ======= Firebase init (модулна версия v10) =======
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
 import { getFirestore, doc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
 
@@ -157,7 +158,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
-// ======= UI =======
+// ======= UI елементи =======
 const codeInput   = document.getElementById('codeInput');
 const checkBtn    = document.getElementById('checkBtn');
 const lastCodeEl  = document.getElementById('lastCode');
@@ -175,121 +176,124 @@ const copyLinkBtn = document.getElementById('copyLink');
 
 const LS_TRACK = 'bbq_track_code';
 
-// ======= helpers =======
-const fmtLv = v => (Number.isFinite(v) ? v.toFixed(2).replace('.',',') + ' лв.' : '—');
-function showEmpty(msg='🛈 Въведи 4 цифри и натисни „Провери“, за да видиш статуса.'){
-  resultWrap.classList.add('hidden'); resultEmpty.textContent = msg; resultEmpty.classList.remove('hidden');
+// ======= Помощни =======
+const fmtLv = v => typeof v==='number' ? (v.toFixed(2).replace('.',',') + ' лв.') : '—';
+function showEmpty(message='🛈 Въведи 4 цифри и натисни „Провери“, за да видиш статуса.') {
+  resultWrap.classList.add('hidden');
+  resultEmpty.textContent = message;
+  resultEmpty.classList.remove('hidden');
 }
-function showResult(){ resultEmpty.classList.add('hidden'); resultWrap.classList.remove('hidden'); }
-
-function markStatus(status){
-  // оцветяване за статуса от админ-панела
+function showResult() {
+  resultEmpty.classList.add('hidden');
+  resultWrap.classList.remove('hidden');
+}
+function markStatus(statusText){
   outStatus.className = 'value accent';
-  switch ((status||'').toUpperCase()) {
-    case 'ДОСТАВЕНО': outStatus.className='value ok'; break;
-    case 'ОТКАЗАНА':  outStatus.className='value bad'; break;
-    case 'ПРИГОТВЯ СЕ':
-    case 'ДОСТАВЯ СЕ':
-    case 'ПРЕГЛЕД':
-    default: outStatus.className='value accent';
-  }
+  const s = (statusText||'').toLowerCase();
+  if (s.includes('доставена')) outStatus.className = 'value ok';
+  else if (s.includes('отказ')) outStatus.className = 'value bad';
+  else if (s.includes('в доставка') || s.includes('подготов') || s.includes('приета')) outStatus.className = 'value accent';
+  else if (s.includes('чака')) outStatus.className = 'value warn';
 }
 
-// back
-goHomeBtn.addEventListener('click', (e)=>{
+// ======= Начало бутон =======
+goHomeBtn.addEventListener('click', e=>{
   e.preventDefault();
   const target = (location.protocol === 'file:') ? 'file:///E:/BBQ_SITE/index.html' : 'index.html';
   window.location.href = target;
 });
 
-// ======= enable/disable „Провери“ =======
-function toggleCheckBtn(){
-  const ok = /^\d{4}$/.test((codeInput.value||'').trim());
-  checkBtn.disabled = !ok;
-}
-checkBtn.disabled = false;
-codeInput.addEventListener('input', toggleCheckBtn);
-toggleCheckBtn();
-
-// ======= URL ?code=XXXX или последен локален =======
-(function initFromURLAndLS(){
-  const params = new URLSearchParams(location.search);
-  const qCode = params.get('code') || params.get('kod') || params.get('order');
-  const saved = localStorage.getItem(LS_TRACK) || '';
-  lastCodeEl.textContent = saved || '—';
-  if (qCode && /^\d{4}$/.test(qCode)) { codeInput.value = qCode; }
-  else if (saved && /^\d{4}$/.test(saved)) { codeInput.value = saved; }
-  if (/^\d{4}$/.test(codeInput.value||'')) runCheck(); // авто-стартиране
-})();
-
-// ======= live listener =======
+// ======= Live слушател =======
 let unsubscribe = null;
 
 async function runCheck(){
   const code = (codeInput.value||'').trim();
-  if (!/^\d{4}$/.test(code)) { showEmpty('⚠ Въведи валиден 4-цифрен код.'); return; }
+  // бутонът е винаги активен; просто валидираме входа
+  if (!/^\d{4}$/.test(code)) {
+    showEmpty('⚠ Въведи валиден 4-цифрен код.');
+    return;
+  }
 
-  checkBtn.disabled = true;
+  // спри стар слушател
   if (typeof unsubscribe === 'function') { unsubscribe(); unsubscribe = null; }
 
   try{
-    const ref = doc(db,'orders',code);
+    const ref  = doc(db, 'orders', code);
     const snap = await getDoc(ref);
-    if (!snap.exists()){
+    if (!snap.exists()) {
       localStorage.setItem(LS_TRACK, code);
-      showEmpty('❌ Не откриваме поръчка с такъв код.');
+      showEmpty('❌ Не откриваме поръчка с такъв код. Провери цифрите или опитай по-късно.');
       return;
     }
 
+    // запази последния код и включи live
     localStorage.setItem(LS_TRACK, code);
     lastCodeEl.textContent = code;
 
     unsubscribe = onSnapshot(ref, (docSnap)=>{
-      if (!docSnap.exists()){ showEmpty('❌ Поръчката вече не съществува.'); return; }
-
+      if (!docSnap.exists()) { showEmpty('❌ Поръчката вече не съществува.'); return; }
       const d = docSnap.data() || {};
-      const status = (d.status || 'ПРЕГЛЕД');
+      const status = (d.status || d.state || 'Чака приемане');
 
       outCode.textContent   = code;
       outTotal.textContent  = fmtLv(Number(d.total ?? d.totalPrice));
       outName.textContent   = (d.customer?.names || d.customerName || '—');
+
       outStatus.textContent = status;
       markStatus(status);
 
-      const prep  = (d.prepEtaMin==null ? null : Number(d.prepEtaMin));
-      const deliv = (d.deliveryEtaMin==null ? null : Number(d.deliveryEtaMin));
-      outPrep.textContent  = (prep  > 0 ? `${prep} мин`  : '—');
-      outDeliv.textContent = (deliv > 0 ? `${deliv} мин` : '—');
-
-      outReason.textContent = (status === 'ОТКАЗАНА' && d.canceledReason) ? d.canceledReason : '—';
+      outPrep.textContent   = (Number(d.prepEtaMin) > 0)     ? `${Number(d.prepEtaMin)} мин`     : '—';
+      outDeliv.textContent  = (Number(d.deliveryEtaMin) > 0) ? `${Number(d.deliveryEtaMin)} мин` : '—';
+      outReason.textContent = (status.toLowerCase().includes('отказ') && d.canceledReason) ? d.canceledReason : '—';
 
       showResult();
-    }, (err)=>{ console.error(err); showEmpty('⚠ Грешка при връзката.'); });
+    }, (err)=>{
+      console.error(err);
+      showEmpty('⚠ Възникна грешка при връзката. Презареди страницата.');
+    });
 
-  } catch (err){
+  }catch(err){
     console.error(err);
-    showEmpty('⚠ Възникна грешка. Опитай пак.');
-  } finally {
-    toggleCheckBtn(); // върни състоянието според валидността
+    showEmpty('⚠ Възникна грешка. Опитай отново.');
   }
 }
 
-// events
-checkBtn.addEventListener('click', (e)=>{ e.preventDefault(); runCheck(); });
-codeInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); runCheck(); }});
+// ======= Закачане: винаги работи с клик и Enter =======
+checkBtn.addEventListener('click', runCheck);
+codeInput.addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); runCheck(); }
+});
 
-// copy link
-copyLinkBtn?.addEventListener('click', async ()=>{
-  const code = (codeInput.value||'').trim();
-  if(!/^\d{4}$/.test(code)) return;
-  const url = new URL(location.href); url.searchParams.set('code', code);
+// ======= Автозареждане от ?code= или от LS =======
+(function initFromURLAndLS(){
+  const params = new URLSearchParams(location.search);
+  const qCode  = params.get('code') || params.get('kod') || params.get('order');
+  const saved  = localStorage.getItem(LS_TRACK) || '';
+  lastCodeEl.textContent = saved || '—';
+
+  if (qCode && /^\d{4}$/.test(qCode)) {
+    codeInput.value = qCode;
+    runCheck();
+  } else if (saved && /^\d{4}$/.test(saved)) {
+    codeInput.value = saved;
+    runCheck();
+  }
+})();
+
+// ======= Копиране на директен линк =======
+copyLinkBtn.addEventListener('click', async ()=>{
   try{
+    const code = (codeInput.value||'').trim();
+    if(!/^\d{4}$/.test(code)) return;
+    const url = new URL(location.href);
+    url.searchParams.set('code', code);
     await navigator.clipboard.writeText(url.toString());
-    copyLinkBtn.textContent='✅ Копирано'; setTimeout(()=>copyLinkBtn.textContent='Копирай линк за проследяване',1200);
+    copyLinkBtn.textContent = '✅ Копирано';
+    setTimeout(()=> copyLinkBtn.textContent='Копирай линк за проследяване', 1200);
   }catch(_){}
 });
 
-// clean up
+// ======= Почисти listener при напускане =======
 addEventListener('beforeunload', ()=>{ if (typeof unsubscribe==='function') unsubscribe(); });
 </script>
 </body>

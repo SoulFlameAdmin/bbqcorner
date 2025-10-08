@@ -160,7 +160,7 @@ const sound = document.getElementById('newOrderSound');
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
 import {
   getFirestore, collection, query, orderBy, onSnapshot,
-  doc, updateDoc, deleteDoc, setDoc, serverTimestamp
+  doc, updateDoc, deleteDoc, setDoc, serverTimestamp, deleteField
 } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -323,7 +323,7 @@ function bindUI(){
     b.addEventListener('click', ()=> deleteOrder(b.dataset.id));
   });
 
-  // ETA инпутите (ПОПРАВЕНО: вече вървят по отделно за всеки input)
+  // ETA инпутите
   grid.querySelectorAll('.inline input').forEach(inp=>{
     const save = async ()=>{
       const id = inp.dataset.id;
@@ -376,12 +376,14 @@ function bindUI(){
 /* ===== Операции ===== */
 async function changeStatus(id, targetStatus){
   try{
-    const update = { status: targetStatus };
-    if (targetStatus === 'ПРИГОТВЯ СЕ') update.prepEtaMin = null ?? undefined;
-    if (targetStatus === 'ДОСТАВЯ СЕ')  update.deliveryEtaMin = null ?? undefined;
-    if (targetStatus === 'ДОСТАВЕНО')   update.deliveryEtaMin = 0;
+    const patch = { status: targetStatus };
 
-    await updateDoc(doc(db,'orders',id), update);
+    // Премахваме полетата (не пращаме undefined)
+    if (targetStatus === 'ПРИГОТВЯ СЕ')  patch.prepEtaMin     = deleteField();
+    if (targetStatus === 'ДОСТАВЯ СЕ')   patch.deliveryEtaMin = deleteField();
+    if (targetStatus === 'ДОСТАВЕНО')    patch.deliveryEtaMin = 0; // финал
+
+    await updateDoc(doc(db,'orders',id), patch);
   }catch(err){
     console.error(err);
     alert('Неуспешна промяна на статус.');
