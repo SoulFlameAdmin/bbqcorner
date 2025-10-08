@@ -502,75 +502,138 @@ if (trackBtn) {
 <!-- ========== REVIEWS FUNCTIONALITY (Firebase) ========== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-  import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+  import {
+    getFirestore, collection, query, orderBy, onSnapshot,
+    addDoc, doc, deleteDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+  import {
+    getAuth, signInWithEmailAndPassword, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 
-  const app = initializeApp({ /* твоят config */ });
-  const db  = getFirestore(app);
+  // --- 1) ТВОЯТ REAL config ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
+    authDomain: "corner-bbq.firebaseapp.com",
+    projectId: "corner-bbq",
+    storageBucket: "corner-bbq.firebasestorage.app",
+    messagingSenderId: "878314744141",
+    appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
+    measurementId: "G-FWBDL96GN0"
+  };
+
+  // --- 2) Инициализация ---
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
   const auth = getAuth(app);
 
-  // 1) Админ вход (скрий го зад твоя "АДМИН" бутон или авто-вход от админ панела)
-  async function adminLogin() {
-    // въведи реалната си парола тук или направи форма
-    await signInWithEmailAndPassword(auth, "soulflame.mitko@gmail.com", "ТВОЯТА_ПАРОЛА");
+  // --- 3) Елементи ---
+  const panel     = document.getElementById('reviewsPanel');
+  const btnOpen   = document.getElementById('reviewsBtn');
+  const btnClose  = document.getElementById('closeReviews');
+  const list      = document.getElementById('reviewsList');
+  const starBox   = document.getElementById('starSelect');
+  const nameInp   = document.getElementById('revName');
+  const textInp   = document.getElementById('revText');
+  const btnSend   = document.getElementById('sendReview');
+  const btnClear  = document.getElementById('clearReview');
+
+  // --- 4) Звезди (0..6) ---
+  let stars = 0;
+  function drawStars(){
+    starBox.innerHTML = '';
+    for (let i=1;i<=6;i++){
+      const s = document.createElement('span');
+      s.textContent = '★';
+      s.className = i<=stars ? 'active':'';
+      s.onclick = () => { stars = i; drawStars(); };
+      starBox.appendChild(s);
+    }
+  }
+  drawStars();
+  const fmtStars = n => (!n||n<=0) ? '' : '★'.repeat(n)+'☆'.repeat(6-n);
+
+  // --- 5) Публикуване ---
+  async function publishReview(){
+    const name = (nameInp.value||'').trim() || 'Анонимен';
+    const text = (textInp.value||'').trim();
+    if (!text && stars===0){ alert('Моля, звезди или текст.'); return; }
+
+    await addDoc(collection(db,'reviews'), {
+      name, text, stars,
+      date: new Date().toLocaleString(),
+      createdAt: serverTimestamp()
+    });
+
+    nameInp.value=''; textInp.value=''; stars=0; drawStars();
   }
 
-  // 2) Рендер + показване на бутон „X“ само за логнат админ
-  const list = document.getElementById('reviewsList');
-
-  function render(snap, isAdmin){
+  // --- 6) Рендер + изтриване (само за админ) ---
+  function renderList(snap, isAdmin){
     list.innerHTML = '';
-    if (snap.empty) {
+    if (snap.empty){
       list.innerHTML = '<div class="smallMuted">Все още няма отзиви. Бъди първи!</div>';
       return;
     }
     snap.forEach(d=>{
       const r = d.data();
-      const el = document.createElement('div');
-      el.className = 'reviewItem';
-      el.innerHTML = `
+      const item = document.createElement('div');
+      item.className = 'reviewItem';
+      item.innerHTML = `
         <div class="reviewHead">
           <div>
-            <div class="reviewName">${(r.name||'Анонимен')}</div>
-            <div class="smallMuted">${r.date||''}</div>
+            <div class="reviewName">${r.name || 'Анонимен'}</div>
+            <div class="smallMuted">${r.date || ''}</div>
           </div>
-          ${isAdmin ? `<button class="delBtn" data-id="${d.id}">✖</button>` : ``}
+          ${isAdmin ? `<button class="delBtn" data-id="${d.id}">✖</button>`:''}
         </div>
-        <div class="stars">${r.stars ? '★'.repeat(r.stars)+'☆'.repeat(6-r.stars) : 'Няма оценка'}</div>
+        <div class="stars">${fmtStars(r.stars) || 'Няма оценка'}</div>
         <div class="reviewText">${r.text || '<i style="color:#9aa0a6">(без текст)</i>'}</div>
         <div class="reviewMeta">Оценка: ${r.stars?`${r.stars}/6`:'—'}</div>
       `;
-      list.appendChild(el);
+      list.appendChild(item);
     });
 
-    if (isAdmin) {
-      list.querySelectorAll('.delBtn').forEach(btn=>{
-        btn.onclick = async () => {
-          if (!confirm('Сигурни ли сте?')) return;
-          await deleteDoc(doc(db, "reviews", btn.dataset.id));
+    if (isAdmin){
+      list.querySelectorAll('.delBtn').forEach(b=>{
+        b.onclick = async () => {
+          if (!confirm('Да изтрия ли отзива?')) return;
+          await deleteDoc(doc(db,'reviews', b.dataset.id));
         };
       });
     }
   }
 
-  // 3) Живо слушане и превключване според логнат/нелогнат
-  const qRef = query(collection(db,"reviews"), orderBy("createdAt","desc"));
+  // --- 7) Живо четене за всички (public read в правилата) ---
+  const qRef = query(collection(db,'reviews'), orderBy('createdAt','desc'));
   let unsub = null;
   onAuthStateChanged(auth, user=>{
     if (unsub) { unsub(); unsub=null; }
-    unsub = onSnapshot(qRef, snap => render(snap, !!user && user.email==="soulflame.mitko@gmail.com"));
+    const isAdmin = !!user && user.email === 'soulflame.mitko@gmail.com';
+    unsub = onSnapshot(qRef, snap => renderList(snap, isAdmin));
   });
 
-  // 4) Пример за публикуване
-  async function publish(name, text, stars){
-    await addDoc(collection(db,"reviews"), {
-      name, text, stars,
-      date: new Date().toLocaleString(),
-      createdAt: serverTimestamp()
-    });
-  }
+  // --- 8) Отваряне/затваряне ---
+  btnOpen.onclick  = ()=>{ panel.classList.add('show'); };
+  btnClose.onclick = ()=>{ panel.classList.remove('show'); };
+  panel.onclick    = e=>{ if(e.target===panel) panel.classList.remove('show'); };
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') panel.classList.remove('show'); });
 
-  // извикай adminLogin() от твоя „АДМИН“ поток, когато искаш да можеш да триеш
+  // --- 9) Бутони ---
+  btnSend.onclick  = publishReview;
+  btnClear.onclick = ()=>{ nameInp.value=''; textInp.value=''; stars=0; drawStars(); };
+
+  // --- 10) Админ login hook (по избор) ---
+  const ADMIN_EMAIL = 'soulflame.mitko@gmail.com';
+  const ADMIN_PASS  = ''; // <- по-добре логин от админ-панела; ако сложиш тук, ще е публично!
+  async function adminLogin(){
+    if (!ADMIN_PASS) return; // предпазно
+    try { await signInWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASS); }
+    catch(e){ console.warn('Admin login failed:', e.message); }
+  }
+  // ако вече си натиснал „АДМИН“ и пазиш флаг:
+  if (localStorage.getItem('adminVerified')==='1') {
+    // adminLogin(); // ако решиш да го ползваш
+  }
 </script>
 
 
