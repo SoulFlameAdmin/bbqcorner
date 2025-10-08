@@ -79,15 +79,15 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 }
 .close:hover{background:#4a1919;border-color:#b32626}
 
-/* Note editor */
+/* Note (read-only) */
 .noteWrap{margin-top:10px;border:1px solid var(--soft);border-radius:12px;overflow:hidden;background:#181a1f}
 .noteHead{display:flex;justify-content:space-between;align-items:center;padding:8px 10px}
 .noteHead strong{font-size:13px}
-.noteBody{padding:8px 10px}
-.noteBody textarea{
-  width:100%;min-height:64px;background:#101215;border:1px solid #0000;color:#fff;border-radius:8px;padding:8px;outline:none;resize:vertical
+.noteBody{padding:10px 12px}
+.noteText{
+  white-space:pre-wrap; word-wrap:break-word; font-size:14px; color:#e6edf3
 }
-.noteActions{display:flex;gap:8px;justify-content:flex-end;padding:8px 10px}
+.noteHint{font-size:12px; color:#9aa6b2; margin-left:auto}
 
 /* Top utility bar */
 .topUtil{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -119,9 +119,9 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
   </div>
 
   <div class="topUtil">
-    <span class="kbd">Клик върху „мин“ полета = запазва ETA</span>
+    <span class="kbd">ETA: въвеждаш минути → Enter / клик извън полето (авто-save)</span>
     <span class="kbd">Статуси: Преглед → Приготвя се → Доставя се → Доставено</span>
-    <span class="kbd">Бележка: редактирай и „Запази бележка“</span>
+    <span class="kbd">Бележка: само за четене (от клиента)</span>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -131,16 +131,19 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 <audio id="newOrderSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
 <script type="module">
-/* ===== Gate (локален флаг) ===== */
+/* ===== Достъп (локален флаг) ===== */
 const verified = localStorage.getItem('adminVerified') === '1';
 if (!verified) {
   alert('❌ Нямаш достъп до админ панела. Моля, влез през началната страница.');
   window.location.href = 'index.html';
 }
 
-/* ===== Utils ===== */
+/* ===== Помощни ===== */
 const lv = n => (Number(n)||0).toFixed(2).replace('.',',')+' лв.';
-const fmtWhen = ts => { try{ if (!ts) return ''; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString(); }catch(_){ return ''; } };
+const fmtWhen = ts => {
+  try{ if (!ts) return ''; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString(); }
+  catch(_){ return ''; }
+};
 const esc = s => String(s||'').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
 /* ===== DOM ===== */
@@ -156,11 +159,9 @@ const sound = document.getElementById('newOrderSound');
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
 import {
   getFirestore, collection, query, orderBy, onSnapshot,
-  doc, updateDoc, deleteDoc, setDoc, serverTimestamp, deleteField
+  doc, updateDoc, deleteDoc, setDoc, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
-import {
-  getAuth, signInAnonymously, onAuthStateChanged
-} from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
@@ -175,24 +176,31 @@ const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 const auth = getAuth(app);
 
-/* === Sign-in (анонимен), за да минават rules === */
-await signInAnonymously(auth).catch(()=>{});
-await new Promise(res => onAuthStateChanged(auth, () => res(), { once: true }));
+/* === Анонимен вход (ако правилата го изискват) === */
+try{
+  await new Promise(res => {
+    const unsub = onAuthStateChanged(auth, user => { if (user) {unsub();res();} });
+    signInAnonymously(auth).catch(()=>{});
+    setTimeout(()=>{unsub();res();}, 1200);
+  });
+}catch(_){}
 
-/* ===== Live ===== */
+/* ===== Live зареждане ===== */
 let orders = [];
 let firstLoad = true;
 
 const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
 onSnapshot(q, (snap)=>{
   const newOrders = snap.docs.map(d => ({ id: d.id, code: d.id, ...d.data() }));
-  if (!firstLoad && newOrders.length > orders.length) { sound.currentTime = 0; sound.play().catch(()=>{}); }
+  if (!firstLoad && newOrders.length > orders.length) {
+    sound.currentTime = 0; sound.play().catch(()=>{});
+  }
   firstLoad = false;
   orders = newOrders;
   render();
 });
 
-/* ===== Render + Filters ===== */
+/* ===== Филтри и рендер ===== */
 selStatus.addEventListener('change', render);
 searchBox.addEventListener('input', render);
 
@@ -206,11 +214,13 @@ function render(){
   deliveredSumE.textContent = lv(deliveredSum);
 
   let filtered = orders.slice();
+
   filtered = filtered.filter(o=>{
     const s = (o.status||'');
     if (fStatus === 'ALL') return s !== 'ДОСТАВЕНО';
     return s === fStatus;
   });
+
   if (qTxt){
     filtered = filtered.filter(o=>{
       const c = o.customer || {};
@@ -269,16 +279,16 @@ function render(){
         </div>
 
         <div class="noteWrap">
-          <div class="noteHead"><strong>📝 Бележка към поръчката</strong></div>
-          <div class="noteBody">
-            <textarea id="note_${code}" placeholder="Въведи/редактирай бележка…">${esc(noteTxt)}</textarea>
+          <div class="noteHead">
+            <strong>📝 Бележка от клиента</strong>
+            <span class="noteHint">само за четене</span>
           </div>
-          <div class="noteActions">
-            <button class="btn" data-action="save-note" data-id="${code}">Запази бележка</button>
+          <div class="noteBody">
+            <div class="noteText">${esc(noteTxt) || '<span class="small" style="opacity:.8">(няма бележка)</span>'}</div>
           </div>
         </div>
 
-        <div class="util">
+        <div class="util" style="margin-top:10px">
           <button class="btn" data-action="copy" data-code="${code}">📋 Копирай кода</button>
           <button class="btn" data-action="link" data-code="${code}">🔗 Линк за клиента</button>
           <button class="btn" data-action="maps" data-address="${address}">🚗 Достави</button>
@@ -303,74 +313,57 @@ function render(){
   bindUI();
 }
 
-/* ===== Bindings ===== */
+/* ===== Свързване на събития ===== */
 function bindUI(){
-  // статуси
+  // Промяна на статус
   grid.querySelectorAll('[data-action="s"]').forEach(btn=>{
     btn.addEventListener('click', ()=> changeStatus(btn.dataset.id, btn.dataset.target));
   });
 
-  // отказ
+  // Отказ
   grid.querySelectorAll('[data-action="cancel"]').forEach(btn=>{
     btn.addEventListener('click', ()=> cancelOrder(btn.dataset.id));
   });
 
-  // изтриване
+  // Изтриване
   grid.querySelectorAll('.close').forEach(b=>{
     b.addEventListener('click', ()=> deleteOrder(b.dataset.id));
   });
 
-  // ETA inputs
-  grid.querySelectorAll('.inline input').forEach(inp=>{
-    const save = async ()=>{
-      const id = inp.dataset.id;
-      const type = inp.dataset.type;
-      const val = Math.max(0, Number(inp.value)||0);
-      const patch = (type === 'prep') ? { prepEtaMin: val } : { deliveryEtaMin: val };
-      try {
-        await updateDoc(doc(db, 'orders', id), patch);
-        inp.style.borderColor = '#4cff84';
-        setTimeout(()=> inp.style.borderColor='', 900);
-      } catch(e) {
-        // fallback
-        try{
-          await setDoc(doc(db,'orders',id), patch, { merge: true });
-          inp.style.borderColor = '#4cff84';
-          setTimeout(()=> inp.style.borderColor='', 900);
-        }catch(err){
-          console.error('ETA update error', err);
-          alert('Неуспешно записване на ETA.');
-        }
-      }
-    };
-    inp.addEventListener('blur', save);
-    inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); }});
-  });
+  // ETA (приготвяне/доставка): blur, Enter и auto-save (debounce)
+  const debouncers = new Map();
+  const doSave = async (id, type, val, inpEl) => {
+    const v = Math.max(0, Number(val)||0);
+    const patch = (type === 'prep') ? { prepEtaMin: v } : { deliveryEtaMin: v };
+    try{
+      await updateDoc(doc(db,'orders',id), patch);
+    }catch(_){
+      await setDoc(doc(db,'orders',id), patch, { merge:true });
+    }
+    // визуален feedback
+    inpEl.style.borderColor = '#4cff84';
+    setTimeout(()=> inpEl.style.borderColor='', 900);
+  };
 
-  // бележка – запис
-  grid.querySelectorAll('[data-action="save-note"]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const id = btn.dataset.id;
-      const ta = document.getElementById('note_'+id);
-      const note = (ta?.value || '').trim();
-      try{
-        await updateDoc(doc(db,'orders',id), { note });
-        btn.textContent = '✔ Записано';
-        setTimeout(()=> btn.textContent = 'Запази бележка', 1200);
-      }catch(e){
-        try{
-          await setDoc(doc(db,'orders',id), { note }, { merge:true });
-          btn.textContent = '✔ Записано';
-          setTimeout(()=> btn.textContent = 'Запази бележка', 1200);
-        }catch(err){
-          console.error('note save error', err);
-          alert('Неуспешно записване на бележката.');
-        }
-      }
+  grid.querySelectorAll('.inline input').forEach(inp=>{
+    const id = inp.dataset.id;
+    const type = inp.dataset.type;
+
+    // blur / Enter
+    const saveNow = ()=> doSave(id, type, inp.value, inp);
+    inp.addEventListener('blur', saveNow);
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); }});
+
+    // input debounce
+    inp.addEventListener('input', ()=>{
+      const key = id + '|' + type;
+      clearTimeout(debouncers.get(key));
+      const t = setTimeout(()=> doSave(id, type, inp.value, inp), 600);
+      debouncers.set(key, t);
     });
   });
 
-  // утилити – копиране/линк/карта
+  // Утилити: копиране/линк/карта
   grid.querySelectorAll('[data-action="copy"]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       const code = b.dataset.code;
@@ -399,17 +392,13 @@ function bindUI(){
   });
 }
 
-/* ===== Ops ===== */
+/* ===== Операции (CRUD) ===== */
 async function changeStatus(id, targetStatus){
   try{
     const patch = { status: targetStatus };
-    if (targetStatus === 'ПРИГОТВЯ СЕ')  patch.prepEtaMin     = deleteField();
-    if (targetStatus === 'ДОСТАВЯ СЕ')   patch.deliveryEtaMin = deleteField();
-    if (targetStatus === 'ДОСТАВЕНО')    patch.deliveryEtaMin = 0;
-
+    // НИЩО не трием автоматично (без deleteField) -> няма да „изяжда“ ETA
     await updateDoc(doc(db,'orders',id), patch);
   }catch(err){
-    // fallback
     try{
       await setDoc(doc(db,'orders',id), { status: targetStatus }, { merge:true });
     }catch(e){
@@ -442,7 +431,7 @@ async function deleteOrder(id){
   }catch(err){ console.error(err); alert('Грешка при изтриване.'); }
 }
 
-/* ===== Optional local click log ===== */
+/* ===== Локален лог на кликове (по избор) ===== */
 (function(){
   const who = (localStorage.getItem('adminName') || '').trim();
   if(!who) return;
@@ -459,8 +448,8 @@ async function deleteOrder(id){
   }
   document.addEventListener('click', e=>{
     let desc = '';
-    if(e.target.closest('button, a, input, select, textarea')){
-      const el = e.target.closest('button, a, input, select, textarea');
+    if(e.target.closest('button, a, input, select')){
+      const el = e.target.closest('button, a, input, select');
       const tag = el.tagName.toLowerCase();
       const label = el.innerText || el.value || el.id || '(без текст)';
       desc = `кликна върху ${tag} → "${label.trim().slice(0,60)}"`;
