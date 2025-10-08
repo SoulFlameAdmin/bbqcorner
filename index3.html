@@ -197,6 +197,8 @@ new ElectricBorder("electric-border-canvas",{color:"#ff7a00",speed:1.5,displacem
 /* ====== 2) Ключове за количката от index2 ====== */
 const LS_CART_ITEMS = 'bbq_cart_items';
 const LS_CART_TOTAL = 'bbq_cart_total';
+const LS_NOTE_CODES = 'bbq_note_codes'; // локален регистър на вече ползвани 4-цифрени кодове
+
 
 /* Помощни */
 const $ = sel => document.querySelector(sel);
@@ -204,6 +206,29 @@ const form = $('#orderForm');
 const successMsg = $('#successMsg');
 const cartNote = $('#cartNote');
 const submitBtn = $('#submitBtn');
+
+// ===== Генериране и регистър на 4-цифрени кодове за бележки =====
+function loadUsedCodes(){
+  try { return new Set(JSON.parse(localStorage.getItem(LS_NOTE_CODES) || '[]')); }
+  catch(_) { return new Set(); }
+}
+function saveUsedCodes(set){
+  localStorage.setItem(LS_NOTE_CODES, JSON.stringify([...set]));
+}
+function gen4DigitCode(){
+  const used = loadUsedCodes();
+  let tries = 0;
+  while(true){
+    // 0000 до 9999, винаги 4 цифри
+    const code = String(Math.floor(Math.random()*10000)).padStart(4,'0');
+    if (!used.has(code)) { used.add(code); saveUsedCodes(used); return code; }
+    if (++tries > 200) { // почти невъзможно да стигне тук, но все пак…
+      const fallback = (Date.now()%10000).toString().padStart(4,'0');
+      used.add(fallback); saveUsedCodes(used); return fallback;
+    }
+  }
+}
+
 
 /* Зареди количката от localStorage; ако няма — върни към менюто */
 function readCart(){
@@ -223,7 +248,9 @@ cartNote.textContent = cartItems.length ? `Артикули: ${cartItems.length}
 
 /* ====== 3) Firebase и Firestore ====== */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
@@ -263,29 +290,79 @@ form.addEventListener('submit', async (e)=>{
     img: it.img || null
   }));
   const total = Number(cartTotal) || items.reduce((s,x)=>s+x.price,0);
-const orderNote = localStorage.getItem('bbq_order_note') || localStorage.getItem('bbq_orderNote') || '';
+const orderNote = (localStorage.getItem('bbq_order_note') || localStorage.getItem('bbq_orderNote') || '').trim();
+const noteCode = gen4DigitCode(); // ← 4-цифрен уникален код за бележката
+
+// гарантиране на уникален noteCode и в Firestore
+let safeCode = noteCode;
+for (let i = 0; i < 5; i++) {
+  const existsSnap = await getDoc(doc(db, 'orders', safeCode));
+  if (!existsSnap.exists()) break;
+  // ако има колизия — генерирай нов и пробвай пак
+  safeCode = gen4DigitCode();
+}
+// ако сме сменили кода, обнови и локалните променливи
+const finalCode = safeCode;
+
 
 const order = {
   items,
   total,
   customer: { names, phone, address },
-  note: orderNote,              // ✅ ДОБАВЕНА БЕЛЕЖКА
+  note: orderNote,              // оригинален текст на бележката (ако има)
+noteCode: finalCode,
+noteDisplay: orderNote ? `#${finalCode} — ${orderNote}` : `#${finalCode}`,
   status: 'ПРЕГЛЕД',
   createdAt: serverTimestamp(),
   source: (location.protocol === 'file:' ? 'desktop-file' : 'web')
 };
 
+
   try{
-    const ref = await addDoc(collection(db, 'orders'), order);
+    await setDoc(doc(db, 'orders', finalCode), order);
+
+
 
     // почисти количката (за клиента)
-    localStorage.removeItem(LS_CART_ITEMS);
-    localStorage.removeItem(LS_CART_TOTAL);
-    localStorage.setItem('bbq_last_order_id', ref.id);
+// почисти количката (за клиента)
+localStorage.removeItem(LS_CART_ITEMS);
+localStorage.removeItem(LS_CART_TOTAL);
+
+// запази последния код и за тракера на index6
+localStorage.setItem('bbq_last_order_id', finalCode);
+localStorage.setItem('bbq_track_code', finalCode);
+
+localStorage.removeItem('bbq_order_note');
+localStorage.removeItem('bbq_orderNote');
 
     // покажи успех + пренасочи
-    successMsg.classList.add('visible');
-    setTimeout(()=>redirectHome(), 2200);
+let left = 5;
+successMsg.innerHTML =
+  `✅ Поръчката е изпратена успешно!<br><br>` +
+  `Вашият 4-цифрен код се генерира: <b>#${finalCode}</b><br>` +
+  `Ще бъдете пренасочени за проследяване на пратката.<br>` +
+  `<small>Моля, изчакайте… <span id="countdown">${left}</span> сек.</small>`;
+successMsg.classList.add('visible');
+submitBtn.disabled = true; // остава заключен докато пренасочи
+
+
+// прост countdown
+const t = setInterval(()=>{
+  left -= 1;
+  const el = document.getElementById('countdown');
+  if (el) el.textContent = left;
+  if (left <= 0) { clearInterval(t); goTrack(); }
+}, 1000);
+
+// след 5 секунди – пренасочване към index6 с кода в URL (и вече в localStorage)
+function goTrack(){
+  const isFile = (location.protocol === 'file:');
+  const base   = isFile ? 'file:///E:/BBQ_SITE/index6.html' : 'index6.html';
+const target = `${base}?code=${encodeURIComponent(finalCode)}`;
+  window.location.href = target;
+}
+
+
   }catch(err){
     console.error(err);
     alert('Възникна грешка при изпращане. Проверете интернет връзката и опитайте пак.');

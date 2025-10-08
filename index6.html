@@ -272,9 +272,11 @@ codeInput.addEventListener('keydown', e=>{
   lastCodeEl.textContent = saved || '—';
 
   if (qCode && /^\d{4}$/.test(qCode)) {
+    showEmpty('⏳ Зареждане на статус…');
     codeInput.value = qCode;
     runCheck();
   } else if (saved && /^\d{4}$/.test(saved)) {
+    showEmpty('⏳ Зареждане на статус…');
     codeInput.value = saved;
     runCheck();
   }
