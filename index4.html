@@ -172,6 +172,8 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var
 </div>
 
 <audio id="newOrderSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+<audio id="loopSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
 
 <script type="module">
 /* ===== Gate ===== */
@@ -200,6 +202,31 @@ const emptyE = document.getElementById('emptyState');
 const selStatus = document.getElementById('statusFilter');
 const searchBox = document.getElementById('searchBox');
 const sound = document.getElementById('newOrderSound');
+const loopSound = document.getElementById('loopSound');
+loopSound.volume = 1.0; // максимална сила
+
+let alarmTimer = null;
+let alarmActive = false;
+
+function startAlarm() {
+  if (alarmActive) return;
+  alarmActive = true;
+  loopSound.currentTime = 0;
+  loopSound.play().catch(()=>{});
+  alarmTimer = setInterval(()=>{
+    loopSound.currentTime = 0;
+    loopSound.play().catch(()=>{});
+  }, 1000); // на всяка секунда
+}
+
+function stopAlarm() {
+  if (!alarmActive) return;
+  alarmActive = false;
+  clearInterval(alarmTimer);
+  alarmTimer = null;
+  loopSound.pause();
+  loopSound.currentTime = 0;
+}
 
 const inboxWrap = document.getElementById('inbox');
 const inboxList = document.getElementById('inboxList');
@@ -244,9 +271,14 @@ const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
 onSnapshot(q, (snap)=>{
   const newOrders = snap.docs.map(d => ({ id: d.id, code: d.id, ...d.data() }));
   // звук само при нови
-  if (!firstLoad && newOrders.length > orders.length) {
-    sound.currentTime = 0; sound.play().catch(()=>{});
-  }
+// силен сигнал при нова поръчка
+if (!firstLoad && newOrders.length > orders.length) {
+  sound.currentTime = 0;
+  sound.volume = 1.0;
+  sound.play().catch(()=>{});
+  startAlarm();
+}
+
   firstLoad = false;
   orders = newOrders;
   render();
@@ -274,6 +306,7 @@ function isTimedOut(o, limitMs = MINUTES(20)){
 async function autoCancelTimedOut(){
   const toCancel = orders.filter(o => isTimedOut(o));
   for (const o of toCancel){
+    stopAlarm();
     try{
       await updateDoc(doc(db,'orders', o.id), {
         status: 'ОТКАЗАНА',
@@ -287,6 +320,7 @@ async function autoCancelTimedOut(){
     }
   }
 }
+
 autoCancelTimedOut();
 setInterval(autoCancelTimedOut, 30000);
 
@@ -561,6 +595,7 @@ function bindUI(){
 
 /* ===== Inbox actions ===== */
 async function acceptOrder(id){
+  stopAlarm();
   try{
     await setDoc(doc(db,'orders',id), {
       status:'ПРИГОТВЯ СЕ',
@@ -571,7 +606,9 @@ async function acceptOrder(id){
     alert('Неуспешно приемане.');
   }
 }
+
 async function declineOrder(id, reason='🛑 Админ: отказано'){
+  stopAlarm();
   try{
     await setDoc(doc(db,'orders',id), {
       status:'ОТКАЗАНА',
@@ -582,6 +619,7 @@ async function declineOrder(id, reason='🛑 Админ: отказано'){
     alert('Неуспешен отказ.');
   }
 }
+
 
 /* ===== CRUD ===== */
 async function changeStatus(id, targetStatus){
