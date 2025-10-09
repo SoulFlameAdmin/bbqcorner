@@ -46,11 +46,21 @@
     box-shadow:0 10px 26px rgba(0,0,0,.5)
   }
   /* X за изтриване (само в Admin) */
-  .promo-del{
-    position:absolute;top:12px;left:12px;display:none;
-    border:1px solid #ffffff3a;background:#2a1212;color:#fff;border-radius:12px;padding:6px 9px;cursor:pointer;
-    font-weight:900;box-shadow:0 8px 20px rgba(0,0,0,.35)
-  }
+.promo-del {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #ff7a00;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  display: none; /* по начало скрито */
+}
 
   /* Builder */
   .builder{margin-top:18px;background:#13151a;border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:none}
@@ -438,53 +448,49 @@ const normalizeProduct = (p)=>({
 const genId = ()=> 'p_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
 
 /* ===================== Публичен рендер на промоции ===================== */
-db.ref('/promotions').on('value', snap=>{
-  promoGrid.innerHTML='';
-  const val = snap.val() || {};
+db.ref('/promotions/items').on('value', snap => {
+  promoGrid.innerHTML = '';
+  const obj = snap.val() || {};
+  const items = Object.values(obj).filter(x => x && x.active !== false && !x.__deleted);
 
-  // Поддържа масив или обект; нормализира в масив без да презаписва
-  let items = Array.isArray(val.items) ? val.items.filter(Boolean)
-            : val.items ? Object.values(val.items)
-            : [];
-
-  if(items.length===0){
-    promoGrid.appendChild(el('div', {style:'opacity:.7'}, 'Няма активни промоции.'));
+  if (items.length === 0) {
+    promoGrid.appendChild(el('div', { style: 'opacity:.7' }, 'Няма активни промоции.'));
     return;
   }
 
-  // Рендерираме по реда на добавяне (новите отиват най-отдолу при append)
-  items.forEach(p=>{
+  items.forEach(p => {
     const A = p.parts?.[0] || {};
     const B = p.parts?.[1] || {};
-    const card = el('div',{className:'promo-card','data-id':p.id||''},
-      el('button',{className:'promo-del',title:'Изтрий тази промоция',onclick:()=> tryDeletePromo(p.id)},'✕'),
-      el('div',{className:'promo-img'},
-        el('img',{src:A.image || '/bbqsaitlogo.jpg', alt:A.name || 'Продукт A', loading:'lazy'}),
-        el('div',{className:'promo-overlay'}),
-        el('span',{className:'promo-tag'}, 'ПРОМО — A'),
-        el('div',{className:'promo-info'},
-          el('div',{className:'promo-name'}, A.name || '—'),
-          el('div',{className:'promo-desc'}, A.desc || '')
+    const card = el('div', { className:'promo-card', 'data-id': p.id || '' },
+      el('button', { className:'promo-del', title:'Изтрий тази промоция', onclick:()=> tryDeletePromo(p.id) }, '✕'),
+      el('div', { className:'promo-img' },
+        el('img', { src: A.image || '/bbqsaitlogo.jpg', alt: A.name || 'Продукт A', loading:'lazy' }),
+        el('div', { className:'promo-overlay' }),
+        el('span', { className:'promo-tag' }, 'ПРОМО — A'),
+        el('div', { className:'promo-info' },
+          el('div', { className:'promo-name' }, A.name || '—'),
+          el('div', { className:'promo-desc' }, A.desc || '')
         )
       ),
-      el('div',{className:'promo-img'},
-        el('img',{src:B.image || '/bbqsaitlogo.jpg', alt:B.name || 'Продукт B', loading:'lazy'}),
-        el('div',{className:'promo-overlay'}),
-        el('span',{className:'promo-tag'}, 'ПРОМО — B'),
-        el('div',{className:'promo-info'},
-          el('div',{className:'promo-name'}, B.name || '—'),
-          el('div',{className:'promo-desc'}, B.desc || '')
+      el('div', { className:'promo-img' },
+        el('img', { src: B.image || '/bbqsaitlogo.jpg', alt: B.name || 'Продукт B', loading:'lazy' }),
+        el('div', { className:'promo-overlay' }),
+        el('span', { className:'promo-tag' }, 'ПРОМО — B'),
+        el('div', { className:'promo-info' },
+          el('div', { className:'promo-name' }, B.name || '—'),
+          el('div', { className:'promo-desc' }, B.desc || '')
         )
       )
     );
-    card.appendChild(el('div',{className:'promo-price'}, money(p.price||0)));
-    card.appendChild(el('div',{className:'promo-plus'}, '+'));
+    card.appendChild(el('div', { className:'promo-price' }, money(p.price || 0)));
+    card.appendChild(el('div', { className:'promo-plus' }, '+'));
     promoGrid.appendChild(card);
   });
 
   // показвай X само в Admin режим
   toggleDeleteButtons();
 });
+
 
 /* ===================== Admin unlock ===================== */
 adminBtn.addEventListener('click', ()=>{
@@ -509,9 +515,13 @@ adminBtn.addEventListener('click', ()=>{
     toast('Грешна парола.');
   }
 });
-function toggleDeleteButtons(){
-  document.querySelectorAll('.promo-del').forEach(b=>{ b.style.display = isAdmin ? 'inline-block' : 'none'; });
+function toggleDeleteButtons(forceShow=false){
+  const show = forceShow || isAdmin;
+  document.querySelectorAll('.promo-del').forEach(btn=>{
+    btn.style.display = show ? 'block' : 'none';
+  });
 }
+
 
 /* ===================== Каталог от Firebase (за търсене по всички) ===================== */
 db.ref('/products').on('value',(snap)=>{
@@ -772,63 +782,65 @@ function renderRows(){
 function addRow(){ rows.push({A:null,B:null,price:null}); renderRows(); }
 addRowBtn.addEventListener('click', addRow);
 
-/* ===================== Запис на промоции (APPEND чрез TRANSACTION) ===================== */
-saveBtn.addEventListener('click', async ()=>{
-  if(!isAdmin){ toast('Първо отключи Admin.'); return; }
+/* ===================== Запис на промоции (BATСH update към /promotions/items) ===================== */
+saveBtn.addEventListener('click', async () => {
+  if (!isAdmin) { toast('Първо отключи Admin.'); return; }
 
   const toAppend = [];
-  for(const r of rows){
-    if(!r.A || !r.B || !(r.price>0)) continue;
+  for (const r of rows) {
+    if (!r.A || !r.B || !(r.price > 0)) continue;
+    const id = genId();
     toAppend.push({
-      id: genId(),
-      parts: [
-        { name:r.A.name, desc:r.A.desc||'', price:Number(r.A.price||0), image:r.A.image||'/bbqsaitlogo.jpg' },
-        { name:r.B.name, desc:r.B.desc||'', price:Number(r.B.price||0), image:r.B.image||'/bbqsaitlogo.jpg' }
-      ],
-      price: Number(r.price||0),
-      createdAt: Date.now(),
-      active: true
+      path: '/promotions/items/' + id,
+      data: {
+        id,
+        parts: [
+          { name:r.A.name, desc:r.A.desc||'', price:Number(r.A.price||0), image:r.A.image||'/bbqsaitlogo.jpg' },
+          { name:r.B.name, desc:r.B.desc||'', price:Number(r.B.price||0), image:r.B.image||'/bbqsaitlogo.jpg' }
+        ],
+        price: Number(r.price||0),
+        createdAt: Date.now(),
+        active: true,
+        __admin_pass: ADMIN_PASS   // <- важно за правилата
+      }
     });
   }
-  if(toAppend.length===0){ toast('Добави поне един ред с A, B и цена.'); return; }
 
-  try{
-    await db.ref('/promotions').transaction(current=>{
-      let items = Array.isArray(current?.items) ? current.items.filter(Boolean)
-               : current?.items ? Object.values(current.items)
-               : [];
-      // добавяме в КРАЯ (надолу)
-      toAppend.forEach(x=> items.push(x));
-      return { items };
-    });
+  if (toAppend.length === 0) { toast('Добави поне един ред с A, B и цена.'); return; }
+
+  try {
+    const updates = {};
+    toAppend.forEach(x => { updates[x.path] = x.data; });
+    await db.ref().update(updates);
     toast(`Добавени: ${toAppend.length} промоции.`);
     rows = []; addRow(); renderRows();
-  }catch(e){
+  } catch (e) {
     console.error('DB write error:', e);
     toast(`Грешка при запис: ${e.code || e.message || e}`);
   }
 });
 
-/* ===================== Изтриване по id чрез TRANSACTION ===================== */
+/* ===================== Изтриване по id (soft delete) ===================== */
 async function tryDeletePromo(id){
-  if(!isAdmin) return;
-  if(!id){ toast('Липсва ID на промоция.'); return; }
+  if (!isAdmin) return;
+  if (!id) { toast('Липсва ID на промоция.'); return; }
   const ok = confirm('Сигурни ли сте, че искате да изтриете тази промоция?');
-  if(!ok) return;
-  try{
-    await db.ref('/promotions').transaction(current=>{
-      let items = Array.isArray(current?.items) ? current.items.filter(Boolean)
-               : current?.items ? Object.values(current.items)
-               : [];
-      items = items.filter(x=> x && x.id !== id);
-      return { items };
+  if (!ok) return;
+
+  try {
+    await db.ref('/promotions/items/' + id).update({
+      __deleted: true,
+      active: false,
+      updatedAt: Date.now(),
+      __admin_pass: ADMIN_PASS   // <- задължително
     });
     toast('Промоцията е изтрита.');
-  }catch(e){
+  } catch(e) {
     console.error('DB delete error:', e);
     toast(`Грешка при изтриване: ${e.code || e.message || e}`);
   }
 }
+
 
   </script>
 </body>
