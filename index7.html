@@ -210,6 +210,19 @@ let rows = [];    // builder редове [{A,B,price}]
 let view = 'cats';               // cats | cat | all
 let currentKey = null;           // ключ от CATALOG (index2)
 
+// ==== Авто-Admin, ако е извикан с ?admin=1 (когато е вграден във <iframe>) ====
+(() => {
+  const params = new URLSearchParams(location.search);
+  if (params.get('admin') === '1') {
+    isAdmin = true;        // включи Admin режима
+    toggleDeleteButtons(); // покажи X на картите (функцията е hoisted – може да се вика тук)
+    // Ако искаш и Builder/Slide автоматично:
+    // builder.style.display = 'block';
+    // slide.classList.add('open');
+    // if (rows.length===0) addRow();
+  }
+})();
+
 /* ===================== Категории/миниатюри от index2 (НЕ ПИПАМЕ КАТАЛОГА) ===================== */
 const CAT_ORDER = [
   'burgeri','palachinki','strandzhanki','kartofi','salati','portsii','dobavki',

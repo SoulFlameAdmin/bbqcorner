@@ -384,7 +384,12 @@ const PROMO_LINK_WEB   = 'index7.html';
 
 function renderPromotionsEmbed(){
   titleEl.textContent = 'ПРОМОЦИИ';
-  const src = (location.protocol === 'file:') ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
+  const base = (location.protocol === 'file:') ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
+
+  // ⇩ ако админът е логнат (пример: имаш adminName в LS), добавяме ?admin=1
+  const isAdmin = !!(localStorage.getItem('adminName') || '').trim();
+  const src = isAdmin ? (base + (base.includes('?') ? '&' : '?') + 'admin=1') : base;
+
   grid.innerHTML = `
     <div class="embed-wrap">
       <iframe src="${src}" title="Промоции" loading="lazy"
