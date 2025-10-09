@@ -511,12 +511,17 @@ function updateCartUI(){
   noteWrapper.style.display = CART.length > 0 ? 'block' : 'none';
 
   persistCartSnapshot();
-  orderNoteEl.addEventListener('input', () => {
-    localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
-  });
-}
+  // вържи само веднъж
+  if (!orderNoteEl.dataset.bound) {
+    orderNoteEl.addEventListener('input', () => {
+      localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+    });
+    orderNoteEl.dataset.bound = '1';
+  }
+} // ← ТОВА ЗАТВАРЯ updateCartUI()
 
 function restoreOrderNote(){
+
   orderNoteEl.value = localStorage.getItem(LS_ORDER_NOTE) || '';
 }
 
@@ -989,7 +994,13 @@ function activate(cat, {fromNav=false, replace=false} = {}){
       </section>
     `;
 
-    initPromotionsInline();     // ⬅️ стартираме модула
+// стартирай, ако е заредена; иначе маркирай да се стартира след като модулът се дефинира
+if (typeof window.initPromotionsInline === 'function') {
+  window.initPromotionsInline();
+} else {
+  window.__needPromoInit = true;
+}
+
     recalcMobileOffsets();
     return;
   }
@@ -1252,10 +1263,8 @@ window.addEventListener('scroll', () => {
     ticking = true;
   }
 });
-</script>
 
-<!-- === PROMOTIONS (INLINE, БЕЗ IFRAME) — МОДУЛ — FIXED === -->
-<script>
+
 /* 1) Lazy-load на Firebase v8 RTDB */
 const __firebaseSdkReady = (() => {
   let ready;
@@ -1296,7 +1305,7 @@ function isAdminBBQ(){
 }
 
 /* 4) Основен модул */
-async function initPromotionsInline(){
+window.initPromotionsInline = async function(){
   await __firebaseSdkReady();
 
   // Единствена инициализация (без дублиране)
@@ -1360,28 +1369,40 @@ async function initPromotionsInline(){
   // Създаване на промо пакет (само админ)
   if (admin){
     const get = id => document.getElementById(id);
-    get('pSave').onclick = async ()=>{
-      const parts = [
-        { name: get('pAName').value.trim(), image: get('pAImg').value.trim(), price: 0 },
-        { name: get('pBName').value.trim(), image: get('pBImg').value.trim(), price: 0 },
-      ];
-      const price = Number(get('pPrice').value)||0;
+    const saveBtn = document.getElementById('pSave');
+    if (saveBtn) {
+      saveBtn.onclick = async ()=>{
+        const parts = [
+          { name: get('pAName').value.trim(), image: get('pAImg').value.trim(), price: 0 },
+          { name: get('pBName').value.trim(), image: get('pBImg').value.trim(), price: 0 },
+        ];
+        const price = Number(get('pPrice').value)||0;
 
-      if (!parts[0].name || !parts[1].name){
-        alert('Попълни имена за двете части.');
-        return;
-      }
-      const id = 'promo_'+Date.now();
-      await firebase.database().ref('/promotions/items/'+id).set({
-        id, parts, price, createdAt: Date.now()
-        // __admin_pass: 'bbqcornera123' // ако правилата го изискват
-      });
+        if (!parts[0].name || !parts[1].name){
+          alert('Попълни имена за двете части.');
+          return;
+        }
+        const id = 'promo_'+Date.now();
+        await firebase.database().ref('/promotions/items/'+id).set({
+          id, parts, price, createdAt: Date.now()
+        });
 
-      get('pAName').value = get('pBName').value = get('pAImg').value = get('pBImg').value = '';
-      get('pPrice').value = '1.00';
-    };
+        get('pAName').value = get('pBName').value = get('pAImg').value = get('pBImg').value = '';
+        get('pPrice').value = '1.00';
+      };
+    }
   }
+};
+
+// ако „Промоции“ е била активирана преди модулът да се зареди — стартирай сега
+if (window.__needPromoInit) {
+  window.initPromotionsInline();
+  window.__needPromoInit = false;
 }
+
+</script>
+
+
 </script>
 
 
