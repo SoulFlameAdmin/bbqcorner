@@ -46,21 +46,23 @@
     box-shadow:0 10px 26px rgba(0,0,0,.5)
   }
   /* X за изтриване (само в Admin) */
-.promo-del {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: #ff7a00;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
-  display: none; /* по начало скрито */
+.promo-del{
+  position:absolute;
+  top:12px;
+  left:12px;          /* вляво, за да не се бие с цената */
+  /* right:auto; */    /* (не е нужно, но може да стои) */
+  background:#ff7a00;
+  color:#fff;
+  border:none;
+  border-radius:50%;
+  width:28px;height:28px;
+  font-size:18px;font-weight:bold;
+  cursor:pointer;
+  display:none;        /* показва се само в Admin */
+  z-index:5;           /* <- ВАЖНО: стои над снимките/оверлея */
+  pointer-events:auto; /* гарантира кликаемост */
 }
+
 
   /* Builder */
   .builder{margin-top:18px;background:#13151a;border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:none}
