@@ -24,9 +24,31 @@
 }
 
 /* Addons ред до бутона + */
-.actions-row{display:flex;align-items:center;gap:12px;margin:8px 16px 16px auto;justify-content:flex-end}
-.addons{display:flex;gap:12px;align-items:center;margin-right:auto}
-.addons label{display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;white-space:nowrap;user-select:none}
+/* Addons – подредени едно под друго */
+.actions-row{
+  display:flex;
+  align-items:flex-start;          /* + бутонът се подравнява горе */
+  gap:12px;
+  margin:8px 16px 16px auto;
+  justify-content:flex-end;
+}
+.addons{
+  display:flex;
+  flex-direction:column;           /* ⟵ ключовото: вертикално */
+  gap:6px;
+  align-items:flex-start;
+  margin-right:auto;
+}
+.addons label{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-weight:700;
+  font-size:13px;
+  user-select:none;                /* махаме white-space:nowrap */
+}
+
+space:nowrap;user-select:none}
 .addons input{accent-color:#ff7a00}
 
 
@@ -1254,15 +1276,6 @@ function bindAddButtons(){
         addons,
         img
       });
-
-      if (addons.length){
-        const line = `${baseName}: ` + addons
-          .map(a => `${a.label} ${fmtLv(a.price)}`)
-          .join(', ');
-        const cur = (orderNoteEl.value || '').trim();
-        orderNoteEl.value = cur ? (cur + '\n' + line) : line;
-        localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
-      }
 
       btn.textContent = '✓';
       setTimeout(()=> btn.textContent = '+', 450);
