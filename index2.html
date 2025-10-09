@@ -1513,16 +1513,7 @@ window.initPromotionsInline = async function () {
 
 /* ===== Състояние ===== */
 let isAdmin = localStorage.getItem('adminLogged') === '1';
-if (!isAdmin) {
-  const pass = prompt('Въведи админ парола за достъп до промоциите/каталога:');
-  if (pass === ADMIN_PASS) {
-    isAdmin = true;
-    localStorage.setItem('adminLogged', '1');
-    alert('✅ Успешно влизане като админ!');
-  } else {
-    alert('Нямаш достъп до админ панела. Ще виждаш само активните промоции.');
-  }
-}
+
 
 
 
@@ -1736,19 +1727,38 @@ if (!isAdmin) {
 
   /* ===== Admin unlock ===== */
 function syncAdminUI(){
-  if(builder) builder.style.display = isAdmin ? 'block' : 'none';
-  if (catalogBtn) catalogBtn.style.display = isAdmin ? 'inline-block' : 'none'; // ⬅️ добави този ред
-  if(!isAdmin) slide.classList.remove('open');
+  if (builder)    builder.style.display = isAdmin ? 'block' : 'none';
+  if (catalogBtn) catalogBtn.style.display = isAdmin ? 'inline-block' : 'none';
+  if (adminBtn)   adminBtn.textContent = isAdmin ? 'Admin (включен)' : 'Admin';
+  if (!isAdmin)   slide.classList.remove('open');
   toggleDeleteButtons();
 }
 
-  adminBtn?.addEventListener('click', ()=>{
-    if(isAdmin){ isAdmin=false; syncAdminUI(); return; }
-    const pwd = prompt('Въведи парола (admin):');
-    if(pwd===ADMIN_PASS){ isAdmin=true; syncAdminUI(); if(rows.length===0) addRow(); openSlide(); }
-    else alert('Грешна парола.');
-  });
-  syncAdminUI();
+adminBtn?.addEventListener('click', () => {
+  // ако вече е включен — предлагаме излизане
+  if (isAdmin) {
+    if (confirm('Изключване на админ режим?')) {
+      isAdmin = false;
+      localStorage.removeItem('adminLogged');
+      syncAdminUI();
+    }
+    return;
+  }
+
+  // иначе — искаме парола
+  const pwd = prompt('Въведи парола за админ:');
+  if (pwd === ADMIN_PASS) {
+    isAdmin = true;
+    localStorage.setItem('adminLogged', '1');
+    syncAdminUI();
+    if (rows.length === 0) addRow();
+    openSlide(); // по желание: директно отваря каталога
+  } else if (pwd !== null) {
+    alert('Грешна парола.');
+  }
+});
+
+syncAdminUI();
 
   /* ===== Запис / изтриване (Firebase) ===== */
   const ref = firebase.database().ref('/promotions/items');
