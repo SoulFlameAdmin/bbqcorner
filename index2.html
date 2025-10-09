@@ -1365,8 +1365,7 @@ function isAdminBBQ(){
                || localStorage.getItem('isAdmin') === '1';
   return urlFlag || lsFlag;
 }
-
-/* 4) Основен модул */
+/* 4) Основен модул (вграден Promos + Admin unlock + Catalog drag&drop) */
 window.initPromotionsInline = async function () {
   await __firebaseSdkReady();
 
@@ -1380,98 +1379,347 @@ window.initPromotionsInline = async function () {
     }
   }
 
-  // DOM елементи
-  const listEl  = document.getElementById('promoList');
-  const builder = document.getElementById('builder');      // по избор (може и да липсва)
-  const adminBtn = document.getElementById('adminBtn');    // по избор (може и да липсва)
+  /* ===== DOM ===== */
+  const listEl     = document.getElementById('promoList');
+  const builder    = document.getElementById('builder');
+  const rowsWrap   = document.getElementById('rows');
+  const addRowBtn  = document.getElementById('addRow');
+  const saveBtn    = document.getElementById('save');
 
-  // Админ флаг (използва локалната ти isAdminBBQ())
-  let isAdmin = !!isAdminBBQ();
+  const adminBtn   = document.getElementById('adminBtn');
+  const catalogBtn = document.getElementById('catalogBtn');
+  const slide      = document.getElementById('slide');
+  const catalogEl  = document.getElementById('catalog');
+  const searchEl   = document.getElementById('search');
+  const backBtn    = document.getElementById('backBtn');
+  const slideTitle = document.getElementById('slideTitle');
+  const closeSlide = document.getElementById('closeSlide');
 
-  // Показване на билдъра за админ (ако съществува в DOM)
-  if (builder) builder.style.display = isAdmin ? 'block' : 'none';
+  /* ===== Helpers ===== */
+  const ADMIN_PASS = 'bbqcornera123';
+  const money = (n)=> (Number(n||0).toFixed(2)+' лв');
+  const el = (tag, props={}, ...children)=>{
+    const x=document.createElement(tag); Object.assign(x, props);
+    for(const c of children){ typeof c==='string' ? x.appendChild(document.createTextNode(c)) : c && x.appendChild(c); }
+    return x;
+  };
+  const safe = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const genId = ()=> 'p_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
 
-  // Ако имаш бутон "Admin", позволяваме преоценка на флага (по желание)
-  adminBtn?.addEventListener('click', () => {
-    // Тук можеш да добавиш prompt за парола; за сега просто toggle
-    isAdmin = !isAdmin;
-    if (builder) builder.style.display = isAdmin ? 'block' : 'none';
-    // пререндер за да се покажат/скрият Х бутоните
-    if (window.__lastPromoSnapshot) renderList(window.__lastPromoSnapshot);
+  /* ===== Състояние ===== */
+  let isAdmin = !!isAdminBBQ();     // от твоя helper горе
+  let rows = [];                    // [{A,B,price}]
+  let view = 'cats', currentKey=null;
+
+  // показвай/крии delete Х
+  function toggleDeleteButtons(){
+    listEl?.querySelectorAll('.promo-del').forEach(btn=>{
+      btn.style.display = isAdmin ? 'inline-block' : 'none';
+    });
+  }
+
+  /* ===== Каталог (ползва твоя глобален CATALOG) ===== */
+  const CAT_ORDER = [
+    'burgeri','palachinki','strandzhanki','kartofi','salati','portsii','dobavki',
+    'hell','voda','gazirana_voda','fanta','studen_chai','kola','sok','xixo','airqn'
+  ];
+  const CAT_TITLES = Object.fromEntries(Object.entries(CATALOG).map(([k,v])=>[k, v.title || k.toUpperCase()]));
+
+  function prettyLabel(src){
+    let f = src.split('/').pop().split('.')[0].toLowerCase();
+    f = f.replace(/^hell_/,'').replace(/^ice_coffe_/,'').replace(/^ice_hell_/,'');
+    const map = {apple:'Apple', clasic:'Classic', classic:'Black Cherry', redgrape:'Red Grape',
+      watermelon:'Watermelon', capochino:'Cappuccino', cappuccino:'Cappuccino',
+      caramel:'Salted Caramel', coconut:'Coconut', doubleespresso:'Double Espresso',
+      doublespresso:'Double Espresso', late:'Latte', latte:'Latte', pinklatte:'Pink Latte',
+      vanilia:'Vanilla', vanilla:'Vanilla', distachio:'Pistachio', pistachio:'Pistachio', slimvanilla:'Vanilla'};
+    if(map[f]) return map[f];
+    return f.replace(/[_-]+/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
+  }
+  function makeDragPayload(p, category){
+    return JSON.stringify({
+      name: p.name || p.label || prettyLabel(p.src||''),
+      desc: p.desc || '',
+      price: Number(p.price||0),
+      image: p.img || p.image || p.src || '/bbqsaitlogo.jpg',
+      category: category || ''
+    });
+  }
+
+  function openSlide(){ slide.classList.add('open'); renderCategories(); }
+  function renderCategories(){
+    view='cats'; currentKey=null; slideTitle.textContent='Каталог · категории'; backBtn.style.display='none';
+    catalogEl.innerHTML=''; catalogEl.appendChild(el('div',{className:'s-title'},'Категории'));
+    CAT_ORDER.forEach(key=>{
+      const label = CAT_TITLES[key] || key.toUpperCase();
+      const img = (window.CAT_THUMBS && CAT_THUMBS[key]) || '/bbqsaitlogo.jpg';
+      const card = el('div',{className:'s-cat'},
+        el('img',{src:img,alt:label,loading:'lazy'}),
+        el('div',{}, el('div',{className:'nm'},label), el('div',{className:'ds'},'Отвори продукти'))
+      );
+      card.addEventListener('click',()=>renderCategory(key));
+      catalogEl.appendChild(card);
+    });
+  }
+  function renderCategory(key){
+    const data = CATALOG[key]; currentKey=key; view='cat';
+    slideTitle.textContent = 'Каталог · '+(data?.title || CAT_TITLES[key] || key.toUpperCase());
+    backBtn.style.display=''; catalogEl.innerHTML='';
+
+    if(data?.view==='water2'){
+      data.groups.forEach(g=>{
+        catalogEl.appendChild(el('div',{className:'s-title'}, g.heading));
+        const wrap = el('div',{className:'s-water'});
+        g.pair.forEach(p=>{
+          const card = el('div',{className:'s-wcard', draggable:true},
+            el('img',{src:p.src, alt:p.label}),
+            el('div',{className:'s-wname'}, p.label),
+            el('div',{className:'s-wprice'}, money(p.price))
+          );
+          card.addEventListener('dragstart', e=> e.dataTransfer.setData('application/json', makeDragPayload({name:p.label, price:p.price, img:p.src}, data.title)));
+          wrap.appendChild(card);
+        });
+        catalogEl.appendChild(wrap);
+      });
+      return;
+    }
+    if(data?.view==='gallery'){
+      data.groups.forEach(g=>{
+        catalogEl.appendChild(el('div',{className:'s-title'}, g.heading));
+        const grid = el('div',{className:'s-gallery'});
+        const price = data.hellPrice ?? 2.00;
+        g.images.forEach(src=>{
+          const label = prettyLabel(src);
+          const tile = el('div',{className:'s-tile', draggable:true, title:label},
+            el('img',{src,alt:label}),
+            el('div',{className:'s-price'}, money(price)),
+            el('div',{className:'s-cap'}, label)
+          );
+          tile.addEventListener('dragstart', e=> e.dataTransfer.setData('application/json', makeDragPayload({name:label, price, img:src}, data.title)));
+          grid.appendChild(tile);
+        });
+        catalogEl.appendChild(grid);
+      });
+      return;
+    }
+    const groups = data.groups;
+    if (Array.isArray(groups)) {
+      groups.forEach(g=>{
+        catalogEl.appendChild(el('div',{className:'s-title'}, g.heading));
+        g.items.forEach(p=>{
+          const card = el('div',{className:'s-card', draggable:true},
+            el('img',{src:p.img||'/bbqsaitlogo.jpg', alt:p.name}),
+            el('div',{className:'nm'}, p.name),
+            el('div',{className:'pr'}, money(p.price||0))
+          );
+          card.addEventListener('dragstart', e=> e.dataTransfer.setData('application/json', makeDragPayload(p, data.title)));
+          catalogEl.appendChild(card);
+        });
+      });
+      return;
+    }
+    (data.items||[]).forEach(p=>{
+      const card = el('div',{className:'s-card', draggable:true},
+        el('img',{src:p.img||'/bbqsaitlogo.jpg', alt:p.name}),
+        el('div',{className:'nm'}, p.name),
+        el('div',{className:'pr'}, money(p.price||0))
+      );
+      card.addEventListener('dragstart', e=> e.dataTransfer.setData('application/json', makeDragPayload(p, data.title)));
+      catalogEl.appendChild(card);
+    });
+  }
+  searchEl?.addEventListener('input', ()=>{
+    const q = (searchEl.value||'').trim().toLowerCase();
+    if(!q){ if(currentKey) renderCategory(currentKey); else renderCategories(); return; }
+    const out=[]; const data=currentKey?CATALOG[currentKey]:null;
+    if(!currentKey){ // глобално търсене по всички
+      Object.keys(CATALOG).forEach(k=>{
+        const d=CATALOG[k]; const collect=(arr)=>arr.forEach(p=>{ if((p.name||'').toLowerCase().includes(q)) out.push(p); });
+        if(d.view==='gallery'){
+          const price=d.hellPrice??2.00;
+          d.groups.forEach(g=>g.images.forEach(src=>{
+            const name=prettyLabel(src); if(name.toLowerCase().includes(q)) out.push({name, price, img:src});
+          }));
+        }else if(d.view==='water2'){
+          d.groups.forEach(g=>g.pair.forEach(p=>{ if(p.label.toLowerCase().includes(q)) out.push({name:p.label, price:p.price, img:p.src}); }));
+        }else if(Array.isArray(d.groups)){ d.groups.forEach(g=>collect(g.items||[])); }
+        else collect(d.items||[]);
+      });
+    }else{ // в категория
+      if(data.view==='gallery'){
+        const price=data.hellPrice??2.00;
+        data.groups.forEach(g=>g.images.forEach(src=>{
+          const name=prettyLabel(src); if(name.toLowerCase().includes(q)) out.push({name, price, img:src});
+        }));
+      }else if(data.view==='water2'){
+        data.groups.forEach(g=>g.pair.forEach(p=>{ if(p.label.toLowerCase().includes(q)) out.push({name:p.label, price:p.price, img:p.src}); }));
+      }else if(Array.isArray(data.groups)){
+        data.groups.forEach(g=> (g.items||[]).forEach(p=>{ if((p.name||'').toLowerCase().includes(q)) out.push(p); }));
+      }else{ (data.items||[]).forEach(p=>{ if((p.name||'').toLowerCase().includes(q)) out.push(p); }); }
+    }
+    slideTitle.textContent='Резултати'; backBtn.style.display='';
+    catalogEl.innerHTML='';
+    if(!out.length){ catalogEl.appendChild(el('div',{style:'opacity:.7'},'Няма резултати.')); return; }
+    out.forEach(p=>{
+      const card = el('div',{className:'s-card', draggable:true},
+        el('img',{src:p.img||'/bbqsaitlogo.jpg', alt:p.name}),
+        el('div',{className:'nm'}, p.name),
+        el('div',{className:'pr'}, money(p.price||0))
+      );
+      card.addEventListener('dragstart', e=> e.dataTransfer.setData('application/json', makeDragPayload(p, p.category||'')));
+      catalogEl.appendChild(card);
+    });
   });
+  backBtn?.addEventListener('click', ()=> renderCategories());
+  closeSlide?.addEventListener('click', ()=> slide.classList.remove('open'));
+  catalogBtn?.addEventListener('click', ()=> isAdmin && openSlide());
 
+  /* ===== Builder (A + B + цена) ===== */
+  function productChip(p, onRemove){
+    const c = el('div',{className:'chip'},
+      el('img',{src:p.image, alt:p.name}),
+      el('div',{className:'meta'},
+        el('span',{className:'nm'}, p.name),
+        el('span',{className:'ds'}, money(p.price))
+      ),
+      el('span',{className:'x', title:'Премахни', onclick:()=>{ c.remove(); onRemove && onRemove(); }}, '✕')
+    );
+    c._data=p; return c;
+  }
+  function makeDropCell(onSet){
+    const dz = el('div',{className:'drop'});
+    dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.style.borderColor='#ffffff66'; });
+    dz.addEventListener('dragleave', ()=> dz.style.borderColor='#ffffff2f');
+    dz.addEventListener('drop', e=>{
+      e.preventDefault(); dz.style.borderColor='#ffffff2f';
+      const raw = e.dataTransfer.getData('application/json'); if(!raw) return;
+      try{ const p=JSON.parse(raw); dz.innerHTML=''; dz.appendChild(productChip(p, ()=>{ dz.innerHTML=''; onSet(null); })); onSet(p); }catch(_){}
+    });
+    return dz;
+  }
+  function renderRows(){
+    rowsWrap.innerHTML='';
+    rows.forEach((r, idx)=>{
+      const dzA = makeDropCell((p)=> rows[idx].A = p);
+      const dzB = makeDropCell((p)=> rows[idx].B = p);
+      if(r.A) dzA.appendChild(productChip(r.A, ()=> rows[idx].A=null));
+      if(r.B) dzB.appendChild(productChip(r.B, ()=> rows[idx].B=null));
+      const price = el('input',{className:'price-input', type:'number', step:'0.01', min:'0', value: r.price ?? ''});
+      price.addEventListener('input', ()=> rows[idx].price = Number(price.value||0));
+      const row = el('div',{className:'row'},
+        dzA, el('div',{className:'pluscell'}, '+'), dzB, price,
+        el('button',{className:'row-del', title:'Изтрий ред', onclick:()=>{ rows.splice(idx,1); renderRows(); }}, '✕')
+      );
+      rowsWrap.appendChild(row);
+    });
+  }
+  function addRow(){ rows.push({A:null,B:null,price:null}); renderRows(); }
+  addRowBtn?.addEventListener('click', addRow);
+
+  /* ===== Admin unlock ===== */
+  function syncAdminUI(){
+    if(builder) builder.style.display = isAdmin ? 'block' : 'none';
+    if(!isAdmin) slide.classList.remove('open');
+    toggleDeleteButtons();
+  }
+  adminBtn?.addEventListener('click', ()=>{
+    if(isAdmin){ isAdmin=false; syncAdminUI(); return; }
+    const pwd = prompt('Въведи парола (admin):');
+    if(pwd===ADMIN_PASS){ isAdmin=true; syncAdminUI(); if(rows.length===0) addRow(); openSlide(); }
+    else alert('Грешна парола.');
+  });
+  syncAdminUI();
+
+  /* ===== Запис / изтриване (Firebase) ===== */
   const ref = firebase.database().ref('/promotions/items');
 
-  // Рендер на листа
-function renderList(dataObj) {
-  function safe(s){
-    return String(s)
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;');
-  }
-
-  const items = Object.values(dataObj || {})
-    .filter(p => p && p.active !== false && !p.__deleted);
-
-  listEl.innerHTML = items.length
-    ? items.map(p => {
-        const a = p.parts?.[0] || { name: '', image: '' };
-        const b = p.parts?.[1] || { name: '', image: '' };
-        const aName = safe(a.name || '');
-        const bName = safe(b.name || '');
-        const price = (Number(p.price) || 0).toFixed(2);
-        return `
-          <article class="promo-card" role="listitem" data-id="${p.id || ''}">
-            <div class="promo-sides">
-              <div>
-                <div class="promo-img" style="background-image:url('${a.image || ''}')"></div>
-                <div class="promo-name">${aName}</div>
-              </div>
-              <div>
-                <div class="promo-img" style="background-image:url('${b.image || ''}')"></div>
--               <div class="promo-name">${aName}</div>
-+               <div class="promo-name">${bName}</div>
-              </div>
-            </div>
-            <div class="promo-price">${price} лв</div>
-            <button class="promo-del" ${isAdmin ? '' : 'style="display:none"'} title="Изтрий">✕</button>
-          </article>`;
-      }).join('')
-    : `<div style="opacity:.8">Няма активни промоции.</div>`;
-
-
-    if (isAdmin) {
-      // Връзваме soft delete към бутона ✕
-      listEl.querySelectorAll('.promo-del').forEach(btn => {
-        btn.style.display = 'inline-block';
-        btn.onclick = async () => {
-          const card = btn.closest('.promo-card');
-          const id = card?.dataset.id;
-          if (!id) return;
-          if (!confirm('Да изтрия ли тази промоция?')) return;
-          try {
-            await firebase.database().ref('/promotions/items/' + id).update({
-              __deleted: true,
-              active: false,
-              updatedAt: Date.now()
-            });
-          } catch (e) {
-            console.error(e);
-            alert('Грешка при изтриване.');
-          }
-        };
+  saveBtn?.addEventListener('click', async ()=>{
+    if(!isAdmin) return alert('Първо отключи Admin.');
+    const toAppend = [];
+    for(const r of rows){
+      if(!r.A || !r.B || !(r.price>0)) continue;
+      const id = genId();
+      toAppend.push({
+        path:'/promotions/items/'+id,
+        data:{
+          id,
+          parts:[
+            {name:r.A.name, desc:r.A.desc||'', price:Number(r.A.price||0), image:r.A.image||'/bbqsaitlogo.jpg'},
+            {name:r.B.name, desc:r.B.desc||'', price:Number(r.B.price||0), image:r.B.image||'/bbqsaitlogo.jpg'}
+          ],
+          price:Number(r.price||0),
+          createdAt:Date.now(),
+          active:true
+        }
       });
     }
+
+if(!toAppend.length) return alert('Добави поне един ред с A, B и цена.');
+try{
+  const updates = {};
+  toAppend.forEach(x => {
+    updates[x.path] = {
+      ...x.data,
+      __admin_pass: 'bbqcornera123'   // 👈 добавено поле за RTDB правилото
+    };
+  });
+  await firebase.database().ref().update(updates);
+  alert('Добавени: ' + toAppend.length + ' промоции.');
+  rows = []; addRow(); renderRows();
+}catch(e){
+  console.error(e);
+  alert('Грешка при запис: ' + (e.message || e));
+}
+
+
+  function attachDeleteHandlers(){
+    listEl.querySelectorAll('.promo-del').forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.closest('.promo-card')?.dataset.id;
+        if(!isAdmin || !id) return;
+        if(!confirm('Да изтрия ли тази промоция?')) return;
+        try{
+          await firebase.database().ref('/promotions/items/'+id).update({ __deleted:true, active:false, updatedAt:Date.now() });
+        }catch(e){ console.error(e); alert('Грешка при изтриване.'); }
+      };
+    });
   }
 
-  // Live обновяване
-  ref.on('value', snap => {
+  /* ===== Рендер на публичния списък ===== */
+  function renderList(dataObj){
+    const items = Object.values(dataObj||{}).filter(p=>p && p.active!==false && !p.__deleted);
+    listEl.innerHTML = items.length ? items.map(p=>{
+      const A = p.parts?.[0] || {}; const B = p.parts?.[1] || {};
+      return `
+        <article class="promo-card" role="listitem" data-id="${p.id||''}">
+          <div class="promo-sides">
+            <div>
+              <div class="promo-img" style="background-image:url('${A.image||''}')"></div>
+              <div class="promo-name">${safe(A.name||'')}</div>
+            </div>
+            <div>
+              <div class="promo-img" style="background-image:url('${B.image||''}')"></div>
+              <div class="promo-name">${safe(B.name||'')}</div>
+            </div>
+          </div>
+          <div class="promo-price">${money(p.price||0)}</div>
+          <button class="promo-del" ${isAdmin?'':'style="display:none"'} title="Изтрий">✕</button>
+        </article>`;
+    }).join('') : `<div style="opacity:.8">Няма активни промоции.</div>`;
+
+    toggleDeleteButtons();
+    if(isAdmin) attachDeleteHandlers();
+  }
+
+  // Live
+  ref.on('value', snap=>{
     const data = snap.val() || {};
-    window.__lastPromoSnapshot = data; // за повторен рендер при toggle на admin
+    window.__lastPromoSnapshot = data;
     renderList(data);
   });
+
+  // Ако тъкмо сме отключили админ – да има поне един ред
+  if(isAdmin && rows.length===0) addRow();
 };
 
 
