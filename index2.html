@@ -1708,19 +1708,19 @@ function attachDeleteHandlers(){
 
 
   /* ===== Рендер на публичния списък ===== */
+/* ===== Рендер на публичния списък ===== */
 function renderList(dataObj){
-  // Вземаме и ключовете
   const entries = Object.entries(dataObj || {})
     .filter(([_, p]) => p && p.active !== false && !p.__deleted);
 
   listEl.innerHTML = entries.length ? entries.map(([key, p]) => {
     const A = p.parts?.[0] || {};
     const B = p.parts?.[1] || {};
-    // ако липсва p.id, ползваме ключа от RTDB
-    const domId = p.id || key;
+    const domId = p.id || key; // ← fallback към ключа от RTDB
 
     return `
-      <article class="promo-card" role="listitem" data-id="${domId}">
+      <article class="promo-card" role="listitem"
+               data-id="${domId}" data-key="${key}">
         <div class="promo-sides">
           <div>
             <div class="promo-img" style="background-image:url('${A.image || ''}')"></div>
@@ -1732,13 +1732,48 @@ function renderList(dataObj){
           </div>
         </div>
         <div class="promo-price">${money(p.price || 0)}</div>
-        <button class="promo-del" ${isAdmin ? '' : 'style="display:none"'} title="Изтрий">✕</button>
+        <button type="button" class="promo-del" ${isAdmin ? '' : 'style="display:none"'} title="Изтрий">✕</button>
       </article>`;
   }).join('') : `<div style="opacity:.8">Няма активни промоции.</div>`;
 
   toggleDeleteButtons();
-  if (isAdmin) attachDeleteHandlers();
 }
+
+/* ✅ Делегирано изтриване – закача се само веднъж */
+if (!listEl.__boundDelete) {
+  listEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.promo-del');
+    if (!btn) return;
+
+    const card = btn.closest('.promo-card');
+    const id   = card?.dataset.id || card?.dataset.key;
+    if (!isAdmin || !id) return;
+
+    const pwd = prompt('Въведи админ паролата за изтриване:');
+    if (pwd !== 'bbqcornera123') {
+      alert('❌ Грешна парола. Изтриването е отказано.');
+      return;
+    }
+    if (!confirm('Да изтрия ли тази промоция завинаги?')) return;
+
+    try {
+      await firebase.database().ref('/promotions/items/' + id).update({
+        __deleted: true,
+        active: false,
+        updatedAt: Date.now(),
+        __admin_pass: 'bbqcornera123'
+      });
+      // По желание: визуално махни картата веднага, докато дойде RTDB ъпдейта
+      card.remove();
+      alert('✅ Промоцията е изтрита.');
+    } catch (e2) {
+      console.error(e2);
+      alert('⚠️ Грешка при изтриване: ' + (e2.message || e2));
+    }
+  });
+  listEl.__boundDelete = true;
+}
+
 
 
   // Live
