@@ -310,6 +310,15 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   .price-badge .lv{ font-size:24px; }
   .price-badge .eur{ font-size:16px; }
 }
+
+/* ПРОМОЦИИ – контейнер за вградената страница */
+.embed-wrap{width:100%;min-height:70vh}
+.embed-wrap iframe{
+  width:100%;
+  height:calc(100dvh - 140px);
+  border:0;border-radius:16px;background:#fff;box-shadow:var(--shadow);
+}
+
 </style>
 </head>
 <body>
@@ -365,8 +374,29 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 </div>
 
 <script>
+/* 🔶 Промоции: лого и линкове */
+const PROMO_IMG = (location.protocol === 'file:')
+  ? 'file:///E:/BBQ_SITE/promociqlogo.jpg'
+  : '/promociqlogo.jpg';
+const PROMO_LINK_LOCAL = 'file:///E:/BBQ_SITE/index7.html';
+const PROMO_LINK_WEB   = 'index7.html';
+
+
+function renderPromotionsEmbed(){
+  titleEl.textContent = 'ПРОМОЦИИ';
+  const src = (location.protocol === 'file:') ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
+  grid.innerHTML = `
+    <div class="embed-wrap">
+      <iframe src="${src}" title="Промоции" loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>`;
+  recalcMobileOffsets();
+}
+
+
 /* Миниатюри (сайдбар) */
 const CAT_THUMBS = {
+  promocii: PROMO_IMG, /* 🧡 нов таб най-горе */
   burgeri:'snimki/produkti/1menu/burger.jpg',
   palachinki:'snimki/produkti/1menu/palachinki.jpg',
   strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',
@@ -418,6 +448,8 @@ function addToCart(item){
   CART.push(item);
   updateCartUI();
 }
+
+
 
 /* Основен рендер на количката */
 function updateCartUI(){
@@ -653,7 +685,7 @@ const CATALOG = {
           'snimki/hell_sminki/ice_coffe/ice_coffe_late.png',
           'snimki/hell_sminki/ice_coffe/ice_coffe_pinklatte.png',
           'snimki/hell_sminki/ice_coffe/ice_coffe_vanilia.png',
-          'snimki/hell_sminki/ice_coffe/ice_hell_distachio.png'
+          'snimki/hell_sminki/ice_hell_distachio.png'
       ]}
     ]
   },
@@ -758,6 +790,7 @@ const CATALOG = {
 
 /* Подредба на категориите */
 const ORDER = [
+  'promocii', /* 🧡 най-горе */
   'burgeri','palachinki','strandzhanki','kartofi','salati','portsii','dobavki',
   'hell','voda','gazirana_voda','fanta','studen_chai','kola','sok','xixo','airqn'
 ];
@@ -768,7 +801,7 @@ const titleEl = document.getElementById('catTitle');
 
 /* Сайдбар рендер */
 sidebar.innerHTML = ORDER.map(key=>{
-  const label = CATALOG[key].title;
+  const label = (key === 'promocii') ? 'ПРОМОЦИИ' : (CATALOG[key].title);
   const img   = CAT_THUMBS[key];
   return `<a class="cat" data-cat="${key}" role="link" tabindex="0" aria-label="${label}">
             <div class="box" style="background-image:url('${img}')" data-label="${label}"></div>
@@ -811,6 +844,24 @@ function productCardHTML(it, i){
 }
 
 function activate(cat, {fromNav=false, replace=false} = {}){
+
+  // 🧡 ПРОМОЦИИ – вграден index7 в секцията "продукти"
+  if (cat === 'promocii'){
+    current = 'promocii';
+    sidebar.querySelectorAll('.cat')
+      .forEach(c=>c.classList.toggle('active', c.dataset.cat==='promocii'));
+
+    const url = new URL(location.href);
+    if (url.searchParams.get('cat') !== 'promocii'){
+      url.searchParams.set('cat','promocii');
+      if (replace) history.replaceState({cat:'promocii'}, '', url);
+      else if (fromNav) history.pushState({cat:'promocii'}, '', url);
+    }
+
+    renderPromotionsEmbed();
+    return; // спира останалия рендер
+  }
+
   const exists = !!CATALOG[cat];
   if(!exists) cat = 'burgeri';
   current = cat;
@@ -952,12 +1003,32 @@ restoreOrderNote();
 /* Събития за сайдбар картите */
 sidebar.querySelectorAll('.cat').forEach(catEl=>{
   const key = catEl.dataset.cat;
-  catEl.addEventListener('touchstart', ()=>{ catEl.classList.add('is-pressed'); setTimeout(()=>catEl.classList.remove('is-pressed'), 120); }, {passive:true});
+
+  // ефекти при натискане
+  catEl.addEventListener('touchstart', ()=>{ 
+    catEl.classList.add('is-pressed'); 
+    setTimeout(()=>catEl.classList.remove('is-pressed'), 120); 
+  }, {passive:true});
   catEl.addEventListener('mousedown', ()=>catEl.classList.add('is-pressed'));
   catEl.addEventListener('mouseleave', ()=>catEl.classList.remove('is-pressed'));
   catEl.addEventListener('mouseup',   ()=>catEl.classList.remove('is-pressed'));
-  catEl.addEventListener('click', (e)=>{ if (shouldBypassDelay(e)) return; e.preventDefault(); if (catEl.dataset.locked==='1'|| key===current) return; popThenActivate(catEl, key); });
-  catEl.addEventListener('keydown', (e)=>{ if (e.key==='Enter'||e.key===' '){ e.preventDefault(); if (catEl.dataset.locked==='1'|| key===current) return; popThenActivate(catEl, key);} });
+
+  // 👉 основен click listener
+  catEl.addEventListener('click', (e)=>{
+    if (shouldBypassDelay(e)) return;   // позволи middle/ctrl
+    e.preventDefault();
+    if (catEl.dataset.locked==='1' || key===current) return;
+    popThenActivate(catEl, key);        // включително promocii (ще вкара index7 вътре)
+  });
+
+  // 👉 активиране с клавиатура
+  catEl.addEventListener('keydown', (e)=>{
+    if (e.key==='Enter' || e.key===' '){
+      e.preventDefault();
+      if (catEl.dataset.locked==='1' || key===current) return;
+      popThenActivate(catEl, key);      // включително promocii
+    }
+  });
 });
 
 /* Back/Forward */

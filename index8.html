@@ -792,21 +792,21 @@ saveBtn.addEventListener('click', async ()=>{
   }
   if(toAppend.length===0){ toast('Добави поне един ред с A, B и цена.'); return; }
 
-try{
-  // правим batch update към /promotions/items/<id>
-  const updates = {};
-  toAppend.forEach(x=>{
-    updates['/promotions/items/'+x.id] = x;
-  });
-  await db.ref().update(updates);
-
-  toast(`Добавени: ${toAppend.length} промоции.`);
-  rows = []; addRow(); renderRows();
-}catch(e){
-  console.error('DB write error:', e);
-  toast(`Грешка при запис: ${e.code || e.message || e}`);
-}
-
+  try{
+    await db.ref('/promotions').transaction(current=>{
+      let items = Array.isArray(current?.items) ? current.items.filter(Boolean)
+               : current?.items ? Object.values(current.items)
+               : [];
+      // добавяме в КРАЯ (надолу)
+      toAppend.forEach(x=> items.push(x));
+      return { items };
+    });
+    toast(`Добавени: ${toAppend.length} промоции.`);
+    rows = []; addRow(); renderRows();
+  }catch(e){
+    console.error('DB write error:', e);
+    toast(`Грешка при запис: ${e.code || e.message || e}`);
+  }
 });
 
 /* ===================== Изтриване по id чрез TRANSACTION ===================== */
@@ -816,11 +816,18 @@ async function tryDeletePromo(id){
   const ok = confirm('Сигурни ли сте, че искате да изтриете тази промоция?');
   if(!ok) return;
   try{
-  await db.ref('/promotions/items/'+id).remove();
-  toast('Промоцията е изтрита.');
-}catch(e){
-  console.error('DB delete error:', e);
-  toast(`Грешка при изтриване: ${e.code || e.message || e}`);
+    await db.ref('/promotions').transaction(current=>{
+      let items = Array.isArray(current?.items) ? current.items.filter(Boolean)
+               : current?.items ? Object.values(current.items)
+               : [];
+      items = items.filter(x=> x && x.id !== id);
+      return { items };
+    });
+    toast('Промоцията е изтрита.');
+  }catch(e){
+    console.error('DB delete error:', e);
+    toast(`Грешка при изтриване: ${e.code || e.message || e}`);
+  }
 }
 
   </script>
