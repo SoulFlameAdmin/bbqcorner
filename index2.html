@@ -1680,18 +1680,27 @@ function attachDeleteHandlers(){
     btn.onclick = async () => {
       const id = btn.closest('.promo-card')?.dataset.id;
       if (!isAdmin || !id) return;
-      if (!confirm('Да изтрия ли тази промоция?')) return;
+
+      // 🧠 искаме потвърждение
+      const pwd = prompt('Въведи админ паролата за изтриване:');
+      if (pwd !== 'bbqcornera123') {
+        alert('❌ Грешна парола. Изтриването е отказано.');
+        return;
+      }
+
+      if (!confirm('Да изтрия ли тази промоция завинаги?')) return;
 
       try {
         await firebase.database().ref('/promotions/items/' + id).update({
           __deleted: true,
           active: false,
           updatedAt: Date.now(),
-          __admin_pass: 'bbqcornera123' // нужно за RTDB правилото
+          __admin_pass: 'bbqcornera123'
         });
+        alert('✅ Промоцията е изтрита.');
       } catch (e) {
         console.error(e);
-        alert('Грешка при изтриване.');
+        alert('⚠️ Грешка при изтриване: ' + (e.message || e));
       }
     };
   });
@@ -1699,30 +1708,38 @@ function attachDeleteHandlers(){
 
 
   /* ===== Рендер на публичния списък ===== */
-  function renderList(dataObj){
-    const items = Object.values(dataObj||{}).filter(p=>p && p.active!==false && !p.__deleted);
-    listEl.innerHTML = items.length ? items.map(p=>{
-      const A = p.parts?.[0] || {}; const B = p.parts?.[1] || {};
-      return `
-        <article class="promo-card" role="listitem" data-id="${p.id||''}">
-          <div class="promo-sides">
-            <div>
-              <div class="promo-img" style="background-image:url('${A.image||''}')"></div>
-              <div class="promo-name">${safe(A.name||'')}</div>
-            </div>
-            <div>
-              <div class="promo-img" style="background-image:url('${B.image||''}')"></div>
-              <div class="promo-name">${safe(B.name||'')}</div>
-            </div>
-          </div>
-          <div class="promo-price">${money(p.price||0)}</div>
-          <button class="promo-del" ${isAdmin?'':'style="display:none"'} title="Изтрий">✕</button>
-        </article>`;
-    }).join('') : `<div style="opacity:.8">Няма активни промоции.</div>`;
+function renderList(dataObj){
+  // Вземаме и ключовете
+  const entries = Object.entries(dataObj || {})
+    .filter(([_, p]) => p && p.active !== false && !p.__deleted);
 
-    toggleDeleteButtons();
-    if(isAdmin) attachDeleteHandlers();
-  }
+  listEl.innerHTML = entries.length ? entries.map(([key, p]) => {
+    const A = p.parts?.[0] || {};
+    const B = p.parts?.[1] || {};
+    // ако липсва p.id, ползваме ключа от RTDB
+    const domId = p.id || key;
+
+    return `
+      <article class="promo-card" role="listitem" data-id="${domId}">
+        <div class="promo-sides">
+          <div>
+            <div class="promo-img" style="background-image:url('${A.image || ''}')"></div>
+            <div class="promo-name">${safe(A.name || '')}</div>
+          </div>
+          <div>
+            <div class="promo-img" style="background-image:url('${B.image || ''}')"></div>
+            <div class="promo-name">${safe(B.name || '')}</div>
+          </div>
+        </div>
+        <div class="promo-price">${money(p.price || 0)}</div>
+        <button class="promo-del" ${isAdmin ? '' : 'style="display:none"'} title="Изтрий">✕</button>
+      </article>`;
+  }).join('') : `<div style="opacity:.8">Няма активни промоции.</div>`;
+
+  toggleDeleteButtons();
+  if (isAdmin) attachDeleteHandlers();
+}
+
 
   // Live
   ref.on('value', snap=>{
