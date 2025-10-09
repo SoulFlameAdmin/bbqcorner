@@ -386,15 +386,28 @@ function renderPromotionsEmbed(){
   titleEl.textContent = 'ПРОМОЦИИ';
   const base = (location.protocol === 'file:') ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
 
-  // ⇩ ако админът е логнат (пример: имаш adminName в LS), добавяме ?admin=1
-  const isAdmin = !!(localStorage.getItem('adminName') || '').trim();
+  // разширен детектор за admin: URL (?admin=1) ИЛИ localStorage
+  const isAdmin =
+    /\badmin=1\b/.test(location.search + location.hash) ||
+    !!(localStorage.getItem('adminName') || '').trim() ||
+    localStorage.getItem('isAdmin') === '1';
+
   const src = isAdmin ? (base + (base.includes('?') ? '&' : '?') + 'admin=1') : base;
 
   grid.innerHTML = `
     <div class="embed-wrap">
-      <iframe src="${src}" title="Промоции" loading="lazy"
+      <iframe id="promoFrame" src="${src}" title="Промоции" loading="lazy"
               referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>`;
+
+  // 💡 резервен план: дори без query, прати сигнал към детето
+  const ifr = document.getElementById('promoFrame');
+  ifr.addEventListener('load', () => {
+    if (isAdmin) {
+      try { ifr.contentWindow?.postMessage({ type:'bbq-admin', enabled:true }, '*'); } catch(e){}
+    }
+  });
+
   recalcMobileOffsets();
 }
 
