@@ -212,28 +212,25 @@ let currentKey = null;           // ключ от CATALOG (index2)
 
 // ==== Авто-Admin в iframe: ?admin=1 или #admin=1 + следене за DOM промени ====
 (() => {
-  const hasAdminFlag =
+  const hasFlag =
     new URLSearchParams(location.search).get('admin') === '1' ||
-    /\badmin=1\b/.test(location.hash) ||
-    /\badmin=1\b/.test(location.href);
+    /\badmin=1\b/.test(location.hash + location.href) ||
+    /\badmin=1\b/.test(document.referrer || '');
 
-  if (hasAdminFlag) {
+  // опит от родителя (same-origin)
+  let parentSaysAdmin = false;
+  try {
+    parentSaysAdmin = /\badmin=1\b/.test(parent.location.search);
+  } catch(_){}
+
+  if (hasFlag || parentSaysAdmin) {
     isAdmin = true;
-
-    // 1) покажи Х веднага (ако картите вече са в DOM)
     toggleDeleteButtons(true);
-
-    // 2) и пак – когато Firebase дорисува картите (ако дойдат след малко)
     const mo = new MutationObserver(() => toggleDeleteButtons(true));
-    mo.observe(document.getElementById('promoGrid'), { childList: true, subtree: true });
-
-    // 3) по желание – отвори и Builder/Slide автоматично:
-    // builder.style.display = 'block';
-    // slide.classList.add('open');
-    // if (rows.length===0) addRow();
+    mo.observe(document.getElementById('promoGrid'), { childList:true, subtree:true });
   }
 
-  // 4) fallback: приеми admin сигнал от родителя (ако решиш да го пращаш с postMessage)
+  // резервно – слушай postMessage
   window.addEventListener('message', (e) => {
     if (e?.data?.type === 'bbq-admin' && e.data.enabled) {
       isAdmin = true;

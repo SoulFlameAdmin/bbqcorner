@@ -386,7 +386,7 @@ function renderPromotionsEmbed(){
   titleEl.textContent = 'ПРОМОЦИИ';
   const base = (location.protocol === 'file:') ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
 
-  // разширен детектор за admin: URL (?admin=1) ИЛИ localStorage
+  // ако в URL има ?admin=1 ИЛИ имаш admin в localStorage → админ
   const isAdmin =
     /\badmin=1\b/.test(location.search + location.hash) ||
     !!(localStorage.getItem('adminName') || '').trim() ||
@@ -396,11 +396,10 @@ function renderPromotionsEmbed(){
 
   grid.innerHTML = `
     <div class="embed-wrap">
-      <iframe id="promoFrame" src="${src}" title="Промоции" loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <iframe id="promoFrame" src="${src}" title="Промоции" loading="lazy"></iframe>
     </div>`;
 
-  // 💡 резервен план: дори без query, прати сигнал към детето
+  // резервен сигнал към детето
   const ifr = document.getElementById('promoFrame');
   ifr.addEventListener('load', () => {
     if (isAdmin) {
@@ -410,6 +409,7 @@ function renderPromotionsEmbed(){
 
   recalcMobileOffsets();
 }
+
 
 
 /* Миниатюри (сайдбар) */
