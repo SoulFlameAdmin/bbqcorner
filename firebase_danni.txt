@@ -8,3 +8,9 @@ const firebaseConfig = {
   appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
   measurementId: "G-FWBDL96GN0"
 };
+
+
+
+
+
+ <a class="card w-4" data-key="dobavki"><div class="img"></div><span>ДОБАВКИ</span></a>
