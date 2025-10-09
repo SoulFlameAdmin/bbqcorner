@@ -537,47 +537,40 @@ function addToCart(item){
 
 /* Основен рендер на количката */
 function updateCartUI(){
+  // бройка върху бутона
   cartCount.textContent = CART.length;
 
-cartItemsEl.innerHTML = CART.map(it => {
-  const addonsLine = it.addons?.length
-    ? `<div style="font-size:12px; opacity:.8; margin-top:2px">
-         + ${it.addons.map(a=>`${esc(a.label)} (${fmtLv(a.price)})`).join(', ')}
-       </div>` : '';
-  return `
-    <div class="cart-item">
-      <img src="${it.img}" alt="${esc(it.baseName || it.name)}">
-      <div>
-        <div class="name">${esc(it.baseName || it.name)}</div>
-        ${addonsLine}
-        <div class="price" style="margin-top:4px">${fmtLv(it.price)} <span style="opacity:.75">(${fmtEur(it.price)})</span></div>
-      </div>
-      <div><button class="add-btn" data-remove="${it._id}">✕</button></div>
-    </div>`;
-}).join('');
-
-
+  // празна количка
   if (CART.length === 0){
     cartItemsEl.innerHTML = `<div class="cart-empty">Количката е празна.</div>`;
     cartTotalRow.style.display = 'none';
     orderNowBtn.disabled = true;
+    noteWrapper.style.display = 'none';
     persistCartSnapshot();
     return;
   }
 
-  cartItemsEl.innerHTML = CART.map(it => `
-    <div class="cart-item">
-      <img src="${it.img}" alt="${it.name}">
-      <div>
-        <div class="name">${it.name}</div>
-        <div class="price">${fmtLv(it.price)} <span style="opacity:.75">(${fmtEur(it.price)})</span></div>
-      </div>
-      <div>
-        <button class="add-btn" data-remove="${it._id}">✕</button>
-      </div>
-    </div>
-  `).join('');
+  // редове + видими добавки
+  cartItemsEl.innerHTML = CART.map(it => {
+    const addonsLine = it.addons?.length
+      ? `<div style="font-size:12px; opacity:.8; margin-top:2px">
+           + ${it.addons.map(a=>`${esc(a.label)} (${fmtLv(a.price)})`).join(', ')}
+         </div>` : '';
+    return `
+      <div class="cart-item">
+        <img src="${it.img}" alt="${esc(it.baseName || it.name)}">
+        <div>
+          <div class="name">${esc(it.baseName || it.name)}</div>
+          ${addonsLine}
+          <div class="price" style="margin-top:4px">
+            ${fmtLv(it.price)} <span style="opacity:.75">(${fmtEur(it.price)})</span>
+          </div>
+        </div>
+        <div><button class="add-btn" data-remove="${it._id}">✕</button></div>
+      </div>`;
+  }).join('');
 
+  // премахване
   cartItemsEl.querySelectorAll('[data-remove]').forEach((btn)=>{
     btn.addEventListener('click', ()=>{
       const id = btn.getAttribute('data-remove');
@@ -586,21 +579,25 @@ cartItemsEl.innerHTML = CART.map(it => {
     });
   });
 
+  // тотал + UI
   const total = CART.reduce((s, x)=> s + (Number(x.price)||0), 0);
   cartTotal.textContent = `${fmtLv(total)}  (${fmtEur(total)})`;
   cartTotalRow.style.display = '';
-  orderNowBtn.disabled = CART.length === 0;
-  noteWrapper.style.display = CART.length > 0 ? 'block' : 'none';
+  orderNowBtn.disabled = false;
+  noteWrapper.style.display = 'block';
 
   persistCartSnapshot();
-  // вържи само веднъж
+
+  // запис на бележката (връзваме само веднъж)
   if (!orderNoteEl.dataset.bound) {
     orderNoteEl.addEventListener('input', () => {
       localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
     });
     orderNoteEl.dataset.bound = '1';
   }
-} // ← ТОВА ЗАТВАРЯ updateCartUI()
+}
+
+
 
 function restoreOrderNote(){
 
@@ -609,45 +606,41 @@ function restoreOrderNote(){
 
 function persistCartSnapshot(){
   try{
-    const itemsSnapshot = CART.map(({_id, name, price, img}) => ({_id, name, price, img}));
+    const itemsSnapshot = CART.map(({_id, name, baseName, price, basePrice, img, addons}) => ({
+      _id, name, baseName, price, basePrice, img, addons: addons || []
+    }));
     const total = CART.reduce((s, x)=> s + (Number(x.price)||0), 0);
     localStorage.setItem(LS_CART_ITEMS, JSON.stringify(itemsSnapshot));
     localStorage.setItem(LS_CART_TOTAL, String(total));
+    localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value || '');
   }catch(e){ console.warn('LS error:', e); }
 }
+
 
 function restoreCartFromLS() {
   try {
     const raw = localStorage.getItem(LS_CART_ITEMS);
-    if (!raw) return;
-
-items.forEach(it => CART.push({
-  _id: it._id || (Date.now() + '' + Math.random()),
-  name: it.name || 'Без име',
-  baseName: it.baseName || it.name || 'Без име',
-  price: Number(it.price) || Number(it.basePrice) || 0,
-  basePrice: Number(it.basePrice) || Number(it.price) || 0,
-  img: it.img || '',
-  addons: Array.isArray(it.addons) ? it.addons : []
-}));
-
     const items = JSON.parse(raw || '[]');
+
     if (Array.isArray(items) && items.length > 0) {
       items.forEach(it => CART.push({
         _id: it._id || (Date.now() + '' + Math.random()),
         name: it.name || 'Без име',
-        price: Number(it.price) || 0,
-        img: it.img || ''
+        baseName: it.baseName || it.name || 'Без име',
+        price: Number(it.price) || Number(it.basePrice) || 0,
+        basePrice: Number(it.basePrice) || Number(it.price) || 0,
+        img: it.img || '',
+        addons: Array.isArray(it.addons) ? it.addons : []
       }));
     }
 
     updateCartUI();
     restoreOrderNote();
-
   } catch (e) {
     console.warn('⚠️ Грешка при възстановяване на количката от LocalStorage:', e);
   }
 }
+
 
 /* Отваряне/затваряне на модала */
 function openCart(){ updateCartUI(); cartOverlay.style.display = 'flex'; cartOverlay.setAttribute('aria-hidden','false'); }
@@ -1218,11 +1211,12 @@ if (cat === 'promocii'){
     recalcMobileOffsets();
     return;
   }
-  grid.innerHTML = `
-    <div class="grid-products">
-      ${items.map((it,i)=> productCardHTML(it,i)).join('')}
-    </div>
-  `;
+grid.innerHTML = `
+  <div class="grid-products">
+    ${items.map((it,i)=> productCardHTML(it,i, catHasAddons(current))).join('')}
+  </div>
+`;
+
   bindAddButtons();
   recalcMobileOffsets();
 }
