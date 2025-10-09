@@ -48,7 +48,6 @@
   user-select:none;                /* махаме white-space:nowrap */
 }
 
-space:nowrap;user-select:none}
 .addons input{accent-color:#ff7a00}
 
 
@@ -1511,7 +1510,22 @@ window.initPromotionsInline = async function () {
   const genId = ()=> 'p_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
 
   /* ===== Състояние ===== */
-  let isAdmin = !!isAdminBBQ();     // от твоя helper горе
+
+/* ===== Състояние ===== */
+let isAdmin = localStorage.getItem('adminLogged') === '1';
+if (!isAdmin) {
+  const pass = prompt('Въведи админ парола за достъп до промоциите/каталога:');
+  if (pass === ADMIN_PASS) {
+    isAdmin = true;
+    localStorage.setItem('adminLogged', '1');
+    alert('✅ Успешно влизане като админ!');
+  } else {
+    alert('Нямаш достъп до админ панела. Ще виждаш само активните промоции.');
+  }
+}
+
+
+
   let rows = [];                    // [{A,B,price}]
   let view = 'cats', currentKey=null;
 
@@ -1860,6 +1874,40 @@ if (!listEl.__boundAdd) {
   listEl.addEventListener('click', (e) => {
     const btn = e.target.closest('.promo-add');
     if (!btn) return;
+
+if (!listEl.__boundDel) {
+  listEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.promo-del');
+    if (!btn) return;
+
+    if (!isAdmin) return alert('Нямаш права за изтриване.');
+
+    const card = btn.closest('.promo-card');
+    const id   = card?.dataset.id || card?.dataset.key;
+    if (!id) return;
+
+    const pwd = prompt('Въведи админ паролата за изтриване:');
+    if (pwd !== ADMIN_PASS) {
+      alert('❌ Грешна парола. Изтриването е отказано.');
+      return;
+    }
+    if (!confirm('Да изтрия ли тази промоция завинаги?')) return;
+
+    try {
+      await firebase.database().ref('/promotions/items/' + id).update({
+        __deleted: true,
+        active: false,
+        updatedAt: Date.now(),
+        __admin_pass: ADMIN_PASS
+      });
+      alert('✅ Промоцията е изтрита.');
+    } catch (e2) {
+      console.error(e2);
+      alert('⚠️ Грешка при изтриване: ' + (e2.message || e2));
+    }
+  });
+  listEl.__boundDel = true;
+}
 
     const card = btn.closest('.promo-card');
     const pid  = btn.getAttribute('data-id') || card?.dataset.id || card?.dataset.key;
