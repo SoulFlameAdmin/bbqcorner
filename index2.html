@@ -1670,20 +1670,33 @@ try{
   console.error(e);
   alert('Грешка при запис: ' + (e.message || e));
 }
+}); // 👈 затваря saveBtn click listener-а
 
 
-  function attachDeleteHandlers(){
-    listEl.querySelectorAll('.promo-del').forEach(btn=>{
-      btn.onclick = async ()=>{
-        const id = btn.closest('.promo-card')?.dataset.id;
-        if(!isAdmin || !id) return;
-        if(!confirm('Да изтрия ли тази промоция?')) return;
-        try{
-          await firebase.database().ref('/promotions/items/'+id).update({ __deleted:true, active:false, updatedAt:Date.now() });
-        }catch(e){ console.error(e); alert('Грешка при изтриване.'); }
-      };
-    });
-  }
+
+function attachDeleteHandlers(){
+  const buttons = listEl?.querySelectorAll('.promo-del') || [];
+  buttons.forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.closest('.promo-card')?.dataset.id;
+      if (!isAdmin || !id) return;
+      if (!confirm('Да изтрия ли тази промоция?')) return;
+
+      try {
+        await firebase.database().ref('/promotions/items/' + id).update({
+          __deleted: true,
+          active: false,
+          updatedAt: Date.now(),
+          __admin_pass: 'bbqcornera123' // нужно за RTDB правилото
+        });
+      } catch (e) {
+        console.error(e);
+        alert('Грешка при изтриване.');
+      }
+    };
+  });
+}
+
 
   /* ===== Рендер на публичния списък ===== */
   function renderList(dataObj){
