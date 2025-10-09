@@ -299,6 +299,73 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   border:0;border-radius:16px;background:#fff;box-shadow:var(--shadow);
 }
 
+/* === PROMO BUILDER (минимален стил) === */
+.builder{background:#111;border:1px solid var(--soft);border-radius:14px;padding:12px;color:#fff;margin-top:12px}
+.builder-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.builder-head .hint{opacity:.8;font-size:12px}
+.rows{display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:1fr 44px 1fr 140px 38px;gap:10px;align-items:center}
+.drop{border:2px dashed #ffffff2f;border-radius:12px;min-height:72px;padding:8px;display:flex;align-items:center;justify-content:center}
+.pluscell{font-weight:900;text-align:center;opacity:.8}
+.price-input{width:100%;border:1px solid var(--soft);border-radius:10px;padding:10px}
+.row-del{background:#222;color:#fff;border:none;border-radius:10px;padding:10px;cursor:pointer}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.actions .btn{background:#ff7a00;border:0;color:#fff;font-weight:900;border-radius:10px;padding:10px 14px;cursor:pointer;box-shadow:var(--shadow)}
+.chip{display:flex;gap:8px;align-items:center;background:#1a1a1a;border:1px solid #ffffff1a;border-radius:10px;padding:6px 8px;min-width:0}
+.chip img{width:42px;height:42px;object-fit:cover;border-radius:8px;background:#e9ecef}
+.chip .meta{display:flex;flex-direction:column}
+.chip .nm{font-weight:800;font-size:13px}
+.chip .ds{font-size:12px;opacity:.8}
+.chip .x{margin-left:auto;cursor:pointer;opacity:.9}
+
+/* === Десен slide каталог === */
+.slide{position:fixed;top:0;right:-420px;width:min(420px,100%);height:100dvh;background:#111;color:#fff;border-left:1px solid var(--soft);box-shadow:var(--popShadow);z-index:3200;transition:right .28s ease}
+.slide.open{right:0}
+.slide-head{display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid #ffffff14}
+.slide .btn{background:#222;border:0;color:#fff;border-radius:10px;padding:8px 10px;cursor:pointer}
+.slide-search{width:calc(100% - 20px);margin:10px;border:1px solid var(--soft);border-radius:10px;padding:10px;background:#0e0f10;color:#fff}
+.catalog{padding:10px;display:grid;grid-template-columns:1fr;gap:10px;overflow:auto;max-height:calc(100dvh - 108px)}
+.s-title{font-weight:900;color:#ff7a00;margin:6px 0}
+.s-cat{display:grid;grid-template-columns:72px 1fr;gap:10px;align-items:center;background:#0f0f0f;border:1px solid #ffffff14;border-radius:12px;padding:8px;cursor:pointer}
+.s-cat img{width:72px;height:56px;object-fit:cover;border-radius:10px;background:#e9ecef}
+.s-card{display:grid;grid-template-columns:66px 1fr auto;gap:8px;align-items:center;background:#0f0f0f;border:1px solid #ffffff14;border-radius:12px;padding:8px}
+.s-card img{width:66px;height:52px;object-fit:cover;border-radius:10px;background:#e9ecef}
+.s-card .nm{font-weight:800}
+.s-card .pr{font-weight:900;opacity:.9}
+.s-gallery{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.s-tile{background:#0f0f0f;border:1px solid #ffffff14;border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center}
+.s-tile img{width:100%;height:140px;object-fit:contain;background:#e9ecef;border-radius:10px}
+.s-price{font-weight:900;margin-top:6px}
+.s-cap{font-weight:700;opacity:.9}
+.s-water{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.s-wcard{background:#0f0f0f;border:1px solid #ffffff14;border-radius:12px;padding:8px;text-align:center}
+.s-wcard img{width:100%;height:140px;object-fit:contain;background:#e9ecef;border-radius:10px}
+.s-wname{font-weight:800;margin-top:6px}
+.s-wprice{font-weight:900;opacity:.9}
+@media (max-width:520px){
+  .row{grid-template-columns:1fr 30px 1fr 120px 38px}
+  .catalog{grid-template-columns:1fr}
+  .s-gallery,.s-water{grid-template-columns:1fr}
+}
+
+/* фиксирай баджа и бутона в долния десен ъгъл на картата */
+.product{ position:relative; }
+.product .price-badge{
+  position:absolute;
+  right:18px;
+  bottom:72px;  /* колко място над бутона */
+  margin:0;     /* зануляваме старите марджини */
+}
+.product .add-btn{
+  position:absolute;
+  right:18px;
+  bottom:18px;
+  margin:0;
+}
+/* остави място в текста, за да не влиза под баджа/бутона */
+.product .pad{ padding-right:150px; }
+
+
 /* === PROMO (ВГРАДЕНО В index2) — стилове === */
 .promo-wrap{background:#0e0f10;border-radius:16px;box-shadow:var(--shadow);padding:16px;color:#fff}
 .promo-head{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-weight:900;color:#ff7a00}
@@ -308,7 +375,7 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .promo-img{height:220px;background:#e9ecef center/cover no-repeat}
 .promo-name{padding:8px 12px;font-weight:900}
 .promo-price{position:absolute;right:10px;top:10px;background:#ff7a00;color:#fff;border-radius:12px;padding:8px 10px;font-weight:900}
-.promo-del{position:absolute;left:10px;top:10px;border:0;background:#000a;color:#fff;border-radius:10px;padding:6px 10px;font-weight:900;cursor:pointer;display:none}
+.promo-del{position:absolute;left:10px;top:10px;border:0;background:#000a;color:#fff;border-radius:10px;padding:6px 10px;font-weight:900;cursor:pointer;}
 .promo-card .promo-img, .promo-card .promo-name, .promo-price{z-index:1}
 .promo-del{z-index:9999}
 .promo-create{margin-top:16px;border:1px dashed #ffffff2a;border-radius:14px;padding:12px}
@@ -951,59 +1018,70 @@ function productCardHTML(it, i){
 
 function activate(cat, {fromNav=false, replace=false} = {}){
 
-  /* 🧡 ПРОМОЦИИ — ВГРАДЕНО (без iframe) */
-  if (cat === 'promocii'){
-    current = 'promocii';
-    sidebar.querySelectorAll('.cat')
-      .forEach(c=>c.classList.toggle('active', c.dataset.cat==='promocii'));
+/* 🧡 ПРОМОЦИИ — ВГРАДЕНО (без iframe) */
+if (cat === 'promocii'){
+  current = 'promocii';
+  sidebar.querySelectorAll('.cat')
+    .forEach(c=>c.classList.toggle('active', c.dataset.cat==='promocii'));
 
-    const url = new URL(location.href);
-    if (url.searchParams.get('cat') !== 'promocii'){
-      url.searchParams.set('cat','promocii');
-      if (replace) history.replaceState({cat:'promocii'}, '', url);
-      else if (fromNav) history.pushState({cat:'promocii'}, '', url);
-    }
+  const url = new URL(location.href);
+  if (url.searchParams.get('cat') !== 'promocii'){
+    url.searchParams.set('cat','promocii');
+    if (replace) history.replaceState({cat:'promocii'}, '', url);
+    else if (fromNav) history.pushState({cat:'promocii'}, '', url);
+  }
 
-    titleEl.textContent = 'ПРОМОЦИИ';
-    grid.innerHTML = `
-      <section class="promo-wrap">
-        <h2 class="promo-head">🔥 Corner BBQ — Промоции</h2>
-        <div id="promoList" class="promo-grid" role="list"></div>
+  titleEl.textContent = 'ПРОМОЦИИ';
+  grid.innerHTML = `
+    <section class="promo-wrap">
+      <h2 class="promo-head">🔥 Corner BBQ — Промоции</h2>
 
-        <div id="promoCreate" class="promo-create" hidden>
-          <h3>Създай промо пакет</h3>
-          <div class="promo-row">
-            <div class="promo-field">
-              <label>Име A</label><input id="pAName" placeholder="Пример: Телешка странджанка">
-              <label>Снимка A (URL)</label><input id="pAImg" placeholder="https://...">
-            </div>
-            <div class="promo-field">
-              <label>Име B</label><input id="pBName" placeholder="Пример: Свинска странджанка">
-              <label>Снимка B (URL)</label><input id="pBImg" placeholder="https://...">
-            </div>
-          </div>
-          <div class="promo-row" style="grid-template-columns:160px 1fr">
-            <div class="promo-field">
-              <label>Обща цена (лв)</label><input id="pPrice" type="number" min="0" step="0.01" value="1.00">
-            </div>
-            <div class="promo-actions">
-              <button id="pSave" class="promo-btn">Запази</button>
-            </div>
-          </div>
+      <!-- бутони за админ и каталог -->
+      <div style="display:flex; gap:8px; margin:0 0 12px;">
+        <button id="adminBtn" class="promo-btn">Admin</button>
+        <button id="catalogBtn" class="promo-btn">Каталог</button>
+      </div>
+
+      <!-- списък с промо картите -->
+      <div id="promoList" class="promo-grid" role="list"></div>
+
+      <!-- Builder (скрит по начало) -->
+      <section id="builder" class="builder" aria-hidden="true" style="display:none">
+        <div class="builder-head">
+          <strong>Създай промо пакет</strong>
+          <span class="hint">Плъзни A + B от каталога → въведи цена → „Запази“.</span>
+        </div>
+        <div class="rows" id="rows"></div>
+        <div class="actions">
+          <button class="btn" id="addRow">+ Ред</button>
+          <button class="btn" id="save">Запази</button>
         </div>
       </section>
-    `;
 
-// стартирай, ако е заредена; иначе маркирай да се стартира след като модулът се дефинира
-if (typeof window.initPromotionsInline === 'function') {
-  window.initPromotionsInline();
-} else {
-  window.__needPromoInit = true;
+      <!-- десен slide-in каталог -->
+      <aside id="slide" class="slide" aria-hidden="true">
+        <div class="slide-head">
+          <button class="btn" id="backBtn" title="Назад" style="display:none">← Назад</button>
+          <strong id="slideTitle" style="margin-left:6px">Каталог продукти</strong>
+          <button class="btn" id="closeSlide">✕</button>
+        </div>
+        <input id="search" class="slide-search" placeholder="Търси… (име/описание)">
+        <div id="catalog" class="catalog"></div>
+      </aside>
+    </section>
+  `;
+
+  // стартирай промо модула (или маркирай да се стартира, ако още не е дефиниран)
+  if (typeof window.initPromotionsInline === 'function') {
+    window.initPromotionsInline();
+  } else {
+    window.__needPromoInit = true;
+  }
+
+  recalcMobileOffsets();
+  return;
 }
 
-    recalcMobileOffsets();
-    return;
-  }
 
   const exists = !!CATALOG[cat];
   if(!exists) cat = 'burgeri';
@@ -1305,11 +1383,11 @@ function isAdminBBQ(){
 }
 
 /* 4) Основен модул */
-window.initPromotionsInline = async function(){
+window.initPromotionsInline = async function () {
   await __firebaseSdkReady();
 
-  // Единствена инициализация (без дублиране)
-  if (window.firebase && (!firebase.apps || firebase.apps.length === 0)) {
+  // Инициализация на Firebase (без дублиране)
+  if (!window.firebase?.apps?.length) {
     if (window.__FIREBASE_CONFIG__) {
       firebase.initializeApp(window.__FIREBASE_CONFIG__);
     } else {
@@ -1318,81 +1396,100 @@ window.initPromotionsInline = async function(){
     }
   }
 
-  const listEl   = document.getElementById('promoList');
-  const createEl = document.getElementById('promoCreate');
-  const admin    = isAdminBBQ();
+  // DOM елементи
+  const listEl  = document.getElementById('promoList');
+  const builder = document.getElementById('builder');      // по избор (може и да липсва)
+  const adminBtn = document.getElementById('adminBtn');    // по избор (може и да липсва)
 
-  createEl.hidden = !admin;
+  // Админ флаг (използва локалната ти isAdminBBQ())
+  let isAdmin = !!isAdminBBQ();
+
+  // Показване на билдъра за админ (ако съществува в DOM)
+  if (builder) builder.style.display = isAdmin ? 'block' : 'none';
+
+  // Ако имаш бутон "Admin", позволяваме преоценка на флага (по желание)
+  adminBtn?.addEventListener('click', () => {
+    // Тук можеш да добавиш prompt за парола; за сега просто toggle
+    isAdmin = !isAdmin;
+    if (builder) builder.style.display = isAdmin ? 'block' : 'none';
+    // пререндер за да се покажат/скрият Х бутоните
+    if (window.__lastPromoSnapshot) renderList(window.__lastPromoSnapshot);
+  });
 
   const ref = firebase.database().ref('/promotions/items');
 
-  // Рендер на промоциите
-  ref.on('value', snap => {
-    const data = snap.val() || {};
-    const ids = Object.keys(data);
+  // Рендер на листа
+function renderList(dataObj) {
+  function safe(s){
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
 
-    listEl.innerHTML = ids.map(id=>{
-      const p = data[id];
-      const a = p.parts?.[0] || {name:'', image:''};
-      const b = p.parts?.[1] || {name:'', image:''};
-      const price = (Number(p.price)||0).toFixed(2);
+  const items = Object.values(dataObj || {})
+    .filter(p => p && p.active !== false && !p.__deleted);
 
-      return `
-      <article class="promo-card" role="listitem" data-id="${id}">
-        <div class="promo-sides">
-          <div>
-            <div class="promo-img" style="background-image:url('${a.image||''}')"></div>
-            <div class="promo-name">${a.name||''}</div>
-          </div>
-          <div>
-            <div class="promo-img" style="background-image:url('${b.image||''}')"></div>
-            <div class="promo-name">${b.name||''}</div>
-          </div>
-        </div>
-        <div class="promo-price">${price} лв</div>
-        <button class="promo-del" ${admin?'':'style="display:none"'} title="Изтрий">✕</button>
-      </article>`;
-    }).join('') || `<div style="opacity:.8">Няма активни промоции.</div>`;
+  listEl.innerHTML = items.length
+    ? items.map(p => {
+        const a = p.parts?.[0] || { name: '', image: '' };
+        const b = p.parts?.[1] || { name: '', image: '' };
+        const aName = safe(a.name || '');
+        const bName = safe(b.name || '');
+        const price = (Number(p.price) || 0).toFixed(2);
+        return `
+          <article class="promo-card" role="listitem" data-id="${p.id || ''}">
+            <div class="promo-sides">
+              <div>
+                <div class="promo-img" style="background-image:url('${a.image || ''}')"></div>
+                <div class="promo-name">${aName}</div>
+              </div>
+              <div>
+                <div class="promo-img" style="background-image:url('${b.image || ''}')"></div>
+-               <div class="promo-name">${aName}</div>
++               <div class="promo-name">${bName}</div>
+              </div>
+            </div>
+            <div class="promo-price">${price} лв</div>
+            <button class="promo-del" ${isAdmin ? '' : 'style="display:none"'} title="Изтрий">✕</button>
+          </article>`;
+      }).join('')
+    : `<div style="opacity:.8">Няма активни промоции.</div>`;
 
-    if (admin){
-      listEl.querySelectorAll('.promo-del').forEach(btn=>{
+
+    if (isAdmin) {
+      // Връзваме soft delete към бутона ✕
+      listEl.querySelectorAll('.promo-del').forEach(btn => {
         btn.style.display = 'inline-block';
-        btn.onclick = () => {
-          const id = btn.closest('.promo-card').dataset.id;
+        btn.onclick = async () => {
+          const card = btn.closest('.promo-card');
+          const id = card?.dataset.id;
+          if (!id) return;
           if (!confirm('Да изтрия ли тази промоция?')) return;
-          firebase.database().ref('/promotions/items/'+id).remove();
+          try {
+            await firebase.database().ref('/promotions/items/' + id).update({
+              __deleted: true,
+              active: false,
+              updatedAt: Date.now()
+            });
+          } catch (e) {
+            console.error(e);
+            alert('Грешка при изтриване.');
+          }
         };
       });
     }
-  });
-
-  // Създаване на промо пакет (само админ)
-  if (admin){
-    const get = id => document.getElementById(id);
-    const saveBtn = document.getElementById('pSave');
-    if (saveBtn) {
-      saveBtn.onclick = async ()=>{
-        const parts = [
-          { name: get('pAName').value.trim(), image: get('pAImg').value.trim(), price: 0 },
-          { name: get('pBName').value.trim(), image: get('pBImg').value.trim(), price: 0 },
-        ];
-        const price = Number(get('pPrice').value)||0;
-
-        if (!parts[0].name || !parts[1].name){
-          alert('Попълни имена за двете части.');
-          return;
-        }
-        const id = 'promo_'+Date.now();
-        await firebase.database().ref('/promotions/items/'+id).set({
-          id, parts, price, createdAt: Date.now()
-        });
-
-        get('pAName').value = get('pBName').value = get('pAImg').value = get('pBImg').value = '';
-        get('pPrice').value = '1.00';
-      };
-    }
   }
+
+  // Live обновяване
+  ref.on('value', snap => {
+    const data = snap.val() || {};
+    window.__lastPromoSnapshot = data; // за повторен рендер при toggle на admin
+    renderList(data);
+  });
 };
+
 
 // ако „Промоции“ е била активирана преди модулът да се зареди — стартирай сега
 if (window.__needPromoInit) {
@@ -1403,7 +1500,6 @@ if (window.__needPromoInit) {
 </script>
 
 
-</script>
 
 
 <!-- === ГЛОБАЛЕН ТРАКЕР НА КЛИКОВЕ ЗА АДМИНИ === -->
