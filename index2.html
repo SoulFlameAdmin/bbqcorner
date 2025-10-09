@@ -1094,10 +1094,11 @@ if (cat === 'promocii'){
       <h2 class="promo-head">🔥 Corner BBQ — Промоции</h2>
 
       <!-- бутони за админ и каталог -->
-      <div style="display:flex; gap:8px; margin:0 0 12px;">
-        <button id="adminBtn" class="promo-btn">Admin</button>
-        <button id="catalogBtn" class="promo-btn">Каталог</button>
-      </div>
+<div style="display:flex; gap:8px; margin:0 0 12px;">
+  <button id="adminBtn" class="promo-btn">Admin</button>
+  <button id="catalogBtn" class="promo-btn" style="display:none">Каталог</button>
+</div>
+
 
       <!-- списък с промо картите -->
       <div id="promoList" class="promo-grid" role="list"></div>
@@ -1720,11 +1721,13 @@ window.initPromotionsInline = async function () {
   addRowBtn?.addEventListener('click', addRow);
 
   /* ===== Admin unlock ===== */
-  function syncAdminUI(){
-    if(builder) builder.style.display = isAdmin ? 'block' : 'none';
-    if(!isAdmin) slide.classList.remove('open');
-    toggleDeleteButtons();
-  }
+function syncAdminUI(){
+  if(builder) builder.style.display = isAdmin ? 'block' : 'none';
+  if (catalogBtn) catalogBtn.style.display = isAdmin ? 'inline-block' : 'none'; // ⬅️ добави този ред
+  if(!isAdmin) slide.classList.remove('open');
+  toggleDeleteButtons();
+}
+
   adminBtn?.addEventListener('click', ()=>{
     if(isAdmin){ isAdmin=false; syncAdminUI(); return; }
     const pwd = prompt('Въведи парола (admin):');
@@ -1819,7 +1822,14 @@ function renderList(dataObj){
   listEl.innerHTML = entries.length ? entries.map(([key, p]) => {
     const A = p.parts?.[0] || {};
     const B = p.parts?.[1] || {};
-    const domId = p.id || key; // ← fallback към ключа от RTDB
+    const domId = p.id || key;
+
+    // 👇 ДОБАВЕНО: бутон "+", който ще вкарва промоцията в количката
+    const addBtn = `
+      <button type="button"
+              class="add-btn promo-add"
+              data-id="${domId}"
+              title="Добави в количката">+</button>`;
 
     return `
       <article class="promo-card" role="listitem"
@@ -1835,6 +1845,7 @@ function renderList(dataObj){
           </div>
         </div>
         <div class="promo-price">${money(p.price || 0)}</div>
+        ${addBtn}
         <button type="button" class="promo-del" ${isAdmin ? '' : 'style="display:none"'} title="Изтрий">✕</button>
       </article>`;
   }).join('') : `<div style="opacity:.8">Няма активни промоции.</div>`;
@@ -1842,40 +1853,51 @@ function renderList(dataObj){
   toggleDeleteButtons();
 }
 
+
 /* ✅ Делегирано изтриване – закача се само веднъж */
-if (!listEl.__boundDelete) {
-  listEl.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.promo-del');
+/* ✅ Делегирано добавяне на промоция в количката */
+if (!listEl.__boundAdd) {
+  listEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.promo-add');
     if (!btn) return;
 
     const card = btn.closest('.promo-card');
-    const id   = card?.dataset.id || card?.dataset.key;
-    if (!isAdmin || !id) return;
+    const pid  = btn.getAttribute('data-id') || card?.dataset.id || card?.dataset.key;
 
-    const pwd = prompt('Въведи админ паролата за изтриване:');
-    if (pwd !== 'bbqcornera123') {
-      alert('❌ Грешна парола. Изтриването е отказано.');
-      return;
+    // Вземаме промоцията от последния snapshot на RTDB
+    const snap = window.__lastPromoSnapshot || {};
+    let p = snap[pid];
+    if (!p) {
+      // fallback ако ключът е различен
+      const arr = Object.values(snap || {});
+      p = arr.find(x => x && (x.id === pid));
     }
-    if (!confirm('Да изтрия ли тази промоция завинаги?')) return;
+    if (!p) return;
 
-    try {
-      await firebase.database().ref('/promotions/items/' + id).update({
-        __deleted: true,
-        active: false,
-        updatedAt: Date.now(),
-        __admin_pass: 'bbqcornera123'
-      });
-      // По желание: визуално махни картата веднага, докато дойде RTDB ъпдейта
-      card.remove();
-      alert('✅ Промоцията е изтрита.');
-    } catch (e2) {
-      console.error(e2);
-      alert('⚠️ Грешка при изтриване: ' + (e2.message || e2));
-    }
+    const A = p.parts?.[0] || {};
+    const B = p.parts?.[1] || {};
+    const price = Number(p.price || 0);
+    const name  = `Промоция: ${A.name || ''} + ${B.name || ''}`;
+    const img   = A.image || B.image || '/bbqsaitlogo.jpg';
+
+    addToCart({
+      _id: Date.now()+''+Math.random(),
+      name,
+      baseName: name,
+      price,
+      basePrice: price,
+      addons: [],     // няма добавки при промо
+      img
+    });
+
+    // визуална обратна връзка
+    const prev = btn.textContent;
+    btn.textContent = '✓';
+    setTimeout(()=> btn.textContent = prev, 450);
   });
-  listEl.__boundDelete = true;
+  listEl.__boundAdd = true;
 }
+
 
 
 
