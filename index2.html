@@ -23,6 +23,13 @@
   --mobile-sidebar-h: 100px;
 }
 
+/* Addons ред до бутона + */
+.actions-row{display:flex;align-items:center;gap:12px;margin:8px 16px 16px auto;justify-content:flex-end}
+.addons{display:flex;gap:12px;align-items:center;margin-right:auto}
+.addons label{display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;white-space:nowrap;user-select:none}
+.addons input{accent-color:#ff7a00}
+
+
 /* базово */
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -509,6 +516,12 @@ const cartTotalRow = document.getElementById('cartTotalRow');
 const cartTotal = document.getElementById('cartTotal');
 const orderNowBtn = document.getElementById('orderNow');
 
+/* === ДОБАВКИ (универсални) === */
+const ADDONS = {
+  pitka:   { code:'pitka',   label:'Питка',          price:1.50 },
+  raz:     { code:'raz',     label:'Разядка 100 гр', price:1.50 }
+};
+
 /* ====== LS ключове (index2 -> index3) ====== */
 const LS_CART_ITEMS = 'bbq_cart_items';
 const LS_CART_TOTAL = 'bbq_cart_total';
@@ -525,6 +538,24 @@ function addToCart(item){
 /* Основен рендер на количката */
 function updateCartUI(){
   cartCount.textContent = CART.length;
+
+cartItemsEl.innerHTML = CART.map(it => {
+  const addonsLine = it.addons?.length
+    ? `<div style="font-size:12px; opacity:.8; margin-top:2px">
+         + ${it.addons.map(a=>`${esc(a.label)} (${fmtLv(a.price)})`).join(', ')}
+       </div>` : '';
+  return `
+    <div class="cart-item">
+      <img src="${it.img}" alt="${esc(it.baseName || it.name)}">
+      <div>
+        <div class="name">${esc(it.baseName || it.name)}</div>
+        ${addonsLine}
+        <div class="price" style="margin-top:4px">${fmtLv(it.price)} <span style="opacity:.75">(${fmtEur(it.price)})</span></div>
+      </div>
+      <div><button class="add-btn" data-remove="${it._id}">✕</button></div>
+    </div>`;
+}).join('');
+
 
   if (CART.length === 0){
     cartItemsEl.innerHTML = `<div class="cart-empty">Количката е празна.</div>`;
@@ -589,6 +620,16 @@ function restoreCartFromLS() {
   try {
     const raw = localStorage.getItem(LS_CART_ITEMS);
     if (!raw) return;
+
+items.forEach(it => CART.push({
+  _id: it._id || (Date.now() + '' + Math.random()),
+  name: it.name || 'Без име',
+  baseName: it.baseName || it.name || 'Без име',
+  price: Number(it.price) || Number(it.basePrice) || 0,
+  basePrice: Number(it.basePrice) || Number(it.price) || 0,
+  img: it.img || '',
+  addons: Array.isArray(it.addons) ? it.addons : []
+}));
 
     const items = JSON.parse(raw || '[]');
     if (Array.isArray(items) && items.length > 0) {
@@ -980,8 +1021,26 @@ const esc = s => String(s)
   .replace(/>/g,'&gt;')
   .replace(/"/g,'&quot;');
 
-function productCardHTML(it, i){
+function productCardHTML(it, i, withAddons=false){
   const desc = it.desc ? `<p class="desc">${esc(it.desc)}</p>` : '';
+  const addonsHTML = withAddons ? `
+    <div class="actions-row">
+      <div class="addons">
+        <label><input type="checkbox" class="addon-checkbox" data-code="pitka" data-price="1.5"> + Питка</label>
+        <label><input type="checkbox" class="addon-checkbox" data-code="raz" data-price="1.5"> + Разядка 100 гр</label>
+      </div>
+      <button class="add-btn"
+        data-name="${(it.name||'').replace(/"/g,'&quot;')}"
+        data-price="${it.price}"
+        data-img="${it.img}">+</button>
+    </div>
+  ` : `
+    <button class="add-btn"
+      data-name="${(it.name||'').replace(/"/g,'&quot;')}"
+      data-price="${it.price}"
+      data-img="${it.img}">+</button>
+  `;
+
   return `
   <article class="product ${i%2 ? 'even' : ''}">
     <div class="photo" style="background-image:url('${it.img}')"></div>
@@ -992,13 +1051,12 @@ function productCardHTML(it, i){
         <div class="lv">${fmtLv(it.price)}</div>
         <div class="eur">${fmtEur(it.price)}</div>
       </div>
-      <button class="add-btn"
-        data-name="${(it.name||'').replace(/"/g,'&quot;')}"
-        data-price="${it.price}"
-        data-img="${it.img}">+</button>
+      ${addonsHTML}
     </div>
   </article>`;
 }
+
+const catHasAddons = cat => (cat === 'portsii' || cat === 'burgeri');
 
 function activate(cat, {fromNav=false, replace=false} = {}){
 
@@ -1145,7 +1203,7 @@ if (cat === 'promocii'){
     const groupsHTML = data.groups.map(group => `
       <h2 class="sec-title">${group.heading}</h2>
       <div class="grid-products">
-        ${group.items?.map((it,i)=> productCardHTML(it,i)).join('')||''}
+       ${group.items?.map((it,i)=> productCardHTML(it,i, catHasAddons(current))).join('')}
       </div>
     `).join('');
     grid.innerHTML = groupsHTML;
@@ -1173,15 +1231,53 @@ if (cat === 'promocii'){
 function bindAddButtons(){
   grid.querySelectorAll('.add-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      const name = btn.getAttribute('data-name');
-      const price = Number(btn.getAttribute('data-price')) || 0;
-      const img = btn.getAttribute('data-img') || '';
-      addToCart({ _id: Date.now()+''+Math.random(), name, price, img });
+      const card = btn.closest('.product');
+      const baseName  = btn.getAttribute('data-name');
+      const basePrice = Number(btn.getAttribute('data-price')) || 0;
+      const img       = btn.getAttribute('data-img') || '';
+
+      const checks = card ? [...card.querySelectorAll('.addon-checkbox:checked')] : [];
+      const addons = checks.map(ch => {
+        const code  = ch.getAttribute('data-code');
+        const def   = ADDONS[code] || {};
+        const price = Number(ch.getAttribute('data-price')) || def.price || 0;
+        return { code, label: (def.label || '+ Добавка'), price };
+      });
+
+      const addonsTotal = addons.reduce((s,a)=>s+a.price,0);
+      const fullPrice   = basePrice + addonsTotal;
+
+      const nameWithAddons = addons.length
+        ? `${baseName} (+ ${addons.map(a=>a.label).join(', ')})`
+        : baseName;
+
+      addToCart({
+        _id: Date.now()+''+Math.random(),
+        name: nameWithAddons,
+        baseName,
+        price: fullPrice,
+        basePrice,
+        addons,
+        img
+      });
+
+      if (addons.length){
+        const line = `${baseName}: ` + addons
+          .map(a => `${a.label} ${fmtLv(a.price)}`)
+          .join(', ');
+        const cur = (orderNoteEl.value || '').trim();
+        orderNoteEl.value = cur ? (cur + '\n' + line) : line;
+        localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+      }
+
       btn.textContent = '✓';
       setTimeout(()=> btn.textContent = '+', 450);
+
+      checks.forEach(ch => ch.checked = false);
     });
   });
 }
+
 
 /* POP DELAY в сайдбара */
 const POP_DELAY = 100; // ms
