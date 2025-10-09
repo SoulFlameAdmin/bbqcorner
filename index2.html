@@ -212,20 +212,13 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 
 /* =========================
    ✅ MOBILE (≤900px) – FIXED SIDEBAR + SCROLL HIDE
-   - Количката е НАД сайдбара (fixed)
-   - Сайдбарът е FIXED под количката (не покрива продуктите)
-   - Съдържанието е отместено под тях
-   - При скрол надолу сайдбарът изчезва, при скрол нагоре се връща
    ========================= */
 @media (max-width:900px){
-  /* количката остава fixed горе вдясно */
   .cart-btn{
     top: 8px;
     right: 10px;
     z-index: 2000;
   }
-
-  /* сайдбар: фиксиран под количката */
   .sidebar{
     position: fixed;
     top: var(--mobile-cart-h);
@@ -245,21 +238,17 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
     z-index: 1200;
     transition: transform 0.35s ease, opacity 0.35s ease, filter 0.35s ease;
   }
-
   .sidebar::-webkit-scrollbar{ height:6px; }
-
   .sidebar-inner{
     flex-direction: row;
     gap: 10px;
     align-items: stretch;
     min-width: max-content;
   }
-
   .cat{ min-width:140px; padding:8px; border-radius:16px; scroll-snap-align:start; }
   .cat .box{ height:94px; border-radius:12px; }
   .cat .box::after{ padding:8px 10px; font-size:13px; }
 
-  /* fade индикатори отляво и отдясно */
   .sidebar::before, .sidebar::after{
     content:"";
     position: sticky;
@@ -274,22 +263,19 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
     background:linear-gradient(90deg,#fff,rgba(255,255,255,0));
     margin-left:-12px;
   }
-.sidebar::after{
-  position: sticky;
-  right:0;
-  background:linear-gradient(270deg,#fff,rgba(255,255,255,0));
-  margin-right:-10px;
-}
+  .sidebar::after{
+    position: sticky;
+    right:0;
+    background:linear-gradient(270deg,#fff,rgba(255,255,255,0));
+    margin-right:-10px;
+  }
 
-
-  /* съдържанието се отмества под количка + sidebar */
   .content{
     padding-top: calc(var(--mobile-cart-h) + var(--mobile-sidebar-h) + 16px);
     padding-left:14px;
     padding-right:14px;
   }
 
-  /* home-pill да стои под количката */
   .home-pill{
     position: fixed !important;
     top: calc(var(--mobile-cart-h) + 12px) !important;
@@ -297,21 +283,15 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
     z-index: 1500;
   }
 
-  /* анимация: скриване на sidebar при скрол надолу */
-  .sidebar.hide-on-scroll {
-    transform: translateY(-100%);
-    opacity: 0;
-    filter: blur(3px);
-  }
+  .sidebar.hide-on-scroll { transform: translateY(-100%); opacity: 0; filter: blur(3px); }
 
-  /* дребни типографски корекции */
   .h1{ font-size:22px; margin:10px 0 12px; }
   .sec-title{ font-size:22px; margin:12px 0 8px; }
   .price-badge .lv{ font-size:24px; }
   .price-badge .eur{ font-size:16px; }
 }
 
-/* ПРОМОЦИИ – контейнер за вградената страница */
+/* ПРОМОЦИИ – (старата iframe обвивка все още е налична, но вече не се използва) */
 .embed-wrap{width:100%;min-height:70vh}
 .embed-wrap iframe{
   width:100%;
@@ -319,6 +299,30 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   border:0;border-radius:16px;background:#fff;box-shadow:var(--shadow);
 }
 
+/* === PROMO (ВГРАДЕНО В index2) — стилове === */
+.promo-wrap{background:#0e0f10;border-radius:16px;box-shadow:var(--shadow);padding:16px;color:#fff}
+.promo-head{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-weight:900;color:#ff7a00}
+.promo-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.promo-card{position:relative;background:#111;border:1px solid var(--soft);border-radius:16px;overflow:hidden}
+.promo-sides{display:grid;grid-template-columns:1fr 1fr}
+.promo-img{height:220px;background:#e9ecef center/cover no-repeat}
+.promo-name{padding:8px 12px;font-weight:900}
+.promo-price{position:absolute;right:10px;top:10px;background:#ff7a00;color:#fff;border-radius:12px;padding:8px 10px;font-weight:900}
+.promo-del{position:absolute;left:10px;top:10px;border:0;background:#000a;color:#fff;border-radius:10px;padding:6px 10px;font-weight:900;cursor:pointer;display:none}
+.promo-card .promo-img, .promo-card .promo-name, .promo-price{z-index:1}
+.promo-del{z-index:9999}
+.promo-create{margin-top:16px;border:1px dashed #ffffff2a;border-radius:14px;padding:12px}
+.promo-create h3{margin:0 0 8px;font-size:18px;color:#ff7a00}
+.promo-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.promo-field{display:flex;flex-direction:column;gap:6px}
+.promo-field input{border:1px solid var(--soft);border-radius:10px;padding:10px}
+.promo-actions{margin-top:10px;display:flex;gap:10px;justify-content:flex-end}
+.promo-btn{background:#ff7a00;border:0;color:#fff;font-weight:900;border-radius:10px;padding:10px 14px;cursor:pointer;box-shadow:var(--shadow)}
+.promo-btn:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:900px){
+  .promo-grid{grid-template-columns:1fr}
+  .promo-sides .promo-img{height:180px}
+}
 </style>
 </head>
 <body>
@@ -353,15 +357,14 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
     </div>
     <div class="cart-items" id="cartItems"></div>
 
-<!-- 🔶 Забележка към поръчката -->
-<div id="noteWrapper" style="display:none; margin-top:14px;">
-  <label for="orderNote" style="font-weight:900; color:#ff7a00; display:block; margin-bottom:6px;">
-    Забележка към поръчката:
-  </label>
-<textarea id="orderNote" rows="3" placeholder="Добавете специални изисквания или бележка..."
-    style="width:100%; border:1px solid #ccc; border-radius:10px; padding:10px; font-family:inherit; resize:vertical;"></textarea>
-
-</div>
+    <!-- 🔶 Забележка към поръчката -->
+    <div id="noteWrapper" style="display:none; margin-top:14px;">
+      <label for="orderNote" style="font-weight:900; color:#ff7a00; display:block; margin-bottom:6px;">
+        Забележка към поръчката:
+      </label>
+      <textarea id="orderNote" rows="3" placeholder="Добавете специални изисквания или бележка..."
+        style="width:100%; border:1px solid #ccc; border-radius:10px; padding:10px; font-family:inherit; resize:vertical;"></textarea>
+    </div>
 
     <div class="cart-total" id="cartTotalRow" style="display:none">
       <span>Общо:</span>
@@ -374,47 +377,41 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 </div>
 
 <script>
-/* 🔶 Промоции: лого и линкове */
+/* 🔶 Промоции: лого и линкове (само за миниатюрата в сайдбара) */
 const PROMO_IMG = (location.protocol === 'file:')
   ? 'file:///E:/BBQ_SITE/promociqlogo.jpg'
   : '/promociqlogo.jpg';
 const PROMO_LINK_LOCAL = 'file:///E:/BBQ_SITE/index7.html';
 const PROMO_LINK_WEB   = 'index7.html';
 
-
+/* (СТАРО) вграден iframe – остава неизползвано, но не пречи */
 function renderPromotionsEmbed(){
   titleEl.textContent = 'ПРОМОЦИИ';
   const base = (location.protocol === 'file:') ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
-
-  // ако в URL има ?admin=1 ИЛИ имаш admin в localStorage → админ
-  const isAdmin =
-    /\badmin=1\b/.test(location.search + location.hash) ||
-    !!(localStorage.getItem('adminName') || '').trim() ||
-    localStorage.getItem('isAdmin') === '1';
-
-  const src = isAdmin ? (base + (base.includes('?') ? '&' : '?') + 'admin=1') : base;
+  const urlFlag = /\badmin=1\b/.test(location.search + location.hash);
+  const lsFlag  = !!(localStorage.getItem('adminName') || '').trim()
+               || localStorage.getItem('isAdmin') === '1';
+  const isAdmin = urlFlag || lsFlag;
+  const src     = isAdmin ? (base + (base.includes('?') ? '&' : '?') + 'admin=1') : base;
 
   grid.innerHTML = `
     <div class="embed-wrap">
-      <iframe id="promoFrame" src="${src}" title="Промоции" loading="lazy"></iframe>
+      <iframe id="promoFrame" src="${src}" title="Промоции" loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>`;
+  recalcMobileOffsets();
 
-  // резервен сигнал към детето
-  const ifr = document.getElementById('promoFrame');
-  ifr.addEventListener('load', () => {
+  const f = document.getElementById('promoFrame');
+  f?.addEventListener('load', () => {
     if (isAdmin) {
-      try { ifr.contentWindow?.postMessage({ type:'bbq-admin', enabled:true }, '*'); } catch(e){}
+      try { f.contentWindow.postMessage({ type:'bbq-admin', enabled:true }, '*'); } catch(_) {}
     }
   });
-
-  recalcMobileOffsets();
 }
-
-
 
 /* Миниатюри (сайдбар) */
 const CAT_THUMBS = {
-  promocii: PROMO_IMG, /* 🧡 нов таб най-горе */
+  promocii: PROMO_IMG,
   burgeri:'snimki/produkti/1menu/burger.jpg',
   palachinki:'snimki/produkti/1menu/palachinki.jpg',
   strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',
@@ -455,19 +452,15 @@ const orderNowBtn = document.getElementById('orderNow');
 /* ====== LS ключове (index2 -> index3) ====== */
 const LS_CART_ITEMS = 'bbq_cart_items';
 const LS_CART_TOTAL = 'bbq_cart_total';
-// 🔶 Ключ и елементи за бележка
 const LS_ORDER_NOTE = 'bbq_order_note';
 const noteWrapper = document.getElementById('noteWrapper');
 const orderNoteEl = document.getElementById('orderNote');
-
 
 /* Добавяне към количката */
 function addToCart(item){
   CART.push(item);
   updateCartUI();
 }
-
-
 
 /* Основен рендер на количката */
 function updateCartUI(){
@@ -506,8 +499,7 @@ function updateCartUI(){
   cartTotal.textContent = `${fmtLv(total)}  (${fmtEur(total)})`;
   cartTotalRow.style.display = '';
   orderNowBtn.disabled = CART.length === 0;
-// 🔶 Показвай полето за забележка, ако има продукти
-noteWrapper.style.display = CART.length > 0 ? 'block' : 'none';
+  noteWrapper.style.display = CART.length > 0 ? 'block' : 'none';
 
   persistCartSnapshot();
   orderNoteEl.addEventListener('input', () => {
@@ -543,7 +535,6 @@ function restoreCartFromLS() {
       }));
     }
 
-    // ✅ Възстанови UI и бележката само след като са заредени продуктите
     updateCartUI();
     restoreOrderNote();
 
@@ -553,15 +544,8 @@ function restoreCartFromLS() {
 }
 
 /* Отваряне/затваряне на модала */
-function openCart(){
-  updateCartUI();
-  cartOverlay.style.display = 'flex';
-  cartOverlay.setAttribute('aria-hidden','false');
-}
-function closeCart(){
-  cartOverlay.style.display = 'none';
-  cartOverlay.setAttribute('aria-hidden','true');
-}
+function openCart(){ updateCartUI(); cartOverlay.style.display = 'flex'; cartOverlay.setAttribute('aria-hidden','false'); }
+function closeCart(){ cartOverlay.style.display = 'none'; cartOverlay.setAttribute('aria-hidden','true'); }
 document.getElementById('cartClose').addEventListener('click', closeCart);
 cartOverlay.addEventListener('click', (e)=>{ if(e.target === cartOverlay) closeCart(); });
 cartBtn.addEventListener('click', openCart);
@@ -570,9 +554,7 @@ cartBtn.addEventListener('click', openCart);
 orderNowBtn.addEventListener('click', ()=>{
   if (CART.length === 0) return;
   persistCartSnapshot();
-  const target = (location.protocol === 'file:')
-    ? 'file:///E:/BBQ_SITE/index3.html'
-    : 'index3.html';
+  const target = (location.protocol === 'file:') ? 'file:///E:/BBQ_SITE/index3.html' : 'index3.html';
   window.location.href = target;
 });
 
@@ -592,7 +574,6 @@ const CATALOG = {
     {name:'ДВОЙНА ТЕЛЕШКА ПЛЕСКАВИЦА',price:12.00,img:'snimki/produkti/2menu/sharska.jpg'},
     {name:'БУРГЕР С ДЪРПАНО ТЕЛЕШКО',price:12.50,img:'snimki/produkti/2menu/durpano.jpg'},
   ]},
-
   palachinki:{
     title:'ПАЛАЧИНКИ',
     groups:[
@@ -613,22 +594,18 @@ const CATALOG = {
       ]}
     ]
   },
-
   strandzhanki:{ title:'СТРАНДЖАНКИ', items:[
     {name:'ТЕЛЕШКА СТРАНДЖАНКА',price:5.00,img:CAT_THUMBS.strandzhanki},
     {name:'СВИНСКА СТРАНДЖАНКА',price:5.00,img:CAT_THUMBS.strandzhanki},
   ]},
-
   kartofi:{ title:'КАРТОФИ', items:[
     {name:'ПЪРЖЕНИ КАРТОФИ 200 ГРАМА',price:4.00,img:'snimki/produkti/КАРТОФИ/kartofi.jpg'},
     {name:'КАРТОФИ С ЧЕДЪР И БЕКОН',price:6.50,img:'snimki/produkti/КАРТОФИ/kartofisbekonichedur.jpg'},
     {name:'КАРТОФИ С ЧЕДЪР',price:5.00,img:'snimki/produkti/КАРТОФИ/kartofischedur.jpg'},
   ]},
-
   salati:{ title:'САЛАТИ', items:[
     {name:'САЛАТА ЦЕЗАР', price:8.50, img:CAT_THUMBS.salati},
   ]},
-
   portsii:{ title:'ПОРЦИИ', items:[
     {name:'РАЗЯДКА 100 ГРАМА',price:1.50,img:CAT_THUMBS.portsii},
     {name:'ПИТКА 1 БРОЙ',price:1.50,img:'snimki/produkti/ПОРЦИИ/pitka.jpg'},
@@ -638,7 +615,6 @@ const CATALOG = {
     {name:'ТЕЛЕШКИ КЕБАПЧЕТА ПОРЦИЯ',price:9.50,img:'snimki/produkti/ПОРЦИИ/kebapche.jpg'},
     {name:'ШАРСКА ПЛЕСКАВИЦА ПОРЦИЯ',price:12.50,img:'snimki/produkti/ПОРЦИИ/sharsko.jpg'},
   ]},
-
   dobavki:{ title:'ДОБАВКИ', items:[
     {name:'СИРЕНЕ 100 ГРАМА',  price:1.50},
     {name:'КАШКАВАЛ 100 ГРАМА',price:1.50},
@@ -646,7 +622,6 @@ const CATALOG = {
     {name:'МЕСО ДОБАВКА',      price:4.00},
     {name:'ПИТКА',             price:1.50},
   ]},
-
   sosove:{ title:'СОСОВЕ', items:[
     {name:'ДОМАШНА РАЗЯДКА 100ГР', price:1.50, img:CAT_THUMBS.sosove},
     {name:'ДОМАШНА МАЙОНЕЗА',     price:1.50, img:CAT_THUMBS.sosove},
@@ -655,12 +630,10 @@ const CATALOG = {
     {name:'ГОРЧИЦА',              price:1.00, img:CAT_THUMBS.sosove},
     {name:'СОС ЦЕЗАР',            price:1.50, img:CAT_THUMBS.sosove},
   ]},
-
   deserti:{ title:'ДЕСЕРТИ', items:[
     {name:'ЛЕК ДЕСЕРТ С ЧИЯ, МЮСЛИ И СУШЕНИ ПЛОДОВЕ',price:4.50,img:CAT_THUMBS.deserti},
     {name:'ЛЕК ДЕСЕРТ С ЧИЯ, МЮСЛИ И СЛАДКО ОТ БОРОВИНКИ',price:4.50,img:CAT_THUMBS.deserti},
   ]},
-
   bezalkoholni:{ title:'БЕЗАЛКОХОЛНИ', items:[
     {name:'КОЛА КЕН',price:2.00,img:CAT_THUMBS.bezalkoholni},
     {name:'ФАНТА ПОРТОКАЛ КЕН',price:2.00,img:CAT_THUMBS.bezalkoholni},
@@ -676,13 +649,11 @@ const CATALOG = {
     {name:'КАПИ ЛИМОНАДА',price:2.50,img:CAT_THUMBS.bezalkoholni},
     {name:'ТОНИК БУТИЛКА',price:1.90,img:CAT_THUMBS.bezalkoholni},
   ]},
-
   bira:{ title:'БИРА', items:[
     {name:'БИРА КОРОНА',price:3.50,img:CAT_THUMBS.bira},
     {name:'ХАЙНИКЕН',price:4.00,img:CAT_THUMBS.bira},
     {name:'СТЕЛА АРТОА',price:4.50,img:CAT_THUMBS.bira},
   ]},
-
   hell:{
     title:'HELL',
     view:'gallery',
@@ -707,7 +678,6 @@ const CATALOG = {
       ]}
     ]
   },
-
   voda:{
     title:'ВОДА',
     view:'water2',
@@ -722,7 +692,6 @@ const CATALOG = {
       ]}
     ]
   },
-
   gazirana_voda:{
     title:'ГАЗИРАНА ВОДА',
     view:'water2',
@@ -733,7 +702,6 @@ const CATALOG = {
       ]}
     ]
   },
-
   fanta:{
     title:'ФАНТА',
     items:[
@@ -745,7 +713,6 @@ const CATALOG = {
       {name:'Фанта Боровинка',     price:2.00, img:'snimki/produkti/ФАНТА/sinq_blueberry.jpg'}
     ]
   },
-
   studen_chai:{
     title:'СТУДЕН ЧАЙ',
     items:[
@@ -753,7 +720,6 @@ const CATALOG = {
       { name:'Fuze Tea Праскова',    price:2.50, img:'snimki/produkti/СТУДЕН_ЧАЙ/fuze_tea_praskova.jpg' }
     ]
   },
-
   kola:{
     title:'КОЛА',
     items:[
@@ -763,7 +729,6 @@ const CATALOG = {
       {name:'Кола Бутилка Zero',price:2.50, img:'snimki/produkti/КОЛА/kolapvczero.jpg'}
     ]
   },
-
   sok:{
     title:'СОК',
     items:[
@@ -771,7 +736,6 @@ const CATALOG = {
       {name:'Cappy Лимон',    price:2.50, img:'snimki/produkti/СОК/cappy_lemon.jpg'}
     ]
   },
-
   airqn:{
     title:'АЙРЯН',
     groups:[
@@ -786,7 +750,6 @@ const CATALOG = {
       ]}
     ]
   },
-
   xixo:{
     title:'XIXO',
     items:[
@@ -808,7 +771,7 @@ const CATALOG = {
 
 /* Подредба на категориите */
 const ORDER = [
-  'promocii', /* 🧡 най-горе */
+  'promocii',
   'burgeri','palachinki','strandzhanki','kartofi','salati','portsii','dobavki',
   'hell','voda','gazirana_voda','fanta','studen_chai','kola','sok','xixo','airqn'
 ];
@@ -863,7 +826,7 @@ function productCardHTML(it, i){
 
 function activate(cat, {fromNav=false, replace=false} = {}){
 
-  // 🧡 ПРОМОЦИИ – вграден index7 в секцията "продукти"
+  /* 🧡 ПРОМОЦИИ — ВГРАДЕНО (без iframe) */
   if (cat === 'promocii'){
     current = 'promocii';
     sidebar.querySelectorAll('.cat')
@@ -876,8 +839,39 @@ function activate(cat, {fromNav=false, replace=false} = {}){
       else if (fromNav) history.pushState({cat:'promocii'}, '', url);
     }
 
-    renderPromotionsEmbed();
-    return; // спира останалия рендер
+    titleEl.textContent = 'ПРОМОЦИИ';
+    grid.innerHTML = `
+      <section class="promo-wrap">
+        <h2 class="promo-head">🔥 Corner BBQ — Промоции</h2>
+        <div id="promoList" class="promo-grid" role="list"></div>
+
+        <div id="promoCreate" class="promo-create" hidden>
+          <h3>Създай промо пакет</h3>
+          <div class="promo-row">
+            <div class="promo-field">
+              <label>Име A</label><input id="pAName" placeholder="Пример: Телешка странджанка">
+              <label>Снимка A (URL)</label><input id="pAImg" placeholder="https://...">
+            </div>
+            <div class="promo-field">
+              <label>Име B</label><input id="pBName" placeholder="Пример: Свинска странджанка">
+              <label>Снимка B (URL)</label><input id="pBImg" placeholder="https://...">
+            </div>
+          </div>
+          <div class="promo-row" style="grid-template-columns:160px 1fr">
+            <div class="promo-field">
+              <label>Обща цена (лв)</label><input id="pPrice" type="number" min="0" step="0.01" value="1.00">
+            </div>
+            <div class="promo-actions">
+              <button id="pSave" class="promo-btn">Запази</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    `;
+
+    initPromotionsInline();     // ⬅️ стартираме модула
+    recalcMobileOffsets();
+    return;
   }
 
   const exists = !!CATALOG[cat];
@@ -887,11 +881,11 @@ function activate(cat, {fromNav=false, replace=false} = {}){
   sidebar.querySelectorAll('.cat').forEach(c=>c.classList.toggle('active', c.dataset.cat===cat));
   titleEl.textContent = CATALOG[cat]?.title || cat.toUpperCase();
 
-  const url = new URL(location.href);
-  if (url.searchParams.get('cat') !== cat) {
-    url.searchParams.set('cat', cat);
-    if (replace) history.replaceState({cat}, '', url);
-    else if (fromNav) history.pushState({cat}, '', url);
+  const url2 = new URL(location.href);
+  if (url2.searchParams.get('cat') !== cat) {
+    url2.searchParams.set('cat', cat);
+    if (replace) history.replaceState({cat}, '', url2);
+    else if (fromNav) history.pushState({cat}, '', url2);
   }
 
   const data = CATALOG[cat];
@@ -922,7 +916,7 @@ function activate(cat, {fromNav=false, replace=false} = {}){
       </div>
     `;
     bindAddButtons();
-    recalcMobileOffsets(); // важен call, защото височината на sidebar може да се промени
+    recalcMobileOffsets();
     return;
   }
 
@@ -996,8 +990,6 @@ function bindAddButtons(){
   });
 }
 
-
-
 /* POP DELAY в сайдбара */
 const POP_DELAY = 100; // ms
 function shouldBypassDelay(evt){ return evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey || evt.button === 1; }
@@ -1014,15 +1006,13 @@ function initFromURL(){
 }
 initFromURL();
 
-/* Възстанови количката при първо зареждане (ако има предишна сесия) */
+/* Възстанови количката при първо зареждане */
 restoreCartFromLS();
 restoreOrderNote();
 
 /* Събития за сайдбар картите */
 sidebar.querySelectorAll('.cat').forEach(catEl=>{
   const key = catEl.dataset.cat;
-
-  // ефекти при натискане
   catEl.addEventListener('touchstart', ()=>{ 
     catEl.classList.add('is-pressed'); 
     setTimeout(()=>catEl.classList.remove('is-pressed'), 120); 
@@ -1030,21 +1020,17 @@ sidebar.querySelectorAll('.cat').forEach(catEl=>{
   catEl.addEventListener('mousedown', ()=>catEl.classList.add('is-pressed'));
   catEl.addEventListener('mouseleave', ()=>catEl.classList.remove('is-pressed'));
   catEl.addEventListener('mouseup',   ()=>catEl.classList.remove('is-pressed'));
-
-  // 👉 основен click listener
   catEl.addEventListener('click', (e)=>{
-    if (shouldBypassDelay(e)) return;   // позволи middle/ctrl
+    if (shouldBypassDelay(e)) return;
     e.preventDefault();
     if (catEl.dataset.locked==='1' || key===current) return;
-    popThenActivate(catEl, key);        // включително promocii (ще вкара index7 вътре)
+    popThenActivate(catEl, key);
   });
-
-  // 👉 активиране с клавиатура
   catEl.addEventListener('keydown', (e)=>{
     if (e.key==='Enter' || e.key===' '){
       e.preventDefault();
       if (catEl.dataset.locked==='1' || key===current) return;
-      popThenActivate(catEl, key);      // включително promocii
+      popThenActivate(catEl, key);
     }
   });
 });
@@ -1055,7 +1041,7 @@ addEventListener('popstate', (e)=>{
   activate(cat, {replace:true});
 });
 
-/* Почистване на класове при pageshow (ако се върнем) */
+/* Почистване на класове при pageshow */
 addEventListener('pageshow', ()=>{
   sidebar.querySelectorAll('.cat').forEach(c=>{ c.classList.remove('is-pressed','is-popping'); delete c.dataset.locked; });
 });
@@ -1092,7 +1078,7 @@ addEventListener('pageshow', ()=>{
   updateLeft(); onScroll();
 })();
 
-/* HOME според средата (file:// или web) */
+/* HOME според средата */
 (function(){
   const home = document.querySelector('.home-pill');
   if (!home) return;
@@ -1106,7 +1092,7 @@ addEventListener('pageshow', ()=>{
   });
 })();
 
-/* ===== ДИНАМИЧНИ ОФСЕТИ (мобилен): количка над сайдбара ===== */
+/* ===== ДИНАМИЧНИ ОФСЕТИ (мобилен) ===== */
 function recalcMobileOffsets(){
   const isMobile = window.matchMedia('(max-width: 900px)').matches;
   if(!isMobile) return;
@@ -1114,9 +1100,7 @@ function recalcMobileOffsets(){
   const cart = document.getElementById('cartBtn');
   const sb = document.querySelector('.sidebar');
 
-  // височина на бутона за количка + малък буфер
   const cartH = cart ? Math.ceil(cart.offsetHeight) + 12 : 54;
-  // реална височина на хоризонталния сайдбар
   const sbH = sb ? Math.ceil(sb.getBoundingClientRect().height) : 100;
 
   document.documentElement.style.setProperty('--mobile-cart-h', cartH + 'px');
@@ -1126,46 +1110,174 @@ addEventListener('load', recalcMobileOffsets);
 addEventListener('resize', recalcMobileOffsets);
 addEventListener('orientationchange', recalcMobileOffsets);
 
-/* ако съдържанието на сайдбара се промени динамично */
 const sbObserver = new MutationObserver(()=>recalcMobileOffsets());
 sbObserver.observe(document.getElementById('sidebar'), { childList:true, subtree:true });
 
-/* === Скриване/показване на sidebar при скрол === */
 let lastScrollY = window.scrollY;
 let ticking = false;
-
 function handleScrollHideSidebar() {
   const sidebar = document.querySelector('.sidebar');
   if (!sidebar) return;
 
   const currentY = window.scrollY;
-
-  // ако скролваме надолу → скрий
-  if (currentY > lastScrollY + 10) {
-    sidebar.classList.add('hide-on-scroll');
-  }
-  // ако скролваме нагоре → покажи
-  else if (currentY < lastScrollY - 10) {
-    sidebar.classList.remove('hide-on-scroll');
-  }
+  if (currentY > lastScrollY + 10) { sidebar.classList.add('hide-on-scroll'); }
+  else if (currentY < lastScrollY - 10) { sidebar.classList.remove('hide-on-scroll'); }
 
   lastScrollY = currentY;
   ticking = false;
 }
-
 window.addEventListener('scroll', () => {
   if (!ticking) {
     window.requestAnimationFrame(handleScrollHideSidebar);
     ticking = true;
   }
 });
-
 </script>
+
+<!-- === PROMOTIONS (INLINE, БЕЗ IFRAME) — МОДУЛ === -->
 <script>
-// === ГЛОБАЛЕН ТРАКЕР НА КЛИКОВЕ ЗА АДМИНИ ===
+/* Зареждане на Firebase SDK при нужда (v8 RTDB) */
+const __firebaseSdkReady = (function(){
+  let ready;
+  return function ensure(){
+    if (ready) return ready;
+    ready = new Promise((resolve)=>{
+      if (window.firebase?.database) return resolve();
+      const s1 = document.createElement('script');
+      const s2 = document.createElement('script');
+      s1.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js';
+      s2.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js';
+      s1.onload = () => document.head.appendChild(s2);
+      s2.onload = () => resolve();
+      document.head.appendChild(s1);
+    });
+    return ready;
+  };
+})();
+
+/* Постави реалните ключове, ако не инициализираш на друго място */
+window.__FIREBASE_CONFIG__ = window.__FIREBASE_CONFIG__ || null;
+/*
+window.__FIREBASE_CONFIG__ = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_APP.firebaseapp.com",
+  databaseURL: "https://YOUR_APP-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "YOUR_APP",
+  storageBucket: "YOUR_APP.appspot.com",
+  messagingSenderId: "...",
+  appId: "..."
+};
+*/
+
+function isAdminBBQ(){
+  const urlFlag = /\badmin=1\b/.test(location.search + location.hash);
+  const lsFlag  = !!(localStorage.getItem('adminName')||'').trim()
+               || localStorage.getItem('isAdmin') === '1';
+  return urlFlag || lsFlag;
+}
+
+async function initPromotionsInline(){
+  await __firebaseSdkReady();
+
+  // Инициализация (ако не е направена другаде)
+  if (window.firebase && (!firebase.apps || firebase.apps.length === 0)) {
+    if (window.__FIREBASE_CONFIG__) {
+      firebase.initializeApp(window.__FIREBASE_CONFIG__);
+    } else {
+      console.warn('⚠️ Няма подаден window.__FIREBASE_CONFIG__. Инициализирай Firebase преди да ползваш промоциите.');
+      return;
+    }
+  }
+
+  const listEl   = document.getElementById('promoList');
+  const createEl = document.getElementById('promoCreate');
+  const admin    = isAdminBBQ();
+
+  createEl.hidden = !admin;
+
+  const ref = firebase.database().ref('/promotions/items');
+
+  // Рендер
+  ref.on('value', snap => {
+    const data = snap.val() || {};
+    const ids = Object.keys(data);
+
+    listEl.innerHTML = ids.map(id=>{
+      const p = data[id];
+      const a = p.parts?.[0] || {name:'', image:''};
+      const b = p.parts?.[1] || {name:'', image:''};
+      const price = (Number(p.price)||0).toFixed(2);
+
+      return `
+      <article class="promo-card" role="listitem" data-id="${id}">
+        <div class="promo-sides">
+          <div>
+            <div class="promo-img" style="background-image:url('${a.image||''}')"></div>
+            <div class="promo-name">${a.name||''}</div>
+          </div>
+          <div>
+            <div class="promo-img" style="background-image:url('${b.image||''}')"></div>
+            <div class="promo-name">${b.name||''}</div>
+          </div>
+        </div>
+        <div class="promo-price">${price} лв</div>
+        <button class="promo-del" ${admin?'':'style="display:none"'} title="Изтрий">✕</button>
+      </article>`;
+    }).join('') || `<div style="opacity:.8">Няма активни промоции.</div>`;
+
+    // подсигури ✕ при админ
+    if (admin){
+      listEl.querySelectorAll('.promo-del').forEach(btn=>{
+        btn.style.display = 'inline-block';
+      });
+      setTimeout(()=>listEl.querySelectorAll('.promo-del').forEach(b=>b.style.display='inline-block'),0);
+    }
+
+    // delete
+    listEl.querySelectorAll('.promo-del').forEach(btn=>{
+      btn.onclick = () => {
+        const id = btn.closest('.promo-card').dataset.id;
+        if (!confirm('Да изтрия ли тази промоция?')) return;
+        // ако правилата изискват парола – добави __admin_pass в set() долу при създаване
+        firebase.database().ref('/promotions/items/'+id).remove();
+      };
+    });
+  });
+
+  // Създаване
+  if (admin){
+    const get = id => document.getElementById(id);
+    get('pSave').onclick = async ()=>{
+      const parts = [
+        { name: get('pAName').value.trim(), image: get('pAImg').value.trim(), price: 0 },
+        { name: get('pBName').value.trim(), image: get('pBImg').value.trim(), price: 0 },
+      ];
+      const price = Number(get('pPrice').value)||0;
+
+      if (!parts[0].name || !parts[1].name){
+        alert('Попълни имена за двете части.'); return;
+      }
+      const id = 'promo_'+Date.now();
+      await firebase.database().ref('/promotions/items/'+id).set({
+        id,
+        parts,
+        price,
+        createdAt: Date.now()
+        // __admin_pass: 'bbqcornera123' // <- ако RTDB правилата ти го изискват
+      });
+
+      get('pAName').value = get('pBName').value = get('pAImg').value = get('pBImg').value = '';
+      get('pPrice').value = '1.00';
+    };
+  }
+}
+</script>
+
+<!-- === ГЛОБАЛЕН ТРАКЕР НА КЛИКОВЕ ЗА АДМИНИ === -->
+<script>
 (function(){
   const who = (localStorage.getItem('adminName') || '').trim();
-  if(!who) return; // не е логнат админ => не следим
+  if(!who) return;
 
   function logAction(text){
     const k = `logs_${who}`;
@@ -1175,13 +1287,11 @@ window.addEventListener('scroll', () => {
     arr.unshift(entry);
     localStorage.setItem(k, JSON.stringify(arr));
 
-    // регистрирай името, ако още не е в списъка
     const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
     known.add(who);
     localStorage.setItem('logs__admins', JSON.stringify([...known]));
   }
 
-  // следи всички кликове по документа
   document.addEventListener('click', e=>{
     let desc = '';
     if(e.target.closest('button, a, input, select')){
@@ -1192,13 +1302,10 @@ window.addEventListener('scroll', () => {
     } else {
       desc = `кликна на произволно място (${e.clientX}x${e.clientY})`;
     }
-
-    // запис на страницата
     const page = location.pathname.split('/').pop() || 'непозната страница';
     logAction(`${desc} [${page}]`);
   });
 
-  // запис при вход
   logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
 })();
 </script>
