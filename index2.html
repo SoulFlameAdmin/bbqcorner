@@ -352,7 +352,7 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
       <span class="cart-count" id="cartCount">0</span>
     </button>
 
-    <h1 class="h1" id="catTitle">САНДВИЧИ</h1>
+    <h1 class="h1" id="catTitle">БУРГЕРИ</h1>
     <div id="productGrid"></div>
   </main>
 </div>
@@ -569,7 +569,7 @@ orderNowBtn.addEventListener('click', ()=>{
 
 /* Каталог с цени в лв. */
 const CATALOG = {
-  burgeri:{title:'САНДВИЧИ',items:[
+  burgeri:{title:'БУРГЕРИ',items:[
     {
       name:'КОНСКА ПЛЕСКАВИЦА',
       price:9.00,
@@ -908,6 +908,10 @@ function prettyLabel(src){
   if (map[f]) return map[f];
   return f.replace(/[_-]+/g,' ').replace(/\b\w/g, m=>m.toUpperCase());
 }
+
+
+
+
 
 /* ===== Активиране на категория + рендер ===== */
 /* ===== Активиране на категория + рендер ===== */
@@ -1250,14 +1254,14 @@ window.addEventListener('scroll', () => {
 });
 </script>
 
-<!-- === PROMOTIONS (INLINE, БЕЗ IFRAME) — МОДУЛ === -->
+<!-- === PROMOTIONS (INLINE, БЕЗ IFRAME) — МОДУЛ — FIXED === -->
 <script>
-/* Зареждане на Firebase SDK при нужда (v8 RTDB) */
-const __firebaseSdkReady = (function(){
+/* 1) Lazy-load на Firebase v8 RTDB */
+const __firebaseSdkReady = (() => {
   let ready;
-  return function ensure(){
+  return function ensure() {
     if (ready) return ready;
-    ready = new Promise((resolve)=>{
+    ready = new Promise(resolve => {
       if (window.firebase?.database) return resolve();
       const s1 = document.createElement('script');
       const s2 = document.createElement('script');
@@ -1271,20 +1275,19 @@ const __firebaseSdkReady = (function(){
   };
 })();
 
-/* Постави реалните ключове, ако не инициализираш на друго място */
-window.__FIREBASE_CONFIG__ = window.__FIREBASE_CONFIG__ || null;
-/*
+/* 2) Конфигурация — без директна инициализация тук */
 window.__FIREBASE_CONFIG__ = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_APP.firebaseapp.com",
-  databaseURL: "https://YOUR_APP-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "YOUR_APP",
-  storageBucket: "YOUR_APP.appspot.com",
-  messagingSenderId: "...",
-  appId: "..."
+  apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
+  authDomain: "corner-bbq.firebaseapp.com",
+  databaseURL: "https://corner-bbq-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "corner-bbq",
+  storageBucket: "corner-bbq.firebasestorage.app",
+  messagingSenderId: "878314744141",
+  appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
+  measurementId: "G-FWBDL96GN0"
 };
-*/
 
+/* 3) Помощна: админ флаг */
 function isAdminBBQ(){
   const urlFlag = /\badmin=1\b/.test(location.search + location.hash);
   const lsFlag  = !!(localStorage.getItem('adminName')||'').trim()
@@ -1292,15 +1295,16 @@ function isAdminBBQ(){
   return urlFlag || lsFlag;
 }
 
+/* 4) Основен модул */
 async function initPromotionsInline(){
   await __firebaseSdkReady();
 
-  // Инициализация (ако не е направена другаде)
+  // Единствена инициализация (без дублиране)
   if (window.firebase && (!firebase.apps || firebase.apps.length === 0)) {
     if (window.__FIREBASE_CONFIG__) {
       firebase.initializeApp(window.__FIREBASE_CONFIG__);
     } else {
-      console.warn('⚠️ Няма подаден window.__FIREBASE_CONFIG__. Инициализирай Firebase преди да ползваш промоциите.');
+      console.warn('⚠️ Липсва window.__FIREBASE_CONFIG__.');
       return;
     }
   }
@@ -1313,7 +1317,7 @@ async function initPromotionsInline(){
 
   const ref = firebase.database().ref('/promotions/items');
 
-  // Рендер
+  // Рендер на промоциите
   ref.on('value', snap => {
     const data = snap.val() || {};
     const ids = Object.keys(data);
@@ -1341,26 +1345,19 @@ async function initPromotionsInline(){
       </article>`;
     }).join('') || `<div style="opacity:.8">Няма активни промоции.</div>`;
 
-    // подсигури ✕ при админ
     if (admin){
       listEl.querySelectorAll('.promo-del').forEach(btn=>{
         btn.style.display = 'inline-block';
+        btn.onclick = () => {
+          const id = btn.closest('.promo-card').dataset.id;
+          if (!confirm('Да изтрия ли тази промоция?')) return;
+          firebase.database().ref('/promotions/items/'+id).remove();
+        };
       });
-      setTimeout(()=>listEl.querySelectorAll('.promo-del').forEach(b=>b.style.display='inline-block'),0);
     }
-
-    // delete
-    listEl.querySelectorAll('.promo-del').forEach(btn=>{
-      btn.onclick = () => {
-        const id = btn.closest('.promo-card').dataset.id;
-        if (!confirm('Да изтрия ли тази промоция?')) return;
-        // ако правилата изискват парола – добави __admin_pass в set() долу при създаване
-        firebase.database().ref('/promotions/items/'+id).remove();
-      };
-    });
   });
 
-  // Създаване
+  // Създаване на промо пакет (само админ)
   if (admin){
     const get = id => document.getElementById(id);
     get('pSave').onclick = async ()=>{
@@ -1371,15 +1368,13 @@ async function initPromotionsInline(){
       const price = Number(get('pPrice').value)||0;
 
       if (!parts[0].name || !parts[1].name){
-        alert('Попълни имена за двете части.'); return;
+        alert('Попълни имена за двете части.');
+        return;
       }
       const id = 'promo_'+Date.now();
       await firebase.database().ref('/promotions/items/'+id).set({
-        id,
-        parts,
-        price,
-        createdAt: Date.now()
-        // __admin_pass: 'bbqcornera123' // <- ако RTDB правилата ти го изискват
+        id, parts, price, createdAt: Date.now()
+        // __admin_pass: 'bbqcornera123' // ако правилата го изискват
       });
 
       get('pAName').value = get('pBName').value = get('pAImg').value = get('pBImg').value = '';
@@ -1388,6 +1383,7 @@ async function initPromotionsInline(){
   }
 }
 </script>
+
 
 <!-- === ГЛОБАЛЕН ТРАКЕР НА КЛИКОВЕ ЗА АДМИНИ === -->
 <script>
