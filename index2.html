@@ -867,7 +867,7 @@ const CATALOG = {
   dobavki:{ title:'ДОБАВКИ', items:[
     {name:'СИРЕНЕ 100 ГРАМА',  price:1.50},
     {name:'КАШКАВАЛ 100 ГРАМА',price:1.50},
-    {name:'ДРЕСИНГ ДОБАВКА',   price:1.00},
+    {name:'РАЗЯТКА',   price:1.00},
     {name:'МЕСО ДОБАВКА',      price:4.00},
     {name:'ПИТКА',             price:1.50},
   ]},
@@ -1137,6 +1137,47 @@ document.addEventListener('dblclick', e => {
     document.body.style.overflow = ''; // връщаме скрола
     return;
   }
+
+// --- 🔍 Увеличаване на снимка при двоен клик (desktop) ---
+document.addEventListener('dblclick', e => {
+  const imgEl = e.target.closest('.photo');
+  if (!imgEl) return;
+
+  const alreadyZoomed = imgEl.classList.contains('zoomed');
+  document.querySelectorAll('.photo.zoomed').forEach(el => el.classList.remove('zoomed'));
+
+  if (alreadyZoomed) {
+    document.body.style.overflow = '';
+  } else {
+    imgEl.classList.add('zoomed');
+    document.body.style.overflow = 'hidden';
+  }
+});
+
+// --- 📱 Double-tap за мобилни (global; не вътре в dblclick!) ---
+document.addEventListener('touchend', (e) => {
+  const imgEl = e.target.closest('.photo');
+  if (!imgEl) return;
+
+  const now = Date.now();
+  const last = imgEl._lastTap || 0;
+
+  if (now - last < 280) {
+    const already = imgEl.classList.contains('zoomed');
+    document.querySelectorAll('.photo.zoomed').forEach(el => el.classList.remove('zoomed'));
+    if (!already) {
+      imgEl.classList.add('zoomed');
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    imgEl._lastTap = 0;
+  } else {
+    imgEl._lastTap = now;
+  }
+}, { passive: true });
+
+
 
   // Затваряне на други отворени
   document.querySelectorAll('.photo.zoomed').forEach(el => el.classList.remove('zoomed'));
@@ -1873,9 +1914,6 @@ try{
 }
 }); // 👈 затваря saveBtn click listener-а
 
-
-  /* ===== Рендер на публичния списък ===== */
-/* ===== Рендер на публичния списък ===== */
 /* ===== Рендер на публичния списък ===== */
 function renderList(dataObj){
   const entries = Object.entries(dataObj || {})
