@@ -39,19 +39,19 @@ a,button{touch-action:manipulation}
 
 /* ===== HERO ===== */
 .hero{
-  position:relative;height:90vh;padding:28px 60px;
-  background:url("snimki/korica/korica2.jpg") center/cover no-repeat;overflow:hidden;
-  filter:contrast(1.20) saturate(1.0) brightness(1.30);animation:zoomOut 3s ease-out forwards
+  position:relative; height:90vh; margin:0; padding:28px 60px;
+  background:url("snimki/korica/korica2.jpg") center/cover no-repeat; overflow:hidden;
+  filter:contrast(1.20) saturate(1.0) brightness(1.30); animation:zoomOut 3s ease-out forwards
 }
 .hero::before{
-  content:"";position:absolute;inset:0;backdrop-filter:blur(0px);
+  content:""; position:absolute; inset:0; backdrop-filter:blur(0px);
   background:linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.55) 80%, transparent)
 }
 .hero-inner{position:relative;z-index:1;max-width:1250px;margin:0 auto}
 @keyframes zoomOut{from{background-size:110%}to{background-size:100%}}
 
-/* GRID */
-.tab-wrap{display:flex;justify-content:center;margin-top:-28px;position:relative;z-index:2}
+/* GRID / WEB MENU */
+.tab-wrap{display:flex;justify-content:center;position:relative;z-index:2;margin:0}
 .tab-title{background:#fff;border-radius:16px;padding:10px 22px;font-weight:800;letter-spacing:.6px;color:var(--accent);border:1px solid var(--softBorder);box-shadow:var(--shadow)}
 .stage{background:#fff}
 .grid{max-width:1250px;margin:12px auto 36px;padding:0 16px;display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap)}
@@ -79,22 +79,16 @@ a,button{touch-action:manipulation}
 @media (prefers-reduced-motion: reduce){ .hero{animation:none} .card{transition:none} }
 
 /* ================= HAMBURGER FAB (menu–3) ================= */
-.fab{
-  position:fixed;
-  right:14px;
-  top:calc(env(safe-area-inset-top, 0px) + 12px);
-  z-index:1200;
+.fab{ /* по подразбиране fixed за десктоп */
+  position:fixed; right:14px; top:calc(env(safe-area-inset-top, 0px) + 12px); z-index:1200;
 }
 #menuChk{display:none}
 
 /* иконката (демо menu–3) */
 .menu{
-  width:46px; height:46px;
-  border-radius:12px;
+  width:46px; height:46px; border-radius:12px;
   display:flex; align-items:center; justify-content:center;
-  cursor:pointer;
-  box-shadow:0 6px 16px rgba(0,0,0,.25);
-  background:#00aef6;
+  cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,.25); background:#00aef6;
 }
 .menu svg{ width:36px; height:36px; }
 .menu path{
@@ -104,11 +98,9 @@ a,button{touch-action:manipulation}
   stroke-dashoffset:var(--offset);
   transition:all .8s cubic-bezier(.645,.045,.355,1);
 }
-.menu circle{ fill:#fff3; opacity:0; }
-.menu:hover circle{ opacity:1; }
+.menu circle{ fill:#fff3; opacity:0; } .menu:hover circle{ opacity:1; }
 .menu--3 .line--1, .menu--3 .line--3{ --total-length:126.38166809082031; }
 .menu--3 .line--2{ --total-length:80; }
-/* анимация при отваряне */
 #menuChk:checked + label.menu svg .line--1,
 #menuChk:checked + label.menu svg .line--3{ --offset:-109.1770175568; }
 #menuChk:checked + label.menu.back svg .line--1,
@@ -116,43 +108,27 @@ a,button{touch-action:manipulation}
 
 /* панелът с бутоните */
 .fab-items{
-  position:absolute;
-  right:0; top:54px;
+  position:absolute; right:0; top:54px;
   display:flex; flex-direction:column; gap:10px;
   width:max(220px, 58vw); max-width:320px;
-  padding:10px;
-  border-radius:14px;
+  padding:10px; border-radius:14px;
   background:#111; border:1px solid #ffffff22;
   box-shadow:0 18px 40px rgba(0,0,0,.35);
   transform:translateY(-8px); opacity:0; pointer-events:none;
   transition:transform .22s ease, opacity .22s ease;
 }
-#menuChk:checked ~ .fab-items{
-  transform:translateY(0);
-  opacity:1; pointer-events:auto;
-}
+#menuChk:checked ~ .fab-items{ transform:translateY(0); opacity:1; pointer-events:auto; }
 
-/* изглед/цветове на бутоните вътре */
-.fab .btn-fab,
-.fab .admin-btn,
-.fab .track-btn{
-  position:static !important;
-  width:100%;
-  margin:0;
-  border-radius:12px;
-  box-shadow:0 6px 16px rgba(0,0,0,.22);
-  font-weight:900; padding:10px 14px;
+/* бутони вътре */
+.fab .btn-fab, .fab .admin-btn, .fab .track-btn{
+  position:static !important; width:100%; margin:0; border-radius:12px;
+  box-shadow:0 6px 16px rgba(0,0,0,.22); font-weight:900; padding:10px 14px;
 }
 .fab .btn-fab{ background:var(--accent); color:#fff; border:none; }
-.fab .admin-btn{ background:#fff; color:#111; border:1px solid #00000014; }
-.fab .track-btn{ background:#fff; color:#111; border:1px solid #00000014; }
+.fab .admin-btn, .fab .track-btn{ background:#fff; color:#111; border:1px solid #00000014; }
 
 /* ================= REVIEWS PANEL ================= */
-#reviewsPanel{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;
-  z-index:1300;
-}
+#reviewsPanel{ position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; z-index:1300; }
 #reviewsPanel.show{display:flex}
 #reviewsBox{
   background:#111418;border-radius:18px;padding:20px;
@@ -189,44 +165,66 @@ a,button{touch-action:manipulation}
 .err{color:#ff9a9a;font-size:12px;margin-top:8px;display:none}
 .ok{color:#22cc88;font-weight:900;margin-top:8px}
 
-/* MOBILE tweaks */
-@media (max-width:768px){
+/* ===== МОБИЛЕН изглед: бутон върху снимката, корица най-горе, без празнини ===== */
+@media (max-width: 768px) {
+  body{ padding:0 !important; }
+  .wrap{ padding-top:0 !important; }
+
+  .hero{
+    margin:0 !important;
+    height:25vh !important;
+    padding:0 !important;                /* маха вътрешния top padding */
+    background-position:top center !important; /* снимката започва най-горе */
+    filter: brightness(1.20) contrast(1.20) saturate(1.0) !important;
+    position:relative;                   /* за абсолютния FAB вътре */
+  }
+
+  /* FAB да е върху снимката вдясно */
+  .hero .fab{
+    position:absolute !important;
+    top:max(8px, env(safe-area-inset-top)) !important;
+    right:12px !important;
+  }
+
+  /* „WEB МЕНЮ“ прилепено под корицата – без празнина */
+  .tab-wrap{ margin:0 !important; }
+  .stage{ margin:0 !important; padding-top:0 !important; }
+
   .fab-items{ width:calc(100vw - 28px); }
-  .hero{ height:60vh!important; background-position:center center!important; filter:brightness(1.30) contrast(1.20) saturate(1)!important;}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- ========= FAB MENU (hamburger + панели) ========= -->
-  <div id="fabMenu" class="fab">
-    <input type="checkbox" id="menuChk">
-    <!-- 3-то меню (menu–3) -->
-    <label class="menu back menu--3" for="menuChk" aria-label="Меню">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <circle cx="50" cy="50" r="30" />
-        <path class="line--1" d="M0 40h62c18 0 18-20-17 5L31 55" />
-        <path class="line--2" d="M0 50h80" />
-        <path class="line--3" d="M0 60h62c18 0 18 20-17-5L31 45" />
-      </svg>
-    </label>
+  <!-- HERO (FAB е вътре, за да стои върху снимката) -->
+  <header class="hero">
+    <!-- ========= FAB MENU ========= -->
+    <div id="fabMenu" class="fab">
+      <input type="checkbox" id="menuChk">
+      <label class="menu back menu--3" for="menuChk" aria-label="Меню">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="30" />
+          <path class="line--1" d="M0 40h62c18 0 18-20-17 5L31 55" />
+          <path class="line--2" d="M0 50h80" />
+          <path class="line--3" d="M0 60h62c18 0 18 20-17-5L31 45" />
+        </svg>
+      </label>
 
-    <!-- бутоните изскачат от тук -->
-    <div class="fab-items">
-      <button id="reviewsBtn" class="btn-fab">Отзиви и препоръки</button>
-      <button id="adminBtn" class="admin-btn">АДМИН</button>
-      <button id="trackBtn" class="track-btn" aria-label="Проследи поръчката">ПРОСЛЕДИ ПОРЪЧКАТА</button>
+      <div class="fab-items">
+        <button id="reviewsBtn" class="btn-fab">Отзиви и препоръки</button>
+        <button id="adminBtn" class="admin-btn">АДМИН</button>
+        <button id="trackBtn" class="track-btn" aria-label="Проследи поръчката">ПРОСЛЕДИ ПОРЪЧКАТА</button>
+      </div>
     </div>
-  </div>
-  <!-- ========= /FAB MENU ========= -->
+    <!-- ========= /FAB MENU ========= -->
 
-  <!-- HERO -->
-  <header class="hero"><div class="hero-inner"></div></header>
+    <div class="hero-inner"></div>
+  </header>
 
+  <!-- WEB МЕНЮ – плътно под корицата -->
   <div class="tab-wrap"><div class="tab-title">WEB МЕНЮ</div></div>
 
-  <!-- GRID -->
   <section class="stage">
     <main class="grid" id="menuGrid">
       <a class="card w-4" data-key="burgeri"><div class="img"></div><span>САНДВИЧИ</span></a>
@@ -281,7 +279,7 @@ a,button{touch-action:manipulation}
     <div id="reviewsList" aria-live="polite"></div>
     <div id="addReview" style="margin-top:12px">
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
-        <div class="starSelect" id="starSelect" aria-label="Оцени със звезди" role="radiogroup"></div>
+        <div class="starSelect" id="starSelect" aria-label="Оцени със звезди" role="radiогroup"></div>
         <div style="font-size:13px;color:#bfc7c7">Може да изпратиш само звезда, само текст или и двете</div>
       </div>
       <input id="revName" type="text" placeholder="Вашето име (по желание)">
@@ -323,7 +321,7 @@ const toggle = () => toTop.style.display = scrollY > 300 ? 'grid' : 'none';
 toggle(); addEventListener('scroll', toggle);
 toTop.addEventListener('click', () => scrollTo({ top:0, behavior:'smooth' }));
 
-/* ========== FAB MENU поведение (затваряне при клик извън/ESC) ========== */
+/* ========== FAB MENU: затваряне при клик извън/ESC ========== */
 (function(){
   const fab = document.getElementById('fabMenu');
   const chk = document.getElementById('menuChk');
@@ -346,9 +344,7 @@ function openPanel(){ window.location.href='index4.html'; }
 adminBtn.addEventListener('click',()=>{
   const remembered = localStorage.getItem('adminRemembered')==='1';
   const savedName = (localStorage.getItem('adminName')||'').trim();
-  if(remembered && savedName){
-    localStorage.setItem('adminVerified','1'); openPanel(); return;
-  }
+  if(remembered && savedName){ localStorage.setItem('adminVerified','1'); openPanel(); return; }
   errEl.style.display='none'; msgEl.style.display='none';
   nameEl.value=''; pwdEl.value=''; rememberEl.checked=false;
   authEl.classList.add('show'); setTimeout(()=>nameEl.focus(),0);
