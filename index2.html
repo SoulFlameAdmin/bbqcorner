@@ -238,6 +238,31 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 }
 .order-btn:disabled{opacity:.5;cursor:not-allowed}
 
+/* Ефект за двойно кликване върху снимка */
+.photo.zoomed {
+  position: fixed !important;
+  top: 50%;
+  left: 50%;
+  width: 90vw !important;
+  height: 90vh !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  z-index: 9999 !important;
+  border-radius: 20px;
+  box-shadow: 0 0 60px rgba(0,0,0,0.6);
+  transform: translate(-50%, -50%) scale(1);
+  transition: all .4s ease-in-out;
+}
+
+/* плавност при връщане */
+.photo {
+  transition: all .3s ease-in-out;
+  cursor: zoom-in;
+}
+.photo.zoomed { cursor: zoom-out; }
+
+
 /* =========================
    ✅ MOBILE (≤900px) – FIXED SIDEBAR + SCROLL HIDE
    ========================= */
@@ -1099,6 +1124,27 @@ function productCardHTML(it, i, withAddons=false){
     </div>
   </article>`;
 }
+
+//zoom za porcii snimki 
+// --- 🔍 Увеличаване на снимка при двоен клик ---
+document.addEventListener('dblclick', e => {
+  const imgEl = e.target.closest('.photo');
+  if (!imgEl) return;
+
+  // Ако вече е увеличена – върни я обратно
+  if (imgEl.classList.contains('zoomed')) {
+    imgEl.classList.remove('zoomed');
+    document.body.style.overflow = ''; // връщаме скрола
+    return;
+  }
+
+  // Затваряне на други отворени
+  document.querySelectorAll('.photo.zoomed').forEach(el => el.classList.remove('zoomed'));
+
+  // Добавяме клас и изключваме скрола
+  imgEl.classList.add('zoomed');
+  document.body.style.overflow = 'hidden';
+});
 
 
 const catHasAddons = cat => (cat === 'portsii' || cat === 'burgeri');
