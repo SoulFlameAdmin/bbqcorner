@@ -278,7 +278,7 @@ onSnapshot(q, (snap) => {
   // ако има НОВИ чакащи -> ping + старт
   if (!firstLoad && nextPending > prevPending) {
     sound.currentTime = 0;
-    sound.volume = 5.0;
+    sound.volume = 1.0;
     sound.play().catch(() => {});
     startAlarm();
   }
