@@ -18,9 +18,7 @@
 <meta name="twitter:title" content="Corner BBQ — Онлайн поръчки">
 <meta name="twitter:description" content="Corner BBQ — вкусът на истинския грил.">
 <meta name="format-detection" content="telephone=no" />
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Organization","name":"Corner BBQ","url":"https://bbqcorner.vercel.app","logo":"https://bbqcorner.vercel.app/logo.png"}
-</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Corner BBQ","url":"https://bbqcorner.vercel.app","logo":"https://bbqcorner.vercel.app/logo.png"}</script>
 
 <style>
 :root{
@@ -52,25 +50,6 @@ a,button{touch-action:manipulation}
 .hero-inner{position:relative;z-index:1;max-width:1250px;margin:0 auto}
 @keyframes zoomOut{from{background-size:110%}to{background-size:100%}}
 
-.logo-card{
-  position:relative;width:128px;height:128px;border-radius:20px;background:linear-gradient(180deg,#fff,#fafafa);
-  box-shadow:0 26px 44px rgba(0,0,0,.28),0 10px 22px rgba(0,0,0,.18),inset 0 1px 0 #ffffffcc;
-  display:grid;place-items:center;margin:18px 0 12px 8px;border:1px solid var(--softBorder);
-  animation:floatY 6s ease-in-out infinite;will-change:transform
-}
-.logo-card img{max-width:82%;max-height:82%;object-fit:contain}
-.logo-card::before{
-  content:"";position:absolute;left:50%;bottom:-16px;width:76%;height:20px;transform:translateX(-50%);
-  background:radial-gradient(ellipse at center, rgba(0,0,0,.40) 0%, rgba(0,0,0,0) 65%);
-  filter:blur(9px);opacity:.46;pointer-events:none;z-index:-1;animation:shadowPulse 6s ease-in-out infinite
-}
-.phone-banner{
-  position:absolute;left:50%;transform:translateX(-50%);top:18px;z-index:3;font-weight:900;letter-spacing:.8px;text-transform:uppercase;
-  font-size:48px;line-height:1.05;margin:0;color:#fff;text-shadow:0 4px 10px rgba(0,0,0,.9),0 2px 1px rgba(255,255,255,.12)
-}
-@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-@keyframes shadowPulse{0%,100%{transform:scale(1);opacity:.46}50%{transform:scale(.9);opacity:.36}}
-
 /* GRID */
 .tab-wrap{display:flex;justify-content:center;margin-top:-28px;position:relative;z-index:2}
 .tab-title{background:#fff;border-radius:16px;padding:10px 22px;font-weight:800;letter-spacing:.6px;color:var(--accent);border:1px solid var(--softBorder);box-shadow:var(--shadow)}
@@ -99,108 +78,76 @@ a,button{touch-action:manipulation}
 .to-top{position:fixed;right:22px;bottom:22px;width:46px;height:46px;border-radius:999px;background:#111;color:#fff;border:1px solid #ffffff22;display:grid;place-items:center;font-size:20px;cursor:pointer;box-shadow:var(--shadow)}
 @media (prefers-reduced-motion: reduce){ .hero{animation:none} .card{transition:none} }
 
-/* ADMIN BUTTON */
-.admin-btn{
-  position:fixed;top:16px;right:20px;z-index:1100;display:flex;align-items:center;gap:10px;
-  padding:10px 14px;border-radius:14px;background:#111;color:#fff;border:1px solid #ffffff1a;font-weight:900;cursor:pointer;box-shadow:var(--shadow)
-}
-
-
-/* TRACK BUTTON (под АДМИН) */
-.track-btn{
+/* ================= HAMBURGER FAB (menu–3) ================= */
+.fab{
   position:fixed;
-  right:20px;
-  top:60px;                 /* точно под admin-btn (който е top:16px) */
-  z-index:1100;
-  display:flex;align-items:center;gap:10px;
-  padding:10px 14px;border-radius:14px;
-  background:#fff;color:#111;
-  border:1px solid #00000014;
-  font-weight:900;cursor:pointer;
-  box-shadow:0 8px 24px rgba(0,0,0,.18);
+  right:14px;
+  top:calc(env(safe-area-inset-top, 0px) + 12px);
+  z-index:1200;
 }
-/* === Поправка за мобилен изглед (бутоните да не закриват логото) === */
+#menuChk{display:none}
 
+/* иконката (демо menu–3) */
+.menu{
+  width:46px; height:46px;
+  border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  box-shadow:0 6px 16px rgba(0,0,0,.25);
+  background:#00aef6;
+}
+.menu svg{ width:36px; height:36px; }
+.menu path{
+  fill:none; stroke:#fff; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;
+  --length:24; --offset:-38;
+  stroke-dasharray:var(--length) var(--total-length);
+  stroke-dashoffset:var(--offset);
+  transition:all .8s cubic-bezier(.645,.045,.355,1);
+}
+.menu circle{ fill:#fff3; opacity:0; }
+.menu:hover circle{ opacity:1; }
+.menu--3 .line--1, .menu--3 .line--3{ --total-length:126.38166809082031; }
+.menu--3 .line--2{ --total-length:80; }
+/* анимация при отваряне */
+#menuChk:checked + label.menu svg .line--1,
+#menuChk:checked + label.menu svg .line--3{ --offset:-109.1770175568; }
+#menuChk:checked + label.menu.back svg .line--1,
+#menuChk:checked + label.menu.back svg .line--3{ --length:8.602325267; }
 
-
-/* AUTH overlay */
-:root{ --soft:#ffffff1a; --accent:#ff7a00; --text:#fff; }
-.auth{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:9999}
-.auth.show{display:flex}
-.auth .box{width:min(92vw,420px);background:#121316;border:1px solid var(--soft);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);color:var(--text)}
-.auth h2{margin-bottom:10px;color:var(--accent)}
-.field{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-.field input[type="password"], .field input[type="text"]{background:#0f1115;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:10px 12px;outline:none}
-.rowc{display:flex;align-items:center;gap:8px;margin-top:8px}
-.actions{display:flex;gap:10px;margin-top:14px}
-.btn{background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
-.btn.primary{background:var(--accent);border-color:transparent}
-.err{color:#ff9a9a;font-size:12px;margin-top:8px;display:none}
-.ok{color:#22cc88;font-weight:900;margin-top:8px}
-
-
-/* === FINAL FIXED MOBILE BUTTONS === */
-@media screen and (max-width: 768px) {
-  :root { --safe-top: env(safe-area-inset-top, 0px); }
-
-  body {
-    scroll-padding-top: 160px !important;
-    overscroll-behavior-y: contain;
-  }
-
-  #reviewsBtn,
-  .admin-btn,
-  .track-btn {
-    position: fixed !important;
-    z-index: 9999 !important;
-    transform: translateZ(0);
-    will-change: transform;
-    transition: opacity 0.25s ease, transform 0.25s ease;
-  }
-
-  #reviewsBtn {
-    top: calc(var(--safe-top) + 12px) !important;
-    left: 14px !important;
-  }
-
-  .admin-btn {
-    top: calc(var(--safe-top) + 12px) !important;
-    right: 14px !important;
-  }
-
-  .track-btn {
-    top: calc(var(--safe-top) + 60px) !important;
-    right: 14px !important;
-  }
-
-  /* Корекция на hero + по-ярка корица */
-  .hero {
-    margin-top: 0 !important;
-    height: 60vh !important;
-    background-position: center center !important;
-    filter: brightness(2.30) contrast(1.20) saturate(1.0) !important;
-  }
-
-  .wrap {
-    padding-top: 0 !important;
-  }
-
-  body {
-    padding-top: 0 !important;
-  }
+/* панелът с бутоните */
+.fab-items{
+  position:absolute;
+  right:0; top:54px;
+  display:flex; flex-direction:column; gap:10px;
+  width:max(220px, 58vw); max-width:320px;
+  padding:10px;
+  border-radius:14px;
+  background:#111; border:1px solid #ffffff22;
+  box-shadow:0 18px 40px rgba(0,0,0,.35);
+  transform:translateY(-8px); opacity:0; pointer-events:none;
+  transition:transform .22s ease, opacity .22s ease;
+}
+#menuChk:checked ~ .fab-items{
+  transform:translateY(0);
+  opacity:1; pointer-events:auto;
 }
 
-
-/* ================= REVIEWS PANEL (вграден стил) ================= */
-#reviewsBtn{
-  position:fixed;top:16px;left:20px;z-index:1200;
-  background:var(--accent);color:#fff;border:none;
-  font-weight:900;padding:10px 16px;border-radius:14px;
-  box-shadow:0 8px 24px rgba(0,0,0,.4);cursor:pointer;
-  transition:transform .2s ease;
+/* изглед/цветове на бутоните вътре */
+.fab .btn-fab,
+.fab .admin-btn,
+.fab .track-btn{
+  position:static !important;
+  width:100%;
+  margin:0;
+  border-radius:12px;
+  box-shadow:0 6px 16px rgba(0,0,0,.22);
+  font-weight:900; padding:10px 14px;
 }
-#reviewsBtn:hover{transform:scale(1.05)}
+.fab .btn-fab{ background:var(--accent); color:#fff; border:none; }
+.fab .admin-btn{ background:#fff; color:#111; border:1px solid #00000014; }
+.fab .track-btn{ background:#fff; color:#111; border:1px solid #00000014; }
 
+/* ================= REVIEWS PANEL ================= */
 #reviewsPanel{
   position:fixed;top:0;left:0;width:100%;height:100%;
   background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;
@@ -214,60 +161,68 @@ a,button{touch-action:manipulation}
 }
 #reviewsBox h2{margin-top:0;color:var(--accent);display:flex;align-items:center;gap:12px;justify-content:space-between}
 #reviewsList{margin-top:10px}
-.reviewItem{
-  background:#1a1c1f;border:1px solid #ffffff12;border-radius:14px;
-  padding:12px;margin-bottom:10px;position:relative;
-}
+.reviewItem{background:#1a1c1f;border:1px solid #ffffff12;border-radius:14px;padding:12px;margin-bottom:10px;position:relative}
 .stars{color:#ffb300;font-size:18px;letter-spacing:1px;margin-bottom:6px}
 .reviewHead{display:flex;justify-content:space-between;align-items:center}
 .reviewName{font-weight:800;color:#ffdca8}
 .reviewText{font-size:14px;margin-top:6px;color:#e6e6e6}
 .reviewMeta{font-size:12px;color:#9aa0a6;margin-top:8px}
-#addReview textarea{
-  width:100%;background:#0f1115;border:1px solid #ffffff12;
-  border-radius:10px;padding:8px;color:#fff;resize:none;height:70px;
-}
-#addReview input{
-  width:100%;margin-top:8px;padding:8px;border-radius:10px;
-  border:1px solid #ffffff12;background:#0f1115;color:#fff;
-}
-.starSelect span{
-  font-size:22px;cursor:pointer;color:#777;margin-right:4px;
-}
+#addReview textarea{width:100%;background:#0f1115;border:1px solid #ffffff12;border-radius:10px;padding:8px;color:#fff;resize:none;height:70px}
+#addReview input{width:100%;margin-top:8px;padding:8px;border-radius:10px;border:1px solid #ffffff12;background:#0f1115;color:#fff}
+.starSelect span{font-size:22px;cursor:pointer;color:#777;margin-right:4px}
 .starSelect span.active{color:#ffb300;text-shadow:0 0 6px #ffb300}
-#closeReviews{margin-top:12px;background:var(--accent);border:none;
-  color:#fff;padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer}
-.delBtn{
-  background:transparent;border:none;color:#ff6767;cursor:pointer;
-  font-size:16px;position:absolute;right:12px;top:12px;
-}
-.delBtn[aria-hidden="true"]{display:none}
-.reviewItem.adminView .delBtn{display:inline}
-.smallMuted{font-size:12px;color:#9aa0a6;margin-top:6px}
-@media (max-width:640px){
-  #reviewsBox{max-width:94%;padding:16px}
+#closeReviews{margin-top:12px;background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+.delBtn{background:transparent;border:none;color:#ff6767;cursor:pointer;font-size:16px;position:absolute;right:12px;top:12px}
+
+/* ================= AUTH overlay ================= */
+:root{ --soft:#ffffff1a; }
+.auth{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:9999}
+.auth.show{display:flex}
+.auth .box{width:min(92vw,420px);background:#121316;border:1px solid var(--soft);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);color:#fff}
+.auth h2{margin-bottom:10px;color:var(--accent)}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.field input[type="password"], .field input[type="text"]{background:#0f1115;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:10px 12px;outline:none}
+.rowc{display:flex;align-items:center;gap:8px;margin-top:8px}
+.actions{display:flex;gap:10px;margin-top:14px}
+.btn{background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:transparent}
+.err{color:#ff9a9a;font-size:12px;margin-top:8px;display:none}
+.ok{color:#22cc88;font-weight:900;margin-top:8px}
+
+/* MOBILE tweaks */
+@media (max-width:768px){
+  .fab-items{ width:calc(100vw - 28px); }
+  .hero{ height:60vh!important; background-position:center center!important; filter:brightness(2.30) contrast(1.20) saturate(1)!important;}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- REVIEWS BUTTON -->
-  <button id="reviewsBtn">Отзиви и препоръки</button>
+  <!-- ========= FAB MENU (hamburger + панели) ========= -->
+  <div id="fabMenu" class="fab">
+    <input type="checkbox" id="menuChk">
+    <!-- 3-то меню (menu–3) -->
+    <label class="menu back menu--3" for="menuChk" aria-label="Меню">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="30" />
+        <path class="line--1" d="M0 40h62c18 0 18-20-17 5L31 55" />
+        <path class="line--2" d="M0 50h80" />
+        <path class="line--3" d="M0 60h62c18 0 18 20-17-5L31 45" />
+      </svg>
+    </label>
 
-  <!-- ADMIN BUTTON -->
-  <button class="admin-btn" id="adminBtn">АДМИН</button>
-
-<!-- TRACK ORDER BUTTON -->
-<button class="track-btn" id="trackBtn" aria-label="Проследи поръчката">
-  ПРОСЛЕДИ ПОРЪЧКАТА
-</button>
+    <!-- бутоните изскачат от тук -->
+    <div class="fab-items">
+      <button id="reviewsBtn" class="btn-fab">Отзиви и препоръки</button>
+      <button id="adminBtn" class="admin-btn">АДМИН</button>
+      <button id="trackBtn" class="track-btn" aria-label="Проследи поръчката">ПРОСЛЕДИ ПОРЪЧКАТА</button>
+    </div>
+  </div>
+  <!-- ========= /FAB MENU ========= -->
 
   <!-- HERO -->
-  <header class="hero">
-    <div class="hero-inner">
-              </div>
-  </header>
+  <header class="hero"><div class="hero-inner"></div></header>
 
   <div class="tab-wrap"><div class="tab-title">WEB МЕНЮ</div></div>
 
@@ -306,45 +261,24 @@ a,button{touch-action:manipulation}
 
 <button id="toTop" class="to-top" title="Към началото">↑</button>
 
-<!-- ===== AUTH OVERLAY (Име + Парола + Запомни ме) ===== -->
+<!-- ===== AUTH OVERLAY ===== -->
 <div id="auth" class="auth" aria-hidden="true">
   <div class="box">
     <h2>Админ достъп</h2>
-
-    <div class="field">
-      <label for="adminName">Име</label>
-      <input id="adminName" type="text" placeholder="Въведи име (напр. Иван)">
-    </div>
-
-    <div class="field">
-      <label for="pwd">Парола</label>
-      <input id="pwd" type="password" placeholder="Въведи админ парола" autocomplete="current-password">
-    </div>
-
-    <div class="rowc">
-      <input id="remember" type="checkbox">
-      <label for="remember">Запомни ме на това устройство</label>
-    </div>
-
-    <div class="actions">
-      <button id="loginBtn" class="btn primary">Вход</button>
-    </div>
-
+    <div class="field"><label for="adminName">Име</label><input id="adminName" type="text" placeholder="Въведи име (напр. Иван)"></div>
+    <div class="field"><label for="pwd">Парола</label><input id="pwd" type="password" placeholder="Въведи админ парола" autocomplete="current-password"></div>
+    <div class="rowc"><input id="remember" type="checkbox"><label for="remember">Запомни ме на това устройство</label></div>
+    <div class="actions"><button id="loginBtn" class="btn primary">Вход</button></div>
     <div id="msg" class="ok" style="display:none">✅ Успешен вход като админ !</div>
     <div id="err" class="err">❌ Грешна парола или липсва име.</div>
   </div>
 </div>
 
-<!-- ===== REVIEWS PANEL MARKUP ===== -->
-<!-- ===== REVIEWS PANEL (с админ вход в панела) ===== -->
+<!-- ===== REVIEWS PANEL ===== -->
 <div id="reviewsPanel" aria-hidden="true">
   <div id="reviewsBox" role="dialog" aria-modal="true" aria-labelledby="reviewsTitle">
-    <h2 id="reviewsTitle">⭐ Отзиви и препоръки
-      <small style="font-size:14px;color:#cfd6d6"> — виждат се от всички</small>
-    </h2>
-
+    <h2 id="reviewsTitle">⭐ Отзиви и препоръки <small style="font-size:14px;color:#cfd6d6"> — виждат се от всички</small></h2>
     <div id="reviewsList" aria-live="polite"></div>
-
     <div id="addReview" style="margin-top:12px">
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
         <div class="starSelect" id="starSelect" aria-label="Оцени със звезди" role="radiogroup"></div>
@@ -361,9 +295,8 @@ a,button{touch-action:manipulation}
   </div>
 </div>
 
-
 <script>
-/* ========== ИНФО ЗА КАРТИНИТА ========== */
+/* ========== КАРТИНКИ ЗА КАТЕГОРИИ ========== */
 const FILE_MAP={burgeri:'snimki/produkti/1menu/burger.jpg',palachinki:'snimki/produkti/1menu/palachinki.jpg',strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',kartofi:'snimki/produkti/1menu/kartofi.jpg',salati:'snimki/produkti/1menu/salata.jpg',portsii:'snimki/produkti/1menu/porciq.jpg',dobavki:'snimki/produkti/1menu/dobavki.jpg',hell:'snimki/produkti/1menu/hell.jpg',voda:'snimki/produkti/ВОДА/voda_snimka.jpg',gazirana_voda:'snimki/produkti/ГАЗИРАНА_ВОДА/gaziranavoda_snimka.jpg',fanta:'snimki/produkti/ФАНТА/fanta_logo.jpg',studen_chai:'snimki/produkti/СТУДЕН_ЧАЙ/studen_chai_logo.jpg',kola:'snimki/produkti/КОЛА/kola_logo.jpg',sok:'snimki/produkti/СОК/cappy_logo.jpg',xixo:'snimki/produkti/ХИХО/xixo_logo.jpg',airqn:'snimki/produkti/АЙРАН/vereq_logo.jpg'};
 document.querySelectorAll('[data-key]').forEach(el=>{
   const key=el.getAttribute('data-key'), path=FILE_MAP[key];
@@ -371,7 +304,7 @@ document.querySelectorAll('[data-key]').forEach(el=>{
   el.setAttribute('href', `index2.html?cat=${encodeURIComponent(key)}`);
 });
 
-/* ========== INTERACTIONS (cards) ========== */
+/* ========== CARD POP ANIM ========== */
 const POP_DELAY=1000;
 function goWithPop(el,url){ el.classList.remove('is-pressed'); el.classList.add('is-popping'); el.dataset.locked='1'; setTimeout(()=>{ location.href=url; },POP_DELAY); }
 function shouldBypassDelay(e){ return e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button===1; }
@@ -390,9 +323,16 @@ const toggle = () => toTop.style.display = scrollY > 300 ? 'grid' : 'none';
 toggle(); addEventListener('scroll', toggle);
 toTop.addEventListener('click', () => scrollTo({ top:0, behavior:'smooth' }));
 
+/* ========== FAB MENU поведение (затваряне при клик извън/ESC) ========== */
+(function(){
+  const fab = document.getElementById('fabMenu');
+  const chk = document.getElementById('menuChk');
+  document.addEventListener('click',(e)=>{ if(!fab.contains(e.target)) chk.checked=false; });
+  document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') chk.checked=false; });
+})();
+
 /* ========== ADMIN LOGIN ========== */
 const ADMIN_PASSWORD='bbqcornera123';
-
 const adminBtn=document.getElementById('adminBtn');
 const authEl=document.getElementById('auth');
 const nameEl=document.getElementById('adminName');
@@ -402,55 +342,31 @@ const loginBtn=document.getElementById('loginBtn');
 const errEl=document.getElementById('err');
 const msgEl=document.getElementById('msg');
 
-
-
-
 function openPanel(){ window.location.href='index4.html'; }
-
 adminBtn.addEventListener('click',()=>{
   const remembered = localStorage.getItem('adminRemembered')==='1';
   const savedName = (localStorage.getItem('adminName')||'').trim();
-
   if(remembered && savedName){
-    localStorage.setItem('adminVerified','1');
-    openPanel();
-    return;
+    localStorage.setItem('adminVerified','1'); openPanel(); return;
   }
-
-  errEl.style.display='none';
-  msgEl.style.display='none';
-  nameEl.value='';
-  pwdEl.value='';
-  rememberEl.checked=false;
-  authEl.classList.add('show');
-  setTimeout(()=>nameEl.focus(),0);
+  errEl.style.display='none'; msgEl.style.display='none';
+  nameEl.value=''; pwdEl.value=''; rememberEl.checked=false;
+  authEl.classList.add('show'); setTimeout(()=>nameEl.focus(),0);
 });
-
 function doLogin(){
   const name=(nameEl.value||'').trim();
   const pwd=(pwdEl.value||'').trim();
   const remember = rememberEl.checked;
-
   if(!name || pwd!==ADMIN_PASSWORD){
     msgEl.style.display='none';
     errEl.textContent = !name ? '❌ Въведи име.' : '❌ Грешна парола.';
-    errEl.style.display='block';
-    return;
+    errEl.style.display='block'; return;
   }
-
-  errEl.style.display='none';
-  msgEl.style.display='block';
-  localStorage.setItem('adminVerified','1');
-  localStorage.setItem('adminName', name);
-  if(remember){
-    localStorage.setItem('adminRemembered','1');
-  }else{
-    localStorage.removeItem('adminRemembered');
-  }
-
+  errEl.style.display='none'; msgEl.style.display='block';
+  localStorage.setItem('adminVerified','1'); localStorage.setItem('adminName', name);
+  if(remember){ localStorage.setItem('adminRemembered','1'); } else { localStorage.removeItem('adminRemembered'); }
   setTimeout(()=>{ authEl.classList.remove('show'); openPanel(); }, 900);
 }
-
 loginBtn.addEventListener('click', doLogin);
 nameEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); pwdEl.focus(); }});
 pwdEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doLogin(); }});
@@ -461,7 +377,7 @@ authEl.addEventListener('click', e=>{ if(e.target===authEl) authEl.classList.rem
 const trackBtn = document.getElementById('trackBtn');
 if (trackBtn) {
   trackBtn.addEventListener('click', () => {
-    const panel = document.getElementById('trackPanel');   // ако има модал на страницата
+    const panel = document.getElementById('trackPanel');
     if (panel) {
       panel.classList.add('show');
       const codeInput = document.getElementById('trackCode');
@@ -472,29 +388,23 @@ if (trackBtn) {
       }
       return;
     }
-    // fallback: пренасочване към тракинг страница
     window.location.href = 'index6.html?tab=tracking';
   });
 }
 
-/* ========== GLOBAL ADMIN CLICK LOGGER (existing) ========== */
+/* ========== GLOBAL ADMIN CLICK LOGGER ========== */
 (function(){
   const who = (localStorage.getItem('adminName') || '').trim();
   if(!who) return;
-
   function logAction(text){
     const k = `logs_${who}`;
     const now = new Date();
     const entry = `${now.toLocaleString()} — ${who} ${text}`;
     const arr = JSON.parse(localStorage.getItem(k) || '[]');
-    arr.unshift(entry);
-    localStorage.setItem(k, JSON.stringify(arr));
-
-    const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
-    known.add(who);
+    arr.unshift(entry); localStorage.setItem(k, JSON.stringify(arr));
+    const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]')); known.add(who);
     localStorage.setItem('logs__admins', JSON.stringify([...known]));
   }
-
   document.addEventListener('click', e=>{
     let desc = '';
     if(e.target.closest('button, a, input, select')){
@@ -508,24 +418,16 @@ if (trackBtn) {
     const page = location.pathname.split('/').pop() || 'непозната страница';
     logAction(`${desc} [${page}]`);
   });
-
   logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
 })();
 </script>
 
-<!-- ========== REVIEWS FUNCTIONALITY (Firebase) ========== -->
-<!-- ========== REVIEWS (Firebase, realtime, admin delete) ========== -->
+<!-- ========== REVIEWS (Firebase) ========== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-  import {
-    getFirestore, collection, query, orderBy, onSnapshot,
-    addDoc, doc, deleteDoc, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
-  import {
-    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
-  } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+  import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 
-  // === Firebase config (твоя реален проект) ===
   const firebaseConfig = {
     apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
     authDomain: "corner-bbq.firebaseapp.com",
@@ -536,12 +438,10 @@ if (trackBtn) {
     measurementId: "G-FWBDL96GN0"
   };
 
-  // Инициализация
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
 
-  // UI елементи
   const panel     = document.getElementById('reviewsPanel');
   const btnOpen   = document.getElementById('reviewsBtn');
   const btnClose  = document.getElementById('closeReviews');
@@ -552,17 +452,6 @@ if (trackBtn) {
   const btnSend   = document.getElementById('sendReview');
   const btnClear  = document.getElementById('clearReview');
 
-  const adminAuthToggle = document.getElementById('adminAuthToggle');
-  const adminAuthBox    = document.getElementById('adminAuthBox');
-  const fbEmail         = document.getElementById('fbEmail');
-  const fbPass          = document.getElementById('fbPass');
-  const fbLoginBtn      = document.getElementById('fbLoginBtn');
-  const fbLogoutBtn     = document.getElementById('fbLogoutBtn');
-  const fbState         = document.getElementById('fbState');
-
-  if (adminAuthToggle) adminAuthToggle.addEventListener('click', ()=> adminAuthBox.classList.toggle('show'));
-
-  // Звезди (0..6)
   let stars = 0;
   function drawStars(){
     starBox.innerHTML = '';
@@ -575,121 +464,68 @@ if (trackBtn) {
     }
   }
   drawStars();
-  const fmtStars = n => (!n||n<=0) ? '' : '★'.repeat(n)+'☆'.repeat(6-n);
 
-  // Публикуване
   let sending = false;
   async function publishReview(){
     if (sending) return;
     const name = (nameInp.value||'').trim() || 'Анонимен';
     const text = (textInp.value||'').trim();
     if (!text && stars===0){ alert('Моля, звезди или текст.'); return; }
-
     sending = true; btnSend.disabled = true;
     try{
-      await addDoc(collection(db,'reviews'), {
-        name, text, stars,
-        date: new Date().toLocaleString(),
-        createdAt: serverTimestamp()
-      });
+      await addDoc(collection(db,'reviews'), { name, text, stars, date: new Date().toLocaleString(), createdAt: serverTimestamp() });
       alert('✅ Благодарим! Отзивът е публикуван.');
       nameInp.value=''; textInp.value=''; stars=0; drawStars();
-    }catch(e){
-      console.error(e);
-      alert('❌ Грешка при публикуване.');
-    }finally{
-      sending = false; btnSend.disabled = false;
-    }
+    }catch(e){ console.error(e); alert('❌ Грешка при публикуване.'); }
+    finally{ sending = false; btnSend.disabled = false; }
   }
 
-  // Рендер + (админ) изтриване
-// === Рендер + просто триене с парола ===
-function renderList(snap) {
-  list.innerHTML = '';
-  if (snap.empty){
-    list.innerHTML = '<div class="smallMuted">Все още няма отзиви. Бъди първи!</div>';
-    return;
-  }
-
-  snap.forEach(d=>{
-    const r = d.data();
-    const safeText = (r.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const item = document.createElement('div');
-    item.className = 'reviewItem';
-    item.innerHTML = `
-      <div class="reviewHead">
-        <div>
-          <div class="reviewName">${r.name || 'Анонимен'}</div>
-          <div class="smallMuted">${r.date || ''}</div>
+  function renderList(snap) {
+    list.innerHTML = '';
+    if (snap.empty){ list.innerHTML = '<div class="smallMuted">Все още няма отзиви. Бъди първи!</div>'; return; }
+    snap.forEach(d=>{
+      const r = d.data();
+      const safeText = (r.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const item = document.createElement('div');
+      item.className = 'reviewItem';
+      item.innerHTML = `
+        <div class="reviewHead">
+          <div>
+            <div class="reviewName">${r.name || 'Анонимен'}</div>
+            <div class="smallMuted">${r.date || ''}</div>
+          </div>
+          <button class="delBtn" data-id="${d.id}" title="Изтрий отзива">✖</button>
         </div>
-        <button class="delBtn" data-id="${d.id}" title="Изтрий отзива">✖</button>
-      </div>
-      <div class="stars">${r.stars ? '★'.repeat(r.stars)+'☆'.repeat(6-r.stars) : 'Няма оценка'}</div>
-      <div class="reviewText">${safeText || '<i style="color:#9aa0a6">(без текст)</i>'}</div>
-      <div class="reviewMeta">Оценка: ${r.stars?`${r.stars}/6`:'—'}</div>
-    `;
-    list.appendChild(item);
-  });
+        <div class="stars">${r.stars ? '★'.repeat(r.stars)+'☆'.repeat(6-r.stars) : 'Няма оценка'}</div>
+        <div class="reviewText">${safeText || '<i style="color:#9aa0a6">(без текст)</i>'}</div>
+        <div class="reviewMeta">Оценка: ${r.stars?`${r.stars}/6`:'—'}</div>`;
+      list.appendChild(item);
+    });
 
-  // просто питаме за парола и трием
-  list.querySelectorAll('.delBtn').forEach(b=>{
-    b.onclick = async () => {
-      const pass = prompt('🔐 Въведи админ паролата за изтриване:');
-      if (pass !== 'bbqcornera123') { alert('❌ Грешна парола!'); return; }
-      if (!confirm('Сигурен ли си, че искаш да изтриеш този отзив?')) return;
+    list.querySelectorAll('.delBtn').forEach(b=>{
+      b.onclick = async () => {
+        const pass = prompt('🔐 Въведи админ паролата за изтриване:');
+        if (pass !== 'bbqcornera123') { alert('❌ Грешна парола!'); return; }
+        if (!confirm('Сигурен ли си, че искаш да изтриеш този отзив?')) return;
+        try { await deleteDoc(doc(db, 'reviews', b.dataset.id)); alert('✅ Отзивът е изтрит успешно.'); }
+        catch (e) { console.error(e); alert('❌ Грешка при изтриване.'); }
+      };
+    });
+  }
 
-      try {
-        await deleteDoc(doc(db, 'reviews', b.dataset.id));
-        alert('✅ Отзивът е изтрит успешно.');
-      } catch (e) {
-        console.error(e);
-        alert('❌ Грешка при изтриване.');
-      }
-    };
-  });
-}
-
-
-  // Живо четене
   const qRef = query(collection(db,'reviews'), orderBy('createdAt','desc'));
   let unsub = null;
   onAuthStateChanged(auth, user=>{
-    const isAdmin = !!user && user.email === 'soulflame.mitko@gmail.com';
-    if (fbState) fbState.textContent = isAdmin ? `Логнат: ${user.email}` : 'Не си логнат';
     if (unsub) { unsub(); unsub=null; }
-    unsub = onSnapshot(qRef, snap => renderList(snap, isAdmin));
+    unsub = onSnapshot(qRef, snap => renderList(snap));
   });
 
-  // Отваряне/затваряне
   if (btnOpen)  btnOpen.onclick  = ()=> panel.classList.add('show');
   if (btnClose) btnClose.onclick = ()=> panel.classList.remove('show');
   panel.onclick = e=>{ if(e.target===panel) panel.classList.remove('show'); };
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') panel.classList.remove('show'); });
-
-  // Бутони
   btnSend.onclick  = publishReview;
   btnClear.onclick = ()=>{ nameInp.value=''; textInp.value=''; stars=0; drawStars(); };
-
-  // Firebase admin вход/изход в панела
-  if (fbLoginBtn) fbLoginBtn.addEventListener('click', async ()=>{
-    try {
-      const email = (fbEmail.value||'').trim();
-      const pass  = (fbPass.value||'').trim();
-      if(!email || !pass){ alert('Въведи имейл и парола.'); return; }
-      await signInWithEmailAndPassword(auth, email, pass);
-      fbPass.value='';
-      alert('✅ Успешен вход.');
-    } catch(e){
-      console.error(e);
-      alert('❌ Неуспешен вход.');
-    }
-  });
-  if (fbLogoutBtn) fbLogoutBtn.addEventListener('click', async ()=>{
-    try { await signOut(auth); alert('✅ Излезе от Firebase.'); }
-    catch(e){ console.error(e); }
-  });
 </script>
-
 </body>
 </html>
-
