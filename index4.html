@@ -268,20 +268,31 @@ let firstLoad = true;
 
 /* ===== Live feed ===== */
 const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
-onSnapshot(q, (snap)=>{
+onSnapshot(q, (snap) => {
   const newOrders = snap.docs.map(d => ({ id: d.id, code: d.id, ...d.data() }));
-  // звук само при нови
-// силен сигнал при нова поръчка
-if (!firstLoad && newOrders.length > orders.length) {
-  sound.currentTime = 0;
-  sound.volume = 1.0;
-  sound.play().catch(()=>{});
-  startAlarm();
-}
+
+  // колко бяха/са ПРЕГЛЕД
+  const prevPending = orders.filter(isPending).length;
+  const nextPending = newOrders.filter(isPending).length;
+
+  // ако има НОВИ чакащи -> ping + старт
+  if (!firstLoad && nextPending > prevPending) {
+    sound.currentTime = 0;
+    sound.volume = 5.0;
+    sound.play().catch(() => {});
+    startAlarm();
+  }
 
   firstLoad = false;
   orders = newOrders;
   render();
+
+  // централизирано: ако има чакащи -> дръж включено; иначе -> спри
+  if (nextPending > 0) {
+    startAlarm();   // idempotent – няма да стартира втори път
+  } else {
+    stopAlarm();
+  }
 });
 
 /* ===== Helpers ===== */
@@ -595,7 +606,6 @@ function bindUI(){
 
 /* ===== Inbox actions ===== */
 async function acceptOrder(id){
-  stopAlarm();
   try{
     await setDoc(doc(db,'orders',id), {
       status:'ПРИГОТВЯ СЕ',
@@ -608,8 +618,7 @@ async function acceptOrder(id){
 }
 
 async function declineOrder(id, reason='🛑 Админ: отказано'){
-  stopAlarm();
-  try{
+    try{
     await setDoc(doc(db,'orders',id), {
       status:'ОТКАЗАНА',
       canceledReason: reason
