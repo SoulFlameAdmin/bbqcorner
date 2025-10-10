@@ -1509,14 +1509,6 @@ window.initPromotionsInline = async function () {
   const safe = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const genId = ()=> 'p_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
 
-  /* ===== Състояние ===== */
-
-/* ===== Състояние ===== */
-let isAdmin = localStorage.getItem('adminLogged') === '1';
-
-
-
-
   let rows = [];                    // [{A,B,price}]
   let view = 'cats', currentKey=null;
 
@@ -1725,14 +1717,16 @@ let isAdmin = localStorage.getItem('adminLogged') === '1';
   function addRow(){ rows.push({A:null,B:null,price:null}); renderRows(); }
   addRowBtn?.addEventListener('click', addRow);
 
-  /* ===== Admin unlock ===== */
+  /* ===== Admin unlock ===== *//* ===== Състояние ===== */
+let isAdmin = localStorage.getItem('adminLogged') === '1';
 function syncAdminUI(){
-  if (builder)    builder.style.display = isAdmin ? 'block' : 'none';
-  if (catalogBtn) catalogBtn.style.display = isAdmin ? 'inline-block' : 'none';
-  if (adminBtn)   adminBtn.textContent = isAdmin ? 'Admin (включен)' : 'Admin';
-  if (!isAdmin)   slide.classList.remove('open');
+  builder.style.display    = isAdmin ? 'block' : 'none';
+  catalogBtn.style.display = isAdmin ? 'inline-block' : 'none';
+  adminBtn.textContent     = isAdmin ? 'Admin (включен)' : 'Admin';
+  if (!isAdmin) slide.classList.remove('open');
   toggleDeleteButtons();
 }
+
 
 adminBtn?.addEventListener('click', () => {
   // ако вече е включен — предлагаме излизане
@@ -1803,40 +1797,6 @@ try{
 }); // 👈 затваря saveBtn click listener-а
 
 
-
-function attachDeleteHandlers(){
-  const buttons = listEl?.querySelectorAll('.promo-del') || [];
-  buttons.forEach(btn => {
-    btn.onclick = async () => {
-      const id = btn.closest('.promo-card')?.dataset.id;
-      if (!isAdmin || !id) return;
-
-      // 🧠 искаме потвърждение
-      const pwd = prompt('Въведи админ паролата за изтриване:');
-      if (pwd !== 'bbqcornera123') {
-        alert('❌ Грешна парола. Изтриването е отказано.');
-        return;
-      }
-
-      if (!confirm('Да изтрия ли тази промоция завинаги?')) return;
-
-      try {
-        await firebase.database().ref('/promotions/items/' + id).update({
-          __deleted: true,
-          active: false,
-          updatedAt: Date.now(),
-          __admin_pass: 'bbqcornera123'
-        });
-        alert('✅ Промоцията е изтрита.');
-      } catch (e) {
-        console.error(e);
-        alert('⚠️ Грешка при изтриване: ' + (e.message || e));
-      }
-    };
-  });
-}
-
-
   /* ===== Рендер на публичния списък ===== */
 /* ===== Рендер на публичния списък ===== */
 function renderList(dataObj){
@@ -1887,39 +1847,11 @@ if (!listEl.__boundAdd) {
   listEl.__boundAdd = true;
 }
 
-// ✅ Делегирано ИЗТРИВАНЕ
-if (!listEl.__boundDel) {
-  listEl.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.promo-del');
+// ✅ Делегирано ДОБАВЯНЕ – КОРЕКТНО
+if (!listEl.__boundAdd) {
+  listEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.promo-add');
     if (!btn) return;
-    if (!isAdmin) return alert('Нямаш права за изтриване.');
-
-    const card = btn.closest('.promo-card');
-    const id = card?.dataset.id || card?.dataset.key;
-    if (!id) return;
-
-    const pwd = prompt('Въведи админ паролата за изтриване:');
-    if (pwd !== 'bbqcornera123') {
-      alert('❌ Грешна парола. Изтриването е отказано.');
-      return;
-    }
-    if (!confirm('Да изтрия ли тази промоция завинаги?')) return;
-
-    try {
-      await firebase.database().ref('/promotions/items/' + id).update({
-        __deleted: true,
-        active: false,
-        updatedAt: Date.now(),
-        __admin_pass: 'bbqcornera123'
-      });
-      alert('✅ Промоцията е изтрита.');
-    } catch (e2) {
-      console.error(e2);
-      alert('⚠️ Грешка при изтриване: ' + (e2.message || e2));
-    }
-  });
-  listEl.__boundDel = true;
-}
 
     const card = btn.closest('.promo-card');
     const pid  = btn.getAttribute('data-id') || card?.dataset.id || card?.dataset.key;
@@ -1928,7 +1860,6 @@ if (!listEl.__boundDel) {
     const snap = window.__lastPromoSnapshot || {};
     let p = snap[pid];
     if (!p) {
-      // fallback ако ключът е различен
       const arr = Object.values(snap || {});
       p = arr.find(x => x && (x.id === pid));
     }
@@ -1946,7 +1877,7 @@ if (!listEl.__boundDel) {
       baseName: name,
       price,
       basePrice: price,
-      addons: [],     // няма добавки при промо
+      addons: [],
       img
     });
 
@@ -1957,7 +1888,6 @@ if (!listEl.__boundDel) {
   });
   listEl.__boundAdd = true;
 }
-
 
 
 
