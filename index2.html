@@ -1870,34 +1870,36 @@ function renderList(dataObj){
         </div>
         <div class="promo-price">${money(p.price || 0)}</div>
         ${addBtn}
-        <button type="button" class="promo-del" ${isAdmin ? '' : 'style="display:none"'} title="Изтрий">✕</button>
+<button type="button" class="promo-del" title="Изтрий">✕</button>
       </article>`;
   }).join('') : `<div style="opacity:.8">Няма активни промоции.</div>`;
 
   toggleDeleteButtons();
 }
 
-
-/* ✅ Делегирано изтриване – закача се само веднъж */
-/* ✅ Делегирано добавяне на промоция в количката */
+// ✅ Делегирано ДОБАВЯНЕ
 if (!listEl.__boundAdd) {
   listEl.addEventListener('click', (e) => {
     const btn = e.target.closest('.promo-add');
     if (!btn) return;
+    // ... добавяне в количката (остави както е)
+  });
+  listEl.__boundAdd = true;
+}
 
+// ✅ Делегирано ИЗТРИВАНЕ
 if (!listEl.__boundDel) {
   listEl.addEventListener('click', async (e) => {
     const btn = e.target.closest('.promo-del');
     if (!btn) return;
-
     if (!isAdmin) return alert('Нямаш права за изтриване.');
 
     const card = btn.closest('.promo-card');
-    const id   = card?.dataset.id || card?.dataset.key;
+    const id = card?.dataset.id || card?.dataset.key;
     if (!id) return;
 
     const pwd = prompt('Въведи админ паролата за изтриване:');
-    if (pwd !== ADMIN_PASS) {
+    if (pwd !== 'bbqcornera123') {
       alert('❌ Грешна парола. Изтриването е отказано.');
       return;
     }
@@ -1908,7 +1910,7 @@ if (!listEl.__boundDel) {
         __deleted: true,
         active: false,
         updatedAt: Date.now(),
-        __admin_pass: ADMIN_PASS
+        __admin_pass: 'bbqcornera123'
       });
       alert('✅ Промоцията е изтрита.');
     } catch (e2) {
