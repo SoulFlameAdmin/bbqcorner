@@ -1075,7 +1075,7 @@ function productCardHTML(it, i, withAddons=false){
   const desc = it.desc ? `<p class="desc">${esc(it.desc)}</p>` : '';
 
   let addonsBlock = '';
-  if (withAddons && (current === 'portsii' || current === 'burgeri')) {
+  if (withAddons){
     if (current === 'portsii') {
       // добавки за ПОРЦИИ
       addonsBlock = `
@@ -1093,10 +1093,19 @@ function productCardHTML(it, i, withAddons=false){
           <label><input type="checkbox" class="addon-checkbox" data-code="chili" data-price="0"> Люто</label>
           <label><input type="checkbox" class="addon-checkbox" data-code="sharena" data-price="0"> Шарена сол</label>
         </div>`;
+    } else if (current === 'strandzhanki') {
+      // сосове за СТРАНДЖАНКИ (0 лв) – без Люто
+      addonsBlock = `
+        <div class="addons">
+          <label><input type="checkbox" class="addon-checkbox" data-code="ketchup" data-price="0"> Кетчуп</label>
+          <label><input type="checkbox" class="addon-checkbox" data-code="mayo" data-price="0"> Майонеза</label>
+          <label><input type="checkbox" class="addon-checkbox" data-code="mustard" data-price="0"> Горчица</label>
+          <label><input type="checkbox" class="addon-checkbox" data-code="sharena" data-price="0"> Шарена сол</label>
+        </div>`;
     }
   }
 
-  const addonsHTML = (withAddons && addonsBlock)
+  const addonsHTML = addonsBlock
     ? `
       <div class="actions-row">
         ${addonsBlock}
@@ -1112,34 +1121,21 @@ function productCardHTML(it, i, withAddons=false){
         data-img="${it.img}">+</button>`;
 
   return `
-  <article class="product ${i%2 ? 'even' : ''}">
-    <div class="photo" style="background-image:url('${it.img}')"></div>
-    <div class="pad">
-      <h3 class="title">${esc(it.name)}</h3>
-      ${desc}
-      <div class="price-badge">
-        <div class="lv">${fmtLv(it.price)}</div>
-        <div class="eur">${fmtEur(it.price)}</div>
+    <article class="product ${i%2 ? 'even' : ''}">
+      <div class="photo" style="background-image:url('${it.img}')"></div>
+      <div class="pad">
+        <h3 class="title">${esc(it.name)}</h3>
+        ${desc}
+        <div class="price-badge">
+          <div class="lv">${fmtLv(it.price)}</div>
+          <div class="eur">${fmtEur(it.price)}</div>
+        </div>
+        ${addonsHTML}
       </div>
-      ${addonsHTML}
-    </div>
-  </article>`;
+    </article>`;
 }
 
-//zoom za porcii snimki 
-// --- 🔍 Увеличаване на снимка при двоен клик ---
-document.addEventListener('dblclick', e => {
-  const imgEl = e.target.closest('.photo');
-  if (!imgEl) return;
-
-  // Ако вече е увеличена – върни я обратно
-  if (imgEl.classList.contains('zoomed')) {
-    imgEl.classList.remove('zoomed');
-    document.body.style.overflow = ''; // връщаме скрола
-    return;
-  }
-
-// --- 🔍 Увеличаване на снимка при двоен клик (desktop) ---
+// --- Увеличаване при двоен клик (desktop) ---
 document.addEventListener('dblclick', e => {
   const imgEl = e.target.closest('.photo');
   if (!imgEl) return;
@@ -1155,7 +1151,7 @@ document.addEventListener('dblclick', e => {
   }
 });
 
-// --- 📱 Double-tap за мобилни (global; не вътре в dblclick!) ---
+// --- Double-tap за мобилни ---
 document.addEventListener('touchend', (e) => {
   const imgEl = e.target.closest('.photo');
   if (!imgEl) return;
@@ -1178,18 +1174,8 @@ document.addEventListener('touchend', (e) => {
   }
 }, { passive: true });
 
+const catHasAddons = cat => (cat === 'portsii' || cat === 'burgeri' || cat === 'strandzhanki');
 
-
-  // Затваряне на други отворени
-  document.querySelectorAll('.photo.zoomed').forEach(el => el.classList.remove('zoomed'));
-
-  // Добавяме клас и изключваме скрола
-  imgEl.classList.add('zoomed');
-  document.body.style.overflow = 'hidden';
-});
-
-
-const catHasAddons = cat => (cat === 'portsii' || cat === 'burgeri');
 
 function activate(cat, {fromNav=false, replace=false} = {}){
 
