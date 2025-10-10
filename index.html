@@ -139,7 +139,6 @@ a,button{touch-action:manipulation}
 .ok{color:#22cc88;font-weight:900;margin-top:8px}
 
 
-
 /* === FINAL FIXED MOBILE BUTTONS === */
 @media screen and (max-width: 768px) {
   :root { --safe-top: env(safe-area-inset-top, 0px); }
@@ -174,24 +173,18 @@ a,button{touch-action:manipulation}
     right: 14px !important;
   }
 
-  /* Корекция на hero да не влиза под бутоните */
-  .hero {
-    margin-top: calc(var(--safe-top) + 100px) !important;
-    height: 54vh !important;
-    background-position: center 75% !important;
-  }
-}
-
-/* === FIX: Премахване на сивото празно поле на мобилен изглед === */
-@media screen and (max-width: 768px) {
+  /* Корекция на hero + по-ярка корица */
   .hero {
     margin-top: 0 !important;
     height: 60vh !important;
     background-position: center center !important;
+    filter: brightness(1.30) contrast(1.20) saturate(1.0) !important;
   }
+
   .wrap {
     padding-top: 0 !important;
   }
+
   body {
     padding-top: 0 !important;
   }
