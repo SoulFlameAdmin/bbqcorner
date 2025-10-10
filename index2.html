@@ -1799,6 +1799,7 @@ try{
 
   /* ===== Рендер на публичния списък ===== */
 /* ===== Рендер на публичния списък ===== */
+/* ===== Рендер на публичния списък ===== */
 function renderList(dataObj){
   const entries = Object.entries(dataObj || {})
     .filter(([_, p]) => p && p.active !== false && !p.__deleted);
@@ -1808,7 +1809,6 @@ function renderList(dataObj){
     const B = p.parts?.[1] || {};
     const domId = p.id || key;
 
-    // 👇 ДОБАВЕНО: бутон "+", който ще вкарва промоцията в количката
     const addBtn = `
       <button type="button"
               class="add-btn promo-add"
@@ -1816,8 +1816,7 @@ function renderList(dataObj){
               title="Добави в количката">+</button>`;
 
     return `
-      <article class="promo-card" role="listitem"
-               data-id="${domId}" data-key="${key}">
+      <article class="promo-card" role="listitem" data-id="${domId}" data-key="${key}">
         <div class="promo-sides">
           <div>
             <div class="promo-img" style="background-image:url('${A.image || ''}')"></div>
@@ -1830,24 +1829,14 @@ function renderList(dataObj){
         </div>
         <div class="promo-price">${money(p.price || 0)}</div>
         ${addBtn}
-<button type="button" class="promo-del" title="Изтрий">✕</button>
+        <button type="button" class="promo-del" title="Изтрий" style="display:${isAdmin ? 'inline-block':'none'}">✕</button>
       </article>`;
   }).join('') : `<div style="opacity:.8">Няма активни промоции.</div>`;
 
   toggleDeleteButtons();
 }
 
-// ✅ Делегирано ДОБАВЯНЕ
-if (!listEl.__boundAdd) {
-  listEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('.promo-add');
-    if (!btn) return;
-    // ... добавяне в количката (остави както е)
-  });
-  listEl.__boundAdd = true;
-}
-
-// ✅ Делегирано ДОБАВЯНЕ – КОРЕКТНО
+/* ✅ Делегирано ДОБАВЯНЕ — само един слушател */
 if (!listEl.__boundAdd) {
   listEl.addEventListener('click', (e) => {
     const btn = e.target.closest('.promo-add');
@@ -1856,13 +1845,8 @@ if (!listEl.__boundAdd) {
     const card = btn.closest('.promo-card');
     const pid  = btn.getAttribute('data-id') || card?.dataset.id || card?.dataset.key;
 
-    // Вземаме промоцията от последния snapshot на RTDB
     const snap = window.__lastPromoSnapshot || {};
-    let p = snap[pid];
-    if (!p) {
-      const arr = Object.values(snap || {});
-      p = arr.find(x => x && (x.id === pid));
-    }
+    let p = snap[pid] || Object.values(snap || {}).find(x => x && (x.id === pid));
     if (!p) return;
 
     const A = p.parts?.[0] || {};
@@ -1881,7 +1865,6 @@ if (!listEl.__boundAdd) {
       img
     });
 
-    // визуална обратна връзка
     const prev = btn.textContent;
     btn.textContent = '✓';
     setTimeout(()=> btn.textContent = prev, 450);
@@ -1889,14 +1872,47 @@ if (!listEl.__boundAdd) {
   listEl.__boundAdd = true;
 }
 
+/* 🗑️ Делегирано ИЗТРИВАНЕ (само за Admin) */
+if (!listEl.__boundDel) {
+  listEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.promo-del');
+    if (!btn) return;
+    if (!isAdmin) return alert('Нямаш права за изтриване.');
 
+    const card = btn.closest('.promo-card');
+    const id = card?.dataset.id || card?.dataset.key;
+    if (!id) return;
 
-  // Live
-  ref.on('value', snap=>{
-    const data = snap.val() || {};
-    window.__lastPromoSnapshot = data;
-    renderList(data);
+    const pwd = prompt('Въведи админ паролата за изтриване:');
+    if (pwd !== 'bbqcornera123') {
+      alert('❌ Грешна парола. Изтриването е отказано.');
+      return;
+    }
+    if (!confirm('Да изтрия ли тази промоция завинаги?')) return;
+
+    try {
+      await firebase.database().ref('/promotions/items/' + id).update({
+        __deleted: true,
+        active: false,
+        updatedAt: Date.now(),
+        __admin_pass: 'bbqcornera123'
+      });
+      alert('✅ Промоцията е изтрита.');
+    } catch (e2) {
+      console.error(e2);
+      alert('⚠️ Грешка при изтриване: ' + (e2.message || e2));
+    }
   });
+  listEl.__boundDel = true;
+}
+
+/* Live sync от RTDB */
+ref.on('value', snap=>{
+  const data = snap.val() || {};
+  window.__lastPromoSnapshot = data;
+  renderList(data);
+});
+
 
   // Ако тъкмо сме отключили админ – да има поне един ред
   if(isAdmin && rows.length===0) addRow();
