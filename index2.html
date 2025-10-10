@@ -539,9 +539,18 @@ const orderNowBtn = document.getElementById('orderNow');
 
 /* === ДОБАВКИ (универсални) === */
 const ADDONS = {
+  // за ПОРЦИИ
   pitka:   { code:'pitka',   label:'Питка',          price:1.50 },
-  raz:     { code:'raz',     label:'Разядка 100 гр', price:1.50 }
+  raz:     { code:'raz',     label:'Разядка 100 гр', price:1.50 },
+
+  // за САНДВИЧИ (всички 0 лв)
+  ketchup: { code:'ketchup', label:'Кетчуп',      price:0 },
+  mayo:    { code:'mayo',    label:'Майонеза',    price:0 },
+  mustard: { code:'mustard', label:'Горчица',     price:0 },
+  chili:   { code:'chili',   label:'Люто',        price:0 },
+  sharena: { code:'sharena', label:'Шарена сол',  price:0 },
 };
+
 
 /* ====== LS ключове (index2 -> index3) ====== */
 const LS_CART_ITEMS = 'bbq_cart_items';
@@ -1037,23 +1046,43 @@ const esc = s => String(s)
 
 function productCardHTML(it, i, withAddons=false){
   const desc = it.desc ? `<p class="desc">${esc(it.desc)}</p>` : '';
-  const addonsHTML = withAddons ? `
-    <div class="actions-row">
-      <div class="addons">
-        <label><input type="checkbox" class="addon-checkbox" data-code="pitka" data-price="1.5"> + Питка</label>
-        <label><input type="checkbox" class="addon-checkbox" data-code="raz" data-price="1.5"> + Разядка 100 гр</label>
-      </div>
+
+  let addonsBlock = '';
+  if (withAddons && (current === 'portsii' || current === 'burgeri')) {
+    if (current === 'portsii') {
+      // добавки за ПОРЦИИ
+      addonsBlock = `
+        <div class="addons">
+          <label><input type="checkbox" class="addon-checkbox" data-code="pitka" data-price="1.5"> + Питка</label>
+          <label><input type="checkbox" class="addon-checkbox" data-code="raz" data-price="1.5"> + Разядка 100 гр</label>
+        </div>`;
+    } else if (current === 'burgeri') {
+      // сосове за САНДВИЧИ (0 лв)
+      addonsBlock = `
+        <div class="addons">
+          <label><input type="checkbox" class="addon-checkbox" data-code="ketchup" data-price="0"> Кетчуп</label>
+          <label><input type="checkbox" class="addon-checkbox" data-code="mayo" data-price="0"> Майонеза</label>
+          <label><input type="checkbox" class="addon-checkbox" data-code="mustard" data-price="0"> Горчица</label>
+          <label><input type="checkbox" class="addon-checkbox" data-code="chili" data-price="0"> Люто</label>
+          <label><input type="checkbox" class="addon-checkbox" data-code="sharena" data-price="0"> Шарена сол</label>
+        </div>`;
+    }
+  }
+
+  const addonsHTML = (withAddons && addonsBlock)
+    ? `
+      <div class="actions-row">
+        ${addonsBlock}
+        <button class="add-btn"
+          data-name="${(it.name||'').replace(/"/g,'&quot;')}"
+          data-price="${it.price}"
+          data-img="${it.img}">+</button>
+      </div>`
+    : `
       <button class="add-btn"
         data-name="${(it.name||'').replace(/"/g,'&quot;')}"
         data-price="${it.price}"
-        data-img="${it.img}">+</button>
-    </div>
-  ` : `
-    <button class="add-btn"
-      data-name="${(it.name||'').replace(/"/g,'&quot;')}"
-      data-price="${it.price}"
-      data-img="${it.img}">+</button>
-  `;
+        data-img="${it.img}">+</button>`;
 
   return `
   <article class="product ${i%2 ? 'even' : ''}">
@@ -1069,6 +1098,7 @@ function productCardHTML(it, i, withAddons=false){
     </div>
   </article>`;
 }
+
 
 const catHasAddons = cat => (cat === 'portsii' || cat === 'burgeri');
 
