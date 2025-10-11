@@ -352,6 +352,8 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   border:0;border-radius:16px;background:#fff;box-shadow:var(--shadow);
 }
 
+
+
 /* === PROMO BUILDER (минимален стил) === */
 .builder{background:#111;border:1px solid var(--soft);border-radius:14px;padding:12px;color:#fff;margin-top:12px}
 .builder-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
@@ -435,6 +437,174 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   line-height:1.35;
   opacity:.9;
 }
+
+
+/* ✅ Да не се сгъчкват сосовете вдясно */
+.actions-row{
+  flex-wrap: wrap;                 /* позволява пренасяне */
+  justify-content: flex-start;     /* стартово подравняване */
+  gap: 10px 14px;
+  margin: 8px 16px 16px 0;         /* без auto отдясно */
+  width: 100%;                     /* редът да заема ширината */
+}
+
+/* блокът със сосовете да има нормална ширина и да расте */
+.actions-row .addons{
+  min-width: 240px;                /* ключово: нека е „четимо“ */
+  max-width: 520px;
+  flex: 1 1 auto;                  /* може да расте/свива */
+  margin-right: 0;                 /* махаме auto, пречеше */
+}
+
+/* бутонът винаги вдясно и на линията на заглавието */
+.actions-row .add-btn{
+  margin-left: auto;               /* избутва се вдясно */
+  align-self: flex-start;          /* изравнен горе */
+}
+
+/* кутията „под снимката“ — да стои красиво */
+.addons-underimg{
+  width: 100%;
+  margin: 8px 16px 10px 16px;
+}
+
+/* допълнителни дребни подобрения за тесни екрани/карти */
+@media (max-width: 1350px){
+  .actions-row .addons{ min-width: 220px; }
+}
+@media (max-width: 1200px){
+  .actions-row{ gap: 8px 12px; }
+}
+@media (max-width: 900px){
+  /* на мобилен: ако няма място, реди „Сосове“ над бутона */
+  .actions-row{ flex-wrap: wrap; }
+  .actions-row .add-btn{ margin-left: 0; }
+}
+
+.product .pad {
+  padding-left: 6px !important;   /* между 4 и 8 е най-добре */
+  margin-left: -8px;              /* ако картите изглеждат твърде вдясно */
+}
+
+.price-badge {
+  margin-left: 2px;               /* цената да следва текста */
+}
+
+/* финално изравняване на текста и цената */
+.product .pad {
+  padding-left: 0 !important;
+  margin-left: -14px;         /* изравнява текста и цената с лявата снимка */
+}
+
+.price-badge {
+  margin-left: -6px;          /* изтегля цената леко наляво */
+  transform: translateY(-5px);/* фино нагоре за визуална ос */
+}
+
+/* Главен контейнер за всеки продукт */
+.product {
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+/* Снимката винаги вляво, с еднакви размери */
+.product .photo {
+  width: 280px;
+  height: 200px;
+  border-radius: 18px;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+/* Текстовият блок вдясно — подравнен по снимката */
+.product .pad {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-left: -6px;          /* леко наляво за перфектна ос */
+  width: 100%;
+}
+
+/* Заглавие и описание */
+.product .title {
+  font-weight: 900;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+.product .desc {
+  font-size: 14px;
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+
+/* Цената */
+.price-badge {
+  align-self: flex-start;
+  margin-top: auto;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 900;
+  font-size: 20px;
+  box-shadow: var(--popShadow);
+  margin-left: 0;
+  transform: translateY(-2px);
+}
+.price-badge .eur {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* Бутонът "+" */
+.add-btn {
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  transition: 0.2s;
+}
+.add-btn:hover {
+  background: var(--accent);
+}
+
+/* Контейнер за „с какво да бъде“ и „сосове“ */
+.actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 10px 14px;
+  width: 100%;
+  margin-top: 8px;
+}
+.actions-row .addons {
+  flex: 1 1 auto;
+  min-width: 220px;
+}
+.actions-row .hdr {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.actions-row label {
+  display: block;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 3px;
+}
+
 
 </style>
 </head>
@@ -842,19 +1012,19 @@ const CATALOG = {
       name:'ПИЛЕШКО ФИЛЕ ПОРЦИЯ',
       price:11.00,
       img:'snimki/produkti/ПОРЦИИ/pileshko.jpg',
-      desc:'Прясно пилешко филе на грил с гарнитура пресни картофи и свежи зеленчуци. Без питка и без разядка. ~550 г.'
+      desc:'Прясно пилешко филе на жар с гарнитура пресни картофи и свежи зеленчуци. Без питка и без разядка. ~550 г.'
     },
     {
       name:'СВИНСКО ФИЛЕ ПОРЦИЯ',
       price:11.00,
       img:'snimki/produkti/ПОРЦИИ/svinsko.jpg',
-      desc:'Крехко свинско контра филе на скара с картофи и свежа гарнитура. Без питка и без разядка. ~550 г.'
+      desc:'Крехко свинско контра филе на жар с картофи и свежа гарнитура. Без питка и без разядка. ~550 г.'
     },
     {
       name:'ТЕЛЕШКИ КЕБАПЧЕТА ПОРЦИЯ',
       price:9.50,
       img:'snimki/produkti/ПОРЦИИ/kebapche.jpg',
-      desc:'Ароматни телешки кебапчета на скара с пресни картофи и салата. Без питка и без разядка. ~550 г.'
+      desc:'Ароматни телешки кебапчета на жар с пресни картофи и салата. Без питка и без разядка. ~550 г.'
     },
     {
       name:'ШАРСКА ПЛЕСКАВИЦА ПОРЦИЯ',
@@ -1071,58 +1241,104 @@ const esc = s => String(s)
   .replace(/>/g,'&gt;')
   .replace(/"/g,'&quot;');
 
-function productCardHTML(it, i, withAddons=false){
+function productCardHTML(it, i, withAddons = false) {
   const desc = it.desc ? `<p class="desc">${esc(it.desc)}</p>` : '';
 
-  let addonsBlock = '';
-  if (withAddons){
-    if (current === 'portsii') {
-      // добавки за ПОРЦИИ
-      addonsBlock = `
-        <div class="addons">
-          <label><input type="checkbox" class="addon-checkbox" data-code="pitka" data-price="1.5"> + Питка</label>
-          <label><input type="checkbox" class="addon-checkbox" data-code="raz" data-price="1.5"> + Разядка 100 гр</label>
+  // по подразбиране – без специални блокове
+  let leftColAfterPhoto = '';   // това ще отиде ПОД снимката (само за burgeri)
+  let actionsRowHTML = '';      // това е редът с сосовете + бутона (само за burgeri)
+  let wholeAddonsBlock = '';    // за другите категории – както си беше
+
+  if (withAddons) {
+    if (current === 'burgeri') {
+      const isPulled = /ДЪРПАНО/i.test(it.name || '');
+      const vegList = isPulled
+        ? [
+            { c:'cheddar', t:'Течен чедър' },
+            { c:'bbq',     t:'Барбекю сос' },
+            { c:'car_on',  t:'Карамелизиран лук' },
+            { c:'pickles', t:'Кисели краставички' },
+            { c:'mayo_h',  t:'Домашна майонеза' },
+            { c:'fries',   t:'Картофки' }
+          ]
+        : [
+            { c:'tomato',   t:'Домат' },
+            { c:'fries',    t:'Пресни картофки' },
+            { c:'onion',    t:'Червен лук' },
+            { c:'iceberg',  t:'Айсберг' },
+            { c:'razyadka', t:'Разядка' }
+          ];
+
+      const sauces = [
+        { c:'ketchup', t:'Кетчуп' },
+        { c:'mayo',    t:'Майонеза' },
+        { c:'mustard', t:'Горчица' },
+        { c:'chili',   t:'Люто' }
+      ];
+
+      // ✅ под снимката
+      leftColAfterPhoto = `
+        <div class="addons addons-underimg">
+          <div class="hdr">Изберете с какво да бъде</div>
+          ${vegList.map(x => `
+            <label><input type="checkbox" class="addon-checkbox" data-code="${x.c}" data-price="0"> ${x.t}</label>
+          `).join('')}
         </div>`;
-    } else if (current === 'burgeri') {
-      // сосове за САНДВИЧИ (0 лв)
-      addonsBlock = `
-        <div class="addons">
-          <label><input type="checkbox" class="addon-checkbox" data-code="ketchup" data-price="0"> Кетчуп</label>
-          <label><input type="checkbox" class="addon-checkbox" data-code="mayo" data-price="0"> Майонеза</label>
-          <label><input type="checkbox" class="addon-checkbox" data-code="mustard" data-price="0"> Горчица</label>
-          <label><input type="checkbox" class="addon-checkbox" data-code="chili" data-price="0"> Люто</label>
-          <label><input type="checkbox" class="addon-checkbox" data-code="sharena" data-price="0"> Шарена сол</label>
+
+      // ✅ отляво на бутона „+“
+      actionsRowHTML = `
+        <div class="actions-row">
+          <div class="addons">
+            <div class="hdr">Сосове</div>
+            ${sauces.map(x => `
+              <label><input type="checkbox" class="addon-checkbox" data-code="${x.c}" data-price="0"> ${x.t}</label>
+            `).join('')}
+          </div>
+          <button class="add-btn"
+            data-name="${(it.name || '').replace(/"/g,'&quot;')}"
+            data-price="${it.price}"
+            data-img="${it.img}">+</button>
+        </div>`;
+    } else if (current === 'portsii') {
+      wholeAddonsBlock = `
+        <div class="actions-row">
+          <div class="addons">
+            <div class="hdr">Добавки</div>
+            <label><input type="checkbox" class="addon-checkbox" data-code="pitka" data-price="1.5"> + Питка</label>
+            <label><input type="checkbox" class="addon-checkbox" data-code="raz" data-price="1.5"> + Разядка 100 гр</label>
+          </div>
+          <button class="add-btn"
+            data-name="${(it.name || '').replace(/"/g,'&quot;')}"
+            data-price="${it.price}"
+            data-img="${it.img}">+</button>
         </div>`;
     } else if (current === 'strandzhanki') {
-      // сосове за СТРАНДЖАНКИ (0 лв) – без Люто
-      addonsBlock = `
-        <div class="addons">
-          <label><input type="checkbox" class="addon-checkbox" data-code="ketchup" data-price="0"> Кетчуп</label>
-          <label><input type="checkbox" class="addon-checkbox" data-code="mayo" data-price="0"> Майонеза</label>
-          <label><input type="checkbox" class="addon-checkbox" data-code="mustard" data-price="0"> Горчица</label>
-          <label><input type="checkbox" class="addon-checkbox" data-code="sharena" data-price="0"> Шарена сол</label>
+      wholeAddonsBlock = `
+        <div class="actions-row">
+          <div class="addons">
+            <div class="hdr">Изберете с какво да бъде</div>
+            <label><input type="checkbox" class="addon-checkbox" data-code="ketchup" data-price="0"> Кетчуп</label>
+            <label><input type="checkbox" class="addon-checkbox" data-code="mayo" data-price="0"> Майонеза</label>
+            <label><input type="checkbox" class="addon-checkbox" data-code="mustard" data-price="0"> Горчица</label>
+            <label><input type="checkbox" class="addon-checkbox" data-code="chili" data-price="0"> Люто</label>
+          </div>
+          <button class="add-btn"
+            data-name="${(it.name || '').replace(/"/g,'&quot;')}"
+            data-price="${it.price}"
+            data-img="${it.img}">+</button>
         </div>`;
     }
   }
 
-  const addonsHTML = addonsBlock
-    ? `
-      <div class="actions-row">
-        ${addonsBlock}
-        <button class="add-btn"
-          data-name="${(it.name||'').replace(/"/g,'&quot;')}"
-          data-price="${it.price}"
-          data-img="${it.img}">+</button>
-      </div>`
-    : `
-      <button class="add-btn"
-        data-name="${(it.name||'').replace(/"/g,'&quot;')}"
-        data-price="${it.price}"
-        data-img="${it.img}">+</button>`;
-
   return `
-    <article class="product ${i%2 ? 'even' : ''}">
-      <div class="photo" style="background-image:url('${it.img}')"></div>
+    <article class="product ${i % 2 ? 'even' : ''}">
+      <!-- LEFT column: снимка + под нея „с какво да бъде“ (само за burgeri) -->
+      <div class="leftcol">
+        <div class="photo" style="background-image:url('${it.img}')"></div>
+        ${leftColAfterPhoto}
+      </div>
+
+      <!-- RIGHT column -->
       <div class="pad">
         <h3 class="title">${esc(it.name)}</h3>
         ${desc}
@@ -1130,10 +1346,20 @@ function productCardHTML(it, i, withAddons=false){
           <div class="lv">${fmtLv(it.price)}</div>
           <div class="eur">${fmtEur(it.price)}</div>
         </div>
-        ${addonsHTML}
+
+        ${
+          current === 'burgeri'
+            ? actionsRowHTML                 // сосове вляво + бутон вдясно
+            : (wholeAddonsBlock ||           // другите категории
+               `<button class="add-btn"
+                  data-name="${(it.name || '').replace(/"/g,'&quot;')}"
+                  data-price="${it.price}"
+                  data-img="${it.img}">+</button>`)
+        }
       </div>
     </article>`;
 }
+
 
 // --- Увеличаване при двоен клик (desktop) ---
 document.addEventListener('dblclick', e => {
