@@ -777,6 +777,108 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   .product .pad .mobile-add-btn{ order:5; }
 }
 
+/* === FINAL MOBILE SAFEGUARD (≤900px) — удължава всички .product и пази "+" видим === */
+@media (max-width:900px){
+  .product {
+    min-height: 1100px !important;  /* 🔥 направи ги супер дълги */
+    position: relative !important;
+    overflow: visible !important;
+  }
+
+  .product .pad {
+    padding-bottom: 160px !important; /* ↑ още повече място под добавките */
+  }
+
+  .actions-row {
+    position: absolute !important;
+    bottom: 20px !important;
+    right: 20px !important;
+  }
+}
+
+@media (max-width:900px){
+  /* Само за САНДВИЧИ на телефон */
+  #sandvichi .price,
+  #sandvichi .actions-row {
+    display: inline-flex !important;
+    align-items: center !important;
+    vertical-align: middle !important;
+  }
+
+  #sandvichi .price {
+    font-weight: 900;
+    color: var(--accent);
+    font-size: 18px;
+    margin-right: 10px;
+  }
+
+  #sandvichi .actions-row {
+    position: static !important;
+    justify-content: flex-end !important;
+    margin-top: 0 !important;
+  }
+
+  #sandvichi .actions-row .add {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 22px;
+    font-weight: 900;
+    border: none;
+  }
+}
+
+/* ✅ Мобилен фикc: цена + "+" на един ред за всички продукти */
+@media (max-width:900px){
+  .product .pad{
+    display:flex !important;
+    flex-wrap:wrap !important;
+    align-items:center !important;
+    gap:8px !important;
+  }
+
+  /* цената */
+  .product .pad .price-badge{
+    order:40 !important;
+    display:inline-flex !important;
+    margin:8px 6px 0 0 !important;
+  }
+
+  /* мобилният бутон (той вече съществува в HTML) */
+  .product .pad .mobile-add-btn{
+    order:41 !important;
+    display:inline-flex !important;
+    width:auto !important;
+    margin:8px 0 0 0 !important;
+    align-self:center !important;
+    font-size:18px !important;
+    padding:10px 14px !important;
+    border-radius:12px !important;
+    background:var(--accent) !important;
+    color:#fff !important;
+  }
+
+  /* скрий реда със сосовете, за да не дублираме бутона */
+  .product .pad .actions-row{
+    display:none !important;
+  }
+}
+
+@media (max-width:900px){
+  .price-plus{
+    display:flex !important;
+    align-items:center !important;
+    gap:10px !important;
+    margin-top:6px !important;
+  }
+  .price-plus .price-badge{ margin:0 !important; }
+  .price-plus .mobile-add-btn,
+  .price-plus .add-btn{ display:inline-flex !important; margin:0 !important; }
+}
+
+
 </style>
 </head>
 <body>
@@ -837,6 +939,34 @@ const PROMO_IMG = (location.protocol === 'file:')
   : '/promociqlogo.jpg';
 const PROMO_LINK_LOCAL = 'file:///E:/BBQ_SITE/index7.html';
 const PROMO_LINK_WEB   = 'index7.html';
+
+
+/* ➜ На телефон мести бутона точно вдясно от цената */
+function ensureMobilePlusRight(){
+  const isPhone = window.matchMedia('(max-width:900px)').matches;
+  if (!isPhone) return;
+
+  document.querySelectorAll('.product .pad').forEach(pad => {
+    const price = pad.querySelector('.price-badge');
+    const btn   = pad.querySelector('.mobile-add-btn') || pad.querySelector('.add-btn');
+    if (!price || !btn) return;
+
+    let row = pad.querySelector('.price-plus');
+    if (!row){
+      row = document.createElement('div');
+      row.className = 'price-plus';
+      price.replaceWith(row);
+      row.appendChild(price);
+    }
+    row.appendChild(btn);
+    btn.style.display = 'inline-flex';
+    btn.style.width   = 'auto';
+    btn.style.margin  = '0';
+  });
+}
+window.addEventListener('load',  ensureMobilePlusRight);
+window.addEventListener('resize', ensureMobilePlusRight);
+
 
 /* (СТАРО) вграден iframe – остава неизползвано, но не пречи */
 function renderPromotionsEmbed(){
@@ -2401,46 +2531,46 @@ adminBtn?.addEventListener('click', () => {
 
 syncAdminUI();
 
-  /* ===== Запис / изтриване (Firebase) ===== */
-  const ref = firebase.database().ref('/promotions/items');
+ /* ===== Запис / изтриване (Firebase) ===== */
+const ref = firebase.database().ref('/promotions/items');
 
-  saveBtn?.addEventListener('click', async ()=>{
-    if(!isAdmin) return alert('Първо отключи Admin.');
-    const toAppend = [];
-    for(const r of rows){
-      if(!r.A || !r.B || !(r.price>0)) continue;
-      const id = genId();
-      toAppend.push({
-        path:'/promotions/items/'+id,
-        data:{
-          id,
-          parts:[
-            {name:r.A.name, desc:r.A.desc||'', price:Number(r.A.price||0), image:r.A.image||'/bbqsaitlogo.jpg'},
-            {name:r.B.name, desc:r.B.desc||'', price:Number(r.B.price||0), image:r.B.image||'/bbqsaitlogo.jpg'}
-          ],
-          price:Number(r.price||0),
-          createdAt:Date.now(),
-          active:true
-        }
-      });
-    }
+saveBtn?.addEventListener('click', async ()=>{
+  if(!isAdmin) return alert('Първо отключи Admin.');
+  const toAppend = [];
+  for(const r of rows){
+    if(!r.A || !r.B || !(r.price>0)) continue;
+    const id = genId();
+    toAppend.push({
+      path:'/promotions/items/'+id,
+      data:{
+        id,
+        parts:[
+          {name:r.A.name, desc:r.A.desc||'', price:Number(r.A.price||0), image:r.A.image||'/bbqsaitlogo.jpg'},
+          {name:r.B.name, desc:r.B.desc||'', price:Number(r.B.price||0), image:r.B.image||'/bbqsaitlogo.jpg'}
+        ],
+        price:Number(r.price||0),
+        createdAt:Date.now(),
+        active:true
+      }
+    });
+  }
 
-if(!toAppend.length) return alert('Добави поне един ред с A, B и цена.');
-try{
-  const updates = {};
-  toAppend.forEach(x => {
-    updates[x.path] = {
-      ...x.data,
-      __admin_pass: 'bbqcornera123'   // 👈 добавено поле за RTDB правилото
-    };
-  });
-  await firebase.database().ref().update(updates);
-  alert('Добавени: ' + toAppend.length + ' промоции.');
-  rows = []; addRow(); renderRows();
-}catch(e){
-  console.error(e);
-  alert('Грешка при запис: ' + (e.message || e));
-}
+  if(!toAppend.length) return alert('Добави поне един ред с A, B и цена.');
+  try{
+    const updates = {};
+    toAppend.forEach(x => {
+      updates[x.path] = {
+        ...x.data,
+        __admin_pass: 'bbqcornera123'   // 👈 добавено поле за RTDB правилото
+      };
+    });
+    await firebase.database().ref().update(updates);
+    alert('Добавени: ' + toAppend.length + ' промоции.');
+    rows = []; addRow(); renderRows();
+  }catch(e){
+    console.error(e);
+    alert('Грешка при запис: ' + (e.message || e));
+  }
 }); // 👈 затваря saveBtn click listener-а
 
 /* ===== Рендер на публичния списък ===== */
@@ -2509,8 +2639,6 @@ if (!listEl.__boundAdd) {
       img
     });
 
-
-
     const prev = btn.textContent;
     btn.textContent = '✓';
     setTimeout(()=> btn.textContent = prev, 450);
@@ -2559,11 +2687,9 @@ ref.on('value', snap=>{
   renderList(data);
 });
 
-
-  // Ако тъкмо сме отключили админ – да има поне един ред
-  if(isAdmin && rows.length===0) addRow();
-};
-
+// Ако тъкмо сме отключили админ – да има поне един ред
+if(isAdmin && rows.length===0) addRow();
+}; // ⟵ край на window.initPromotionsInline
 
 // ако „Промоции“ е била активирана преди модулът да се зареди — стартирай сега
 if (window.__needPromoInit) {
@@ -2571,13 +2697,24 @@ if (window.__needPromoInit) {
   window.__needPromoInit = false;
 }
 
-</script>
 
+// пускаме при зареждане/resize
+addEventListener('load',  ensureMobilePlusRight);
+addEventListener('resize', ensureMobilePlusRight);
 
+// и при всяка смяна на категория (динамично съдържание)
+new MutationObserver(()=>ensureMobilePlusRight())
+  .observe(document.getElementById('productGrid'), {childList:true, subtree:true});
 
+// пускаме при зареждане/resize
+addEventListener('load',  ensureMobilePlusRight);
+addEventListener('resize', ensureMobilePlusRight);
 
-<!-- === ГЛОБАЛЕН ТРАКЕР НА КЛИКОВЕ ЗА АДМИНИ === -->
-<script>
+// и при всяка смяна на категория (динамично съдържание)
+new MutationObserver(()=>ensureMobilePlusRight())
+  .observe(document.getElementById('productGrid'), {childList:true, subtree:true});
+
+// === ГЛОБАЛЕН ТРАКЕР НА КЛИКОВЕ ЗА АДМИНИ ===
 (function(){
   const who = (localStorage.getItem('adminName') || '').trim();
   if(!who) return;
@@ -2611,6 +2748,8 @@ if (window.__needPromoInit) {
 
   logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
 })();
+
+
 </script>
 
 </body>
