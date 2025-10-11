@@ -702,8 +702,8 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 }
 
 
-/* ==== MOBILE (≤900px) САМО ЗА КАРТИ С ПРОДУКТИ ==== */
-/* показваме мобилни копия на заглавие/добавки/сосове/+ и крием десктопските */
+/* ==== MOBILE (≤900px) САМО ЗА КАРТИ С ПРОДУКТИ – 1 под друго ==== */
+/* скриваме мобилните двойници по подразбиране */
 .mobile-title,
 .mobile-veg,
 .mobile-sauces,
@@ -711,52 +711,90 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .mobile-add-btn { display: none; }
 
 @media (max-width: 900px){
-  /* заглавието на десктоп го крием; ползваме мобилното след СНИМКАТА */
+
+  /* Заглавието в .pad го крием; ползваме мобилното ПОД снимката */
   .product .pad .title{ display:none !important; }
   .mobile-title{
     display:block !important;
-    margin:8px 14px 4px 14px;      /* къс интервал след снимката */
+    margin:8px 14px 4px 14px;
     font-weight:900; font-size:18px;
   }
 
-  /* по-късо разстояние под описанието (~1 ред) */
+  /* Описание – къс интервал (реално ~1 ред) */
   .product .pad .desc{
-    margin:1px 14px 1px 14px !important;
-    line-height:1.0 !important;
+    margin:4px 14px 4px 14px !important;
+    line-height:1.3 !important;
   }
 
-  /* крием десктопските блокове */
-  .addons-underimg{ display:none !important; }   /* „Изберете с какво…“ под снимката (десктоп) */
-  .actions-row{ display:none !important; }       /* „Сосове/Добавки +“ ред (десктоп) */
+  /* Крием десктопските блокове за добавки/сосове */
+  .addons-underimg{ display:none !important; }
+  .actions-row{ display:none !important; }
 
-  /* мобилните двойници – малки отстъпи (по 1 ред) */
-  .mobile-veg{     display:block !important; margin:8px 14px 0 14px; }
-  .mobile-sauces{  display:block !important; margin:12px 14px 0 14px; }
-  .mobile-addons{  display:block !important; margin:8px 14px 0 14px; }
+  /* Колонна подредба вътре в картата */
+  .product,
+  .product.even{ display:block !important; }
+  .product .photo{
+    width:100% !important; height:220px !important;
+    margin:0 !important; border-radius:0 !important;
+    background-size:cover !important; background-position:center !important;
+  }
+  .product .pad{
+    display:flex !important;
+    flex-direction:column !important;
+    padding:12px 14px !important;
+    margin-left:0 !important;
+  }
 
-  /* по-плътни чекбоксове */
+  /* Мобилните секции – всяка е блок, пълна ширина */
+  .mobile-veg,
+  .mobile-sauces,
+  .mobile-addons{
+    display:block !important;
+    width:100% !important;
+    margin:6px 0 0 0;            /* къси отстояния една под друга */
+  }
+
+  /* Заглавия в тях (ако имаш .hdr) */
+  .mobile-veg .hdr,
+  .mobile-sauces .hdr,
+  .mobile-addons .hdr{ font-weight:700; margin-bottom:4px; }
+
+  /* Чекбоксовете да падат на нов ред */
   .mobile-veg label,
   .mobile-sauces label,
-  .mobile-addons label{ display:block; margin:3px 0; }
+  .mobile-addons label{
+    display:block;
+    margin:3px 0;
+  }
 
-  /* подредба вътре в .pad: описание → „Изберете…“ → „Сосове/Добавки“ → цена → + (най-долу) */
-  .product .pad{ display:flex !important; flex-direction:column !important; }
-  .product .pad .desc{ order:1; }
-  .product .pad .mobile-veg{ order:2; }
-  .product .pad .mobile-sauces,
-  .product .pad .mobile-addons{ order:3; }
-  .product .pad .price-badge{ order:4; margin:10px 14px 0 14px !important; }
+  /* Цена преди бутона + */
+  .product .pad .price-badge{
+    order:4;
+    align-self:flex-start;
+    margin:8px 0 0 0 !important;
+    border-radius:10px !important;
+    transform:none !important;
+  }
 
-  /* + най-долу; черен фон, бяло „+“ */
+  /* + накрая, черен фон, бяло „+“, цяла ширина */
   .product .pad .mobile-add-btn{
     order:5;
     display:block !important;
-    width:calc(100% - 28px);
-    margin:10px 14px 14px 14px;
-    text-align:center; border-radius:12px; padding:10px 12px; font-size:16px;
-    background:#000 !important; color:#fff !important; box-shadow: var(--shadow);
+    width:100% !important;
+    margin:10px 0 0 0;
+    text-align:center;
+    border-radius:12px; padding:10px 12px; font-size:16px;
+    background:#000 !important; color:#fff !important;
+    box-shadow:var(--shadow);
     font-weight:900;
   }
+
+  /* Финални поръчки: последователност */
+  .product .pad .desc{ order:1; }
+  .product .pad .mobile-veg{ order:2; }      /* Изберете с какво да бъде */
+  .product .pad .mobile-sauces{ order:3; }   /* Сосове */
+  .product .pad .price-badge{ order:4; }
+  .product .pad .mobile-add-btn{ order:5; }
 }
 
 
