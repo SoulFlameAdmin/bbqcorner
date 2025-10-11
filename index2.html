@@ -1583,13 +1583,20 @@ function bindAddButtons(){
       const basePrice = Number(btn.getAttribute('data-price')) || 0;
       const img       = btn.getAttribute('data-img') || '';
 
-      const checks = card ? [...card.querySelectorAll('.addon-checkbox:checked')] : [];
-      const addons = checks.map(ch => {
-        const code  = ch.getAttribute('data-code');
-        const def   = ADDONS[code] || {};
-        const price = Number(ch.getAttribute('data-price')) || def.price || 0;
-        return { code, label: (def.label || '+ Добавка'), price };
-      });
+const checks = card ? [...card.querySelectorAll('.addon-checkbox:checked')] : [];
+const addons = checks.map(ch => {
+  const code  = ch.getAttribute('data-code');
+  const def   = ADDONS[code] || {};
+  const price = Number(ch.getAttribute('data-price')) || def.price || 0;
+
+  // взимаме реалния текст от <label>, ако има такъв; иначе от ADDONS
+  const labelFromDOM = (ch.closest('label')?.textContent || '').trim();
+  const labelClean = (labelFromDOM || def.label || 'Добавка')
+                      .replace(/^\+\s*/, ''); // махни водещо “+ ” ако има
+
+  return { code, label: labelClean, price };
+});
+
 
       const addonsTotal = addons.reduce((s,a)=>s+a.price,0);
       const fullPrice   = basePrice + addonsTotal;
@@ -2192,6 +2199,14 @@ if (!listEl.__boundAdd) {
       addons: [],
       img
     });
+
+// авто-дописване в Забележката
+if (addons.length) {
+  const line = `${baseName}: ${addons.map(a => a.label).join(', ')}`;
+  const cur  = (orderNoteEl.value || '').trim();
+  orderNoteEl.value = cur ? (cur + '\n' + line) : line;
+  localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+}
 
     const prev = btn.textContent;
     btn.textContent = '✓';
