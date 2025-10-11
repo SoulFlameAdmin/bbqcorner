@@ -700,6 +700,53 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
     background: var(--accent) !important;
   }
 }
+
+
+/* ==== MOBILE (≤900px) САМО ЗА КАРТИ С ПРОДУКТИ ==== */
+/* показваме мобилни копия на заглавие/добавки/сосове/+ и крием десктопските */
+.mobile-title,
+.mobile-veg,
+.mobile-sauces,
+.mobile-addons,
+.mobile-add-btn { display: none; }
+
+@media (max-width: 900px){
+  /* заглавие: да е ПРЕДИ снимката – показваме мобилното, крием десктопското */
+  .product .pad .title{ display:none !important; }
+  .mobile-title{
+    display:block !important;
+    margin:12px 14px 0 14px;
+    font-weight:900; font-size:18px;
+  }
+
+  /* скриваме десктопските блокове до бутона и под снимката */
+  .addons-underimg{ display:none !important; }   /* „Изберете с какво…“ под снимката (десктоп) */
+  .actions-row{ display:none !important; }       /* „Сосове/Добавки +“ ред (десктоп) */
+
+  /* показваме МОБИЛНИТЕ двойници (вътре в .pad, след описанието) */
+  .mobile-veg,
+  .mobile-sauces,
+  .mobile-addons{
+    display:block !important;
+    margin:10px 14px 0 14px;
+  }
+
+  /* ред и подредба вътре в .pad, за да стане: описание → „Изберете…“ → „Сосове/Добавки“ → цена → + */
+  .product .pad{ display:flex !important; flex-direction:column !important; }
+  .product .pad .desc{ order:1; }
+  .product .pad .mobile-veg{ order:2; }
+  .product .pad .mobile-sauces,
+  .product .pad .mobile-addons{ order:3; }
+  .product .pad .price-badge{ order:4; margin: 8px 14px 0 14px !important; }
+  .product .pad .mobile-add-btn{
+    order:5;
+    display:block !important; width:calc(100% - 28px);
+    margin:10px 14px 14px 14px;
+    text-align:center; border-radius:12px; padding:10px 12px; font-size:16px;
+    background: var(--accent); color:#fff; box-shadow: var(--shadow);
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1358,9 +1405,17 @@ const esc = s => String(s)
 function productCardHTML(it, i, withAddons = false) {
   const desc = it.desc ? `<p class="desc">${esc(it.desc)}</p>` : '';
 
+  // десктопски блокове (остават както са)
   let leftColAfterPhoto = '';
   let actionsRowHTML = '';
   let wholeAddonsBlock = '';
+
+  // МОБИЛНИ двойници (ще се показват само ≤900px от CSS)
+  let mobileTitle = `<h3 class="mobile-title">${esc(it.name)}</h3>`;
+  let mobileVegHTML = '';       // „Изберете с какво да бъде“ (само Сандвичи)
+  let mobileSaucesHTML = '';    // „Сосове“ (Сандвичи + Странджанки)
+  let mobileAddonsHTML = '';    // „Добавки“ (Порции)
+  let mobileAddBtn = '';        // + бутон (в края на реда)
 
   if (withAddons) {
     if (current === 'burgeri') {
@@ -1389,6 +1444,7 @@ function productCardHTML(it, i, withAddons = false) {
         { c:'chili',   t:'Люто' }
       ];
 
+      /* ДЕСКТОП: „с какво да бъде“ — под снимката (скрито на мобилен) */
       leftColAfterPhoto = `
         <div class="addons addons-underimg">
           <div class="hdr">
@@ -1402,6 +1458,7 @@ function productCardHTML(it, i, withAddons = false) {
           `).join('')}
         </div>`;
 
+      /* ДЕСКТОП: „Сосове“ + бутон (скрито на мобилен) */
       actionsRowHTML = `
         <div class="actions-row">
           <div class="addons">
@@ -1420,7 +1477,41 @@ function productCardHTML(it, i, withAddons = false) {
             data-price="${it.price}"
             data-img="${it.img}">+</button>
         </div>`;
+
+      /* МОБИЛНИ: „Изберете…“, „Сосове“ и „+“ */
+      mobileVegHTML = `
+        <div class="addons mobile-veg">
+          <div class="hdr">
+            Изберете с какво да бъде
+            <button type="button" class="btn-all" data-target="veg">Всичко</button>
+          </div>
+          ${vegList.map(x => `
+            <label>
+              <input type="checkbox" class="addon-checkbox" data-group="veg" data-code="${x.c}" data-price="0"> ${x.t}
+            </label>
+          `).join('')}
+        </div>`;
+
+      mobileSaucesHTML = `
+        <div class="addons mobile-sauces">
+          <div class="hdr">
+            Сосове
+            <button type="button" class="btn-all" data-target="sauce">Всичко</button>
+          </div>
+          ${sauces.map(x => `
+            <label>
+              <input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="${x.c}" data-price="0"> ${x.t}
+            </label>
+          `).join('')}
+        </div>`;
+
+      mobileAddBtn = `
+        <button class="add-btn mobile-add-btn"
+          data-name="${(it.name || '').replace(/"/g,'&quot;')}"
+          data-price="${it.price}"
+          data-img="${it.img}">+</button>`;
     } else if (current === 'portsii') {
+      /* ДЕСКТОП: „Добавки“ + бутон (скрито на мобилен) */
       wholeAddonsBlock = `
         <div class="actions-row">
           <div class="addons">
@@ -1433,7 +1524,22 @@ function productCardHTML(it, i, withAddons = false) {
             data-price="${it.price}"
             data-img="${it.img}">+</button>
         </div>`;
+
+      /* МОБИЛЕН: „Добавки“ и „+“ */
+      mobileAddonsHTML = `
+        <div class="addons mobile-addons">
+          <div class="hdr">Добавки</div>
+          <label><input type="checkbox" class="addon-checkbox" data-code="pitka" data-price="1.5"> + Питка</label>
+          <label><input type="checkbox" class="addon-checkbox" data-code="raz" data-price="1.5"> + Разядка 100 гр</label>
+        </div>`;
+
+      mobileAddBtn = `
+        <button class="add-btn mobile-add-btn"
+          data-name="${(it.name || '').replace(/"/g,'&quot;')}"
+          data-price="${it.price}"
+          data-img="${it.img}">+</button>`;
     } else if (current === 'strandzhanki') {
+      /* ДЕСКТОП: „Сосове“ + бутон (скрито на мобилен) */
       wholeAddonsBlock = `
         <div class="actions-row">
           <div class="addons">
@@ -1451,12 +1557,32 @@ function productCardHTML(it, i, withAddons = false) {
             data-price="${it.price}"
             data-img="${it.img}">+</button>
         </div>`;
+
+      /* МОБИЛЕН: „Сосове“ и „+“ */
+      mobileSaucesHTML = `
+        <div class="addons mobile-sauces">
+          <div class="hdr">
+            Сосове
+            <button type="button" class="btn-all" data-target="sauce">Всичко</button>
+          </div>
+          <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="ketchup" data-price="0"> Кетчуп</label>
+          <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="mayo"    data-price="0"> Майонеза</label>
+          <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="mustard" data-price="0"> Горчица</label>
+          <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="chili"   data-price="0"> Люто</label>
+        </div>`;
+
+      mobileAddBtn = `
+        <button class="add-btn mobile-add-btn"
+          data-name="${(it.name || '').replace(/"/g,'&quot;')}"
+          data-price="${it.price}"
+          data-img="${it.img}">+</button>`;
     }
-  } // <-- това затваря if (withAddons)
+  } // /withAddons
 
   return `
     <article class="product ${i % 2 ? 'even' : ''}">
       <div class="leftcol">
+        ${mobileTitle}
         <div class="photo" style="background-image:url('${it.img}')"></div>
         ${leftColAfterPhoto}
       </div>
@@ -1464,10 +1590,18 @@ function productCardHTML(it, i, withAddons = false) {
       <div class="pad">
         <h3 class="title">${esc(it.name)}</h3>
         ${desc}
+
+        ${current === 'burgeri' ? (mobileVegHTML || '') : ''}
+        ${current === 'burgeri' ? (mobileSaucesHTML || '') : ''}
+        ${current === 'portsii' ? (mobileAddonsHTML || '') : ''}
+        ${current === 'strandzhanki' ? (mobileSaucesHTML || '') : ''}
+
         <div class="price-badge">
           <div class="lv">${fmtLv(it.price)}</div>
           <div class="eur">${fmtEur(it.price)}</div>
         </div>
+
+        ${mobileAddBtn || ''}
 
         ${
           current === 'burgeri'
