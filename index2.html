@@ -711,41 +711,54 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .mobile-add-btn { display: none; }
 
 @media (max-width: 900px){
-  /* заглавие: да е ПРЕДИ снимката – показваме мобилното, крием десктопското */
+  /* заглавието на десктоп го крием; ползваме мобилното след СНИМКАТА */
   .product .pad .title{ display:none !important; }
   .mobile-title{
     display:block !important;
-    margin:12px 14px 0 14px;
+    margin:8px 14px 4px 14px;      /* къс интервал след снимката */
     font-weight:900; font-size:18px;
   }
 
-  /* скриваме десктопските блокове до бутона и под снимката */
+  /* по-късо разстояние под описанието (~1 ред) */
+  .product .pad .desc{
+    margin:6px 14px 8px 14px !important;
+    line-height:1.4 !important;
+  }
+
+  /* крием десктопските блокове */
   .addons-underimg{ display:none !important; }   /* „Изберете с какво…“ под снимката (десктоп) */
   .actions-row{ display:none !important; }       /* „Сосове/Добавки +“ ред (десктоп) */
 
-  /* показваме МОБИЛНИТЕ двойници (вътре в .pad, след описанието) */
-  .mobile-veg,
-  .mobile-sauces,
-  .mobile-addons{
-    display:block !important;
-    margin:10px 14px 0 14px;
-  }
+  /* мобилните двойници – малки отстъпи (по 1 ред) */
+  .mobile-veg{     display:block !important; margin:8px 14px 0 14px; }
+  .mobile-sauces{  display:block !important; margin:12px 14px 0 14px; }
+  .mobile-addons{  display:block !important; margin:8px 14px 0 14px; }
 
-  /* ред и подредба вътре в .pad, за да стане: описание → „Изберете…“ → „Сосове/Добавки“ → цена → + */
+  /* по-плътни чекбоксове */
+  .mobile-veg label,
+  .mobile-sauces label,
+  .mobile-addons label{ display:block; margin:3px 0; }
+
+  /* подредба вътре в .pad: описание → „Изберете…“ → „Сосове/Добавки“ → цена → + (най-долу) */
   .product .pad{ display:flex !important; flex-direction:column !important; }
   .product .pad .desc{ order:1; }
   .product .pad .mobile-veg{ order:2; }
   .product .pad .mobile-sauces,
   .product .pad .mobile-addons{ order:3; }
-  .product .pad .price-badge{ order:4; margin: 8px 14px 0 14px !important; }
+  .product .pad .price-badge{ order:4; margin:10px 14px 0 14px !important; }
+
+  /* + най-долу; черен фон, бяло „+“ */
   .product .pad .mobile-add-btn{
     order:5;
-    display:block !important; width:calc(100% - 28px);
+    display:block !important;
+    width:calc(100% - 28px);
     margin:10px 14px 14px 14px;
     text-align:center; border-radius:12px; padding:10px 12px; font-size:16px;
-    background: var(--accent); color:#fff; box-shadow: var(--shadow);
+    background:#000 !important; color:#fff !important; box-shadow: var(--shadow);
+    font-weight:900;
   }
 }
+
 
 </style>
 </head>
@@ -1410,12 +1423,12 @@ function productCardHTML(it, i, withAddons = false) {
   let actionsRowHTML = '';
   let wholeAddonsBlock = '';
 
-  // МОБИЛНИ двойници (ще се показват само ≤900px от CSS)
+  // МОБИЛНИ двойници (виж CSS кога се показват)
   let mobileTitle = `<h3 class="mobile-title">${esc(it.name)}</h3>`;
-  let mobileVegHTML = '';       // „Изберете с какво да бъде“ (само Сандвичи)
+  let mobileVegHTML = '';       // „Изберете с какво да бъде“ (Сандвичи)
   let mobileSaucesHTML = '';    // „Сосове“ (Сандвичи + Странджанки)
   let mobileAddonsHTML = '';    // „Добавки“ (Порции)
-  let mobileAddBtn = '';        // + бутон (в края на реда)
+  let mobileAddBtn = '';        // + бутон в дъното
 
   if (withAddons) {
     if (current === 'burgeri') {
@@ -1511,7 +1524,6 @@ function productCardHTML(it, i, withAddons = false) {
           data-price="${it.price}"
           data-img="${it.img}">+</button>`;
     } else if (current === 'portsii') {
-      /* ДЕСКТОП: „Добавки“ + бутон (скрито на мобилен) */
       wholeAddonsBlock = `
         <div class="actions-row">
           <div class="addons">
@@ -1525,7 +1537,6 @@ function productCardHTML(it, i, withAddons = false) {
             data-img="${it.img}">+</button>
         </div>`;
 
-      /* МОБИЛЕН: „Добавки“ и „+“ */
       mobileAddonsHTML = `
         <div class="addons mobile-addons">
           <div class="hdr">Добавки</div>
@@ -1539,7 +1550,6 @@ function productCardHTML(it, i, withAddons = false) {
           data-price="${it.price}"
           data-img="${it.img}">+</button>`;
     } else if (current === 'strandzhanki') {
-      /* ДЕСКТОП: „Сосове“ + бутон (скрито на мобилен) */
       wholeAddonsBlock = `
         <div class="actions-row">
           <div class="addons">
@@ -1558,7 +1568,6 @@ function productCardHTML(it, i, withAddons = false) {
             data-img="${it.img}">+</button>
         </div>`;
 
-      /* МОБИЛЕН: „Сосове“ и „+“ */
       mobileSaucesHTML = `
         <div class="addons mobile-sauces">
           <div class="hdr">
@@ -1582,8 +1591,8 @@ function productCardHTML(it, i, withAddons = false) {
   return `
     <article class="product ${i % 2 ? 'even' : ''}">
       <div class="leftcol">
-        ${mobileTitle}
         <div class="photo" style="background-image:url('${it.img}')"></div>
+        ${mobileTitle}          <!-- ⬅️ ИМЕТО вече е СЛЕД снимката -->
         ${leftColAfterPhoto}
       </div>
 
