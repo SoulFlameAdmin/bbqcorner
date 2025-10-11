@@ -996,9 +996,17 @@ const CATALOG = {
     {name:'КАРТОФИ С ЧЕДЪР И БЕКОН',price:6.50,img:'snimki/produkti/КАРТОФИ/kartofisbekonichedur.jpg'},
     {name:'КАРТОФИ С ЧЕДЪР',price:5.00,img:'snimki/produkti/КАРТОФИ/kartofischedur.jpg'},
   ]},
-  salati:{ title:'САЛАТИ', items:[
-    {name:'САЛАТА ЦЕЗАР', price:8.50, img:CAT_THUMBS.salati},
-  ]},
+salati:{ 
+  title:'САЛАТИ', 
+  items:[
+    {
+      name:'САЛАТА ЦЕЗАР', 
+      price:8.50, 
+      img:CAT_THUMBS.salati,
+      desc:'Айсберг, чери домати, крутони, сос Цезар, пилешко филе, пармезан'
+    }
+  ]
+},
   
 
 /* ПОРЦИИ – без питка и без разядка, ~550 г */
@@ -1086,14 +1094,14 @@ dobavki:{ title:'ДОБАВКИ', items:[
     view:'gallery',
     hellPrice:2.00,
     groups:[
-      { heading:'HELL', images:[
+      { heading:'HELL -250мл', images:[
           'snimki/hell_sminki/normal/hell_apple.jpg',
           'snimki/hell_sminki/normal/hell_clasic.jpg',
           'snimki/hell_sminki/normal/hell_classic.jpg',
           'snimki/hell_sminki/normal/hell_redgrape.jpg',
           'snimki/hell_sminki/normal/hell_watermelon.jpg'
       ]},
-      { heading:'ICE COFFE HELL', images:[
+      { heading:'ICE COFFE HELL -250 мл', images:[
           'snimki/hell_sminki/ice_coffe/ice_coffe_capochino.png',
           'snimki/hell_sminki/ice_coffe/ice_coffe_caramel.png',
           'snimki/hell_sminki/ice_coffe/ice_coffe_coconut.png',
@@ -1110,12 +1118,12 @@ dobavki:{ title:'ДОБАВКИ', items:[
     view:'water2',
     groups:[
       { heading:'Devin', pair:[
-          {src:'snimki/produkti/ВОДА/golqma_devin.jpg', label:'Голяма Девин', price:2.00},
-          {src:'snimki/produkti/ВОДА/malka_devin.jpg', label:'Малка Девин',  price:1.50}
+          {src:'snimki/produkti/ВОДА/golqma_devin.jpg', label:'Голяма Девин -1,5Л', price:2.00},
+          {src:'snimki/produkti/ВОДА/malka_devin.jpg', label:'Малка Девин -500мл',  price:1.50}
       ]},
       { heading:'Банкя', pair:[
-          {src:'snimki/produkti/ВОДА/golqma_bankq.jpg', label:'Голяма Банкя', price:2.00},
-          {src:'snimki/produkti/ВОДА/malka_bankq.jpg', label:'Малка Банкя',  price:1.50}
+          {src:'snimki/produkti/ВОДА/golqma_bankq.jpg', label:'Голяма Банкя -1,5Л', price:2.00},
+          {src:'snimki/produkti/ВОДА/malka_bankq.jpg', label:'Малка Банкя -500мл',  price:1.50}
       ]}
     ]
   },
@@ -1124,74 +1132,74 @@ dobavki:{ title:'ДОБАВКИ', items:[
     view:'water2',
     groups:[
       { heading:'Марки', pair:[
-          {src:'snimki/produkti/ГАЗИРАНА_ВОДА/shveps.jpg',  label:'Schweppes', price:1.90},
-          {src:'snimki/produkti/ГАЗИРАНА_ВОДА/sprait.jpg',  label:'Sprite',    price:1.90}
+          {src:'snimki/produkti/ГАЗИРАНА_ВОДА/shveps.jpg',  label:'Schweppes -500мл', price:1.90},
+          {src:'snimki/produkti/ГАЗИРАНА_ВОДА/sprait.jpg',  label:'Sprite -500мл',    price:1.90}
       ]}
     ]
   },
   fanta:{
     title:'ФАНТА',
     items:[
-      {name:'Фанта Портокал',      price:2.00, img:'snimki/produkti/ФАНТА/fanta_portokal.jpg'},
-      {name:'Фанта Лимон',         price:2.00, img:'snimki/produkti/ФАНТА/fanta_lemon.jpg'},
-      {name:'Фанта Лайчи',         price:2.00, img:'snimki/produkti/ФАНТА/fanta_laici.jpg'},
-      {name:'Фанта Tutti Frutti',  price:2.00, img:'snimki/produkti/ФАНТА/fanta_tutti.jpg'},
-      {name:'Фанта Зелена ябълка', price:2.00, img:'snimki/produkti/ФАНТА/fanta_greenapple.jpg'},
-      {name:'Фанта Боровинка',     price:2.00, img:'snimki/produkti/ФАНТА/sinq_blueberry.jpg'}
+      {name:'Фанта Портокал -330мл',      price:2.00, img:'snimki/produkti/ФАНТА/fanta_portokal.jpg'},
+      {name:'Фанта Лимон -330мл',         price:2.00, img:'snimki/produkti/ФАНТА/fanta_lemon.jpg'},
+      {name:'Фанта Лайчи -330мл',         price:2.00, img:'snimki/produkti/ФАНТА/fanta_laici.jpg'},
+      {name:'Фанта Tutti Frutti -330мл',  price:2.00, img:'snimki/produkti/ФАНТА/fanta_tutti.jpg'},
+      {name:'Фанта Зелена ябълка 330мл', price:2.00, img:'snimki/produkti/ФАНТА/fanta_greenapple.jpg'},
+      {name:'Фанта Боровинка -330мл',     price:2.00, img:'snimki/produkti/ФАНТА/sinq_blueberry.jpg'}
     ]
   },
   studen_chai:{
     title:'СТУДЕН ЧАЙ',
     items:[
-      { name:'Fuze Tea Горски плод', price:2.50, img:'snimki/produkti/СТУДЕН_ЧАЙ/fuze_tea_forest_frut.jpg' },
-      { name:'Fuze Tea Праскова',    price:2.50, img:'snimki/produkti/СТУДЕН_ЧАЙ/fuze_tea_praskova.jpg' }
+      { name:'Fuze Tea Горски плод -500мл', price:2.50, img:'snimki/produkti/СТУДЕН_ЧАЙ/fuze_tea_forest_frut.jpg' },
+      { name:'Fuze Tea Праскова -500мл',    price:2.50, img:'snimki/produkti/СТУДЕН_ЧАЙ/fuze_tea_praskova.jpg' }
     ]
   },
   kola:{
     title:'КОЛА',
     items:[
-      {name:'Кола Кен',        price:2.00, img:'snimki/produkti/КОЛА/kolaken.jpg'},
-      {name:'Кола Кен Zero',   price:2.00, img:'snimki/produkti/КОЛА/kolakenzero.jpg'},
-      {name:'Кола Бутилка',    price:2.50, img:'snimki/produkti/КОЛА/kolapvc.jpg'},
-      {name:'Кола Бутилка Zero',price:2.50, img:'snimki/produkti/КОЛА/kolapvczero.jpg'}
+      {name:'Кола Кен -330мл',        price:2.00, img:'snimki/produkti/КОЛА/kolaken.jpg'},
+      {name:'Кола Кен Zero -330мл',   price:2.00, img:'snimki/produkti/КОЛА/kolakenzero.jpg'},
+      {name:'Кола ПВЦ -500мл',    price:2.50, img:'snimki/produkti/КОЛА/kolapvc.jpg'},
+      {name:'Кола ПВЦ Zero -500мл',price:2.50, img:'snimki/produkti/КОЛА/kolapvczero.jpg'}
     ]
   },
   sok:{
     title:'СОК',
     items:[
-      {name:'Cappy Портокал', price:2.50, img:'snimki/produkti/СОК/cappy_orange.jpg'},
-      {name:'Cappy Лимон',    price:2.50, img:'snimki/produkti/СОК/cappy_lemon.jpg'}
+      {name:'Cappy Портокал -500мл', price:2.50, img:'snimki/produkti/СОК/cappy_orange.jpg'},
+      {name:'Cappy Лимон -500мл',    price:2.50, img:'snimki/produkti/СОК/cappy_lemon.jpg'}
     ]
   },
   airqn:{
     title:'АЙРЯН',
     groups:[
       { heading:'Верея', items:[
-          {name:'Айрян Верея Голям', price:2.00, img:'snimki/produkti/АЙРАН/airan_vereq_golqm.jpg'},
-          {name:'Айрян Верея Малък', price:1.50, img:'snimki/produkti/АЙРАН/airan_vereq_maluk.jpg'}
+          {name:'Айрян Верея Голям -480мл', price:2.00, img:'snimki/produkti/АЙРАН/airan_vereq_golqm.jpg'},
+          {name:'Айрян Верея Малък -300мл', price:1.50, img:'snimki/produkti/АЙРАН/airan_vereq_maluk.jpg'}
       ]},
       { heading:'Meggle', items:[
-          {name:'Айрян Meggle Бутилка', price:2.00, img:'snimki/produkti/АЙРАН/megle_airan_butilka.jpg'},
-          {name:'Айрян Meggle Кофа',    price:2.50, img:'snimki/produkti/АЙРАН/megle_airan_kofa.jpg'},
-          {name:'Айрян Meggle Плодов',  price:2.20, img:'snimki/produkti/АЙРАН/mwgle_airan_plodov.jpg'}
+          {name:'Голям Айрян Meggle Бутилка 500 мл', price:2.00, img:'snimki/produkti/АЙРАН/megle_airan_butilka.jpg'},
+          {name:'Айрян Meggle Кофичка -300мл',    price:2.50, img:'snimki/produkti/АЙРАН/megle_airan_kofa.jpg'},
+          {name:'Айрян Meggle Плодов Кофичка -330мл',  price:2.20, img:'snimki/produkti/АЙРАН/mwgle_airan_plodov.jpg'}
       ]}
     ]
   },
   xixo:{
     title:'XIXO',
     items:[
-      {name:'XIXO Cola',               price:1.10, img:'snimki/produkti/ХИХО/xixo_cola.jpg'},
-      {name:'XIXO Cherry Cola',        price:1.10, img:'snimki/produkti/ХИХО/xixo_cherry_cola.jpg'},
-      {name:'XIXO Диня',               price:1.10, img:'snimki/produkti/ХИХО/xixo_dinq.jpg'},
-      {name:'XIXO Горски плод',        price:1.10, img:'snimki/produkti/ХИХО/xixo_gorski_plod.jpg'},
-      {name:'XIXO Green Fusion',       price:1.10, img:'snimki/produkti/ХИХО/xixo_green_fusion.jpg'},
-      {name:'XIXO Круша',              price:1.10, img:'snimki/produkti/ХИХО/xixo_krusha.jpg'},
-      {name:'XIXO Лимон',              price:1.10, img:'snimki/produkti/ХИХО/xixo_limon.jpg'},
-      {name:'XIXO Манго и ананас',     price:1.10, img:'snimki/produkti/ХИХО/xixo_mango_and_pineapple.jpg'},
-      {name:'XIXO Розова лимонада',    price:1.10, img:'snimki/produkti/ХИХО/xixo_pink_lemonade.jpg'},
-      {name:'XIXO Праскова',           price:1.10, img:'snimki/produkti/ХИХО/xixo_praskova.jpg'},
+      {name:'XIXO Cola -250мл',               price:1.10, img:'snimki/produkti/ХИХО/xixo_cola.jpg'},
+      {name:'XIXO Cherry Cola -250мл',        price:1.10, img:'snimki/produkti/ХИХО/xixo_cherry_cola.jpg'},
+      {name:'XIXO Диня -250мл',               price:1.10, img:'snimki/produkti/ХИХО/xixo_dinq.jpg'},
+      {name:'XIXO Горски плод -250мл',        price:1.10, img:'snimki/produkti/ХИХО/xixo_gorski_plod.jpg'},
+      {name:'XIXO Green Fusion -250мл',       price:1.10, img:'snimki/produkti/ХИХО/xixo_green_fusion.jpg'},
+      {name:'XIXO Круша -250мл',              price:1.10, img:'snimki/produkti/ХИХО/xixo_krusha.jpg'},
+      {name:'XIXO Лимон -250мл',              price:1.10, img:'snimki/produkti/ХИХО/xixo_limon.jpg'},
+      {name:'XIXO Манго и ананас -250мл',     price:1.10, img:'snimki/produkti/ХИХО/xixo_mango_and_pineapple.jpg'},
+      {name:'XIXO Розова лимонада -250мл',    price:1.10, img:'snimki/produkti/ХИХО/xixo_pink_lemonade.jpg'},
+      {name:'XIXO Праскова -250мл',           price:1.10, img:'snimki/produkti/ХИХО/xixo_praskova.jpg'},
       {name:'XIXO Ягода',              price:1.10, img:'snimki/produkti/ХИХО/xixo_qgoda.jpg'},
-      {name:'XIXO Tutti Frutti',       price:1.10, img:'snimki/produkti/ХИХО/xixo_tuti_fruity.jpg'}
+      {name:'XIXO Tutti Frutti -250мл',       price:1.10, img:'snimki/produkti/ХИХО/xixo_tuti_fruity.jpg'}
     ]
   }
 };
