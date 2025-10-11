@@ -141,6 +141,7 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .grid-products{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:900px){.grid-products{grid-template-columns:1fr}}
 
+
 /* Карта продукт */
 .product{
   background:#fff;border:1px solid var(--soft);border-radius:22px;box-shadow:var(--shadow);
@@ -605,6 +606,12 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   margin-bottom: 3px;
 }
 
+.btn-all{
+  display:inline-block; margin-left:8px; padding:2px 8px;
+  font-weight:800; font-size:12px; border:1px solid var(--soft);
+  border-radius:8px; background:#f6f6f6; cursor:pointer;
+}
+.btn-all:hover{ background:#fff; box-shadow:var(--shadow); }
 
 </style>
 </head>
@@ -1038,7 +1045,7 @@ dobavki:{ title:'ДОБАВКИ', items:[
   {name:'СИРЕНЕ 100 ГРАМА',   price:1.50, img:'snimki/produkti/ДОБАВКИ/sirene100grama.png'},
   {name:'КАШКАВАЛ 100 ГРАМА', price:1.50, img:'snimki/produkti/ДОБАВКИ/kashkaval100grama.png'},
   {name:'РАЗЯТКА',            price:1.00, img:'snimki/produkti/ДОБАВКИ/razqtka.png'},
-  {name:'МЕСО ДОБАВКА',       price:4.00, img:'snimki/produkti/ДОБАВКИ/mesodobavka.png'},
+  {name:'МЕСО ДОБАВКА',       price:4.00, img:'snimki/produkti/ДОБАВКИ/meso.jpg'},
   {name:'ПИТКА',              price:1.50, img:'snimki/produkti/ДОБАВКИ/pitka2.jpg'},
 ]},
 
@@ -1200,6 +1207,22 @@ const sidebar = document.getElementById('sidebar');
 const grid    = document.getElementById('productGrid');
 const titleEl = document.getElementById('catTitle');
 
+// Делегиран клик за бутоните "Всичко" (за групите veg/sauce)
+grid.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-all');
+  if (!btn) return;
+  const group = btn.dataset.target;
+  const host  = btn.closest('.addons');
+  if (!group || !host) return;
+
+  const boxes = [...host.querySelectorAll(`.addon-checkbox[data-group="${group}"]`)];
+  if (!boxes.length) return;
+
+  const allChecked = boxes.every(b => b.checked);
+  boxes.forEach(b => b.checked = !allChecked);
+});
+
+
 /* Сайдбар рендер */
 sidebar.innerHTML = ORDER.map(key=>{
   const label = (key === 'promocii') ? 'ПРОМОЦИИ' : (CATALOG[key].title);
@@ -1227,10 +1250,6 @@ function prettyLabel(src){
 }
 
 
-
-
-
-/* ===== Активиране на категория + рендер ===== */
 /* ===== Активиране на категория + рендер ===== */
 let current = null;
 
@@ -1244,10 +1263,9 @@ const esc = s => String(s)
 function productCardHTML(it, i, withAddons = false) {
   const desc = it.desc ? `<p class="desc">${esc(it.desc)}</p>` : '';
 
-  // по подразбиране – без специални блокове
-  let leftColAfterPhoto = '';   // това ще отиде ПОД снимката (само за burgeri)
-  let actionsRowHTML = '';      // това е редът с сосовете + бутона (само за burgeri)
-  let wholeAddonsBlock = '';    // за другите категории – както си беше
+  let leftColAfterPhoto = '';
+  let actionsRowHTML = '';
+  let wholeAddonsBlock = '';
 
   if (withAddons) {
     if (current === 'burgeri') {
@@ -1276,22 +1294,30 @@ function productCardHTML(it, i, withAddons = false) {
         { c:'chili',   t:'Люто' }
       ];
 
-      // ✅ под снимката
       leftColAfterPhoto = `
         <div class="addons addons-underimg">
-          <div class="hdr">Изберете с какво да бъде</div>
+          <div class="hdr">
+            Изберете с какво да бъде
+            <button type="button" class="btn-all" data-target="veg">Всичко</button>
+          </div>
           ${vegList.map(x => `
-            <label><input type="checkbox" class="addon-checkbox" data-code="${x.c}" data-price="0"> ${x.t}</label>
+            <label>
+              <input type="checkbox" class="addon-checkbox" data-group="veg" data-code="${x.c}" data-price="0"> ${x.t}
+            </label>
           `).join('')}
         </div>`;
 
-      // ✅ отляво на бутона „+“
       actionsRowHTML = `
         <div class="actions-row">
           <div class="addons">
-            <div class="hdr">Сосове</div>
+            <div class="hdr">
+              Сосове
+              <button type="button" class="btn-all" data-target="sauce">Всичко</button>
+            </div>
             ${sauces.map(x => `
-              <label><input type="checkbox" class="addon-checkbox" data-code="${x.c}" data-price="0"> ${x.t}</label>
+              <label>
+                <input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="${x.c}" data-price="0"> ${x.t}
+              </label>
             `).join('')}
           </div>
           <button class="add-btn"
@@ -1316,11 +1342,14 @@ function productCardHTML(it, i, withAddons = false) {
       wholeAddonsBlock = `
         <div class="actions-row">
           <div class="addons">
-            <div class="hdr">Изберете с какво да бъде</div>
-            <label><input type="checkbox" class="addon-checkbox" data-code="ketchup" data-price="0"> Кетчуп</label>
-            <label><input type="checkbox" class="addon-checkbox" data-code="mayo" data-price="0"> Майонеза</label>
-            <label><input type="checkbox" class="addon-checkbox" data-code="mustard" data-price="0"> Горчица</label>
-            <label><input type="checkbox" class="addon-checkbox" data-code="chili" data-price="0"> Люто</label>
+            <div class="hdr">
+              Сосове
+              <button type="button" class="btn-all" data-target="sauce">Всичко</button>
+            </div>
+            <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="ketchup" data-price="0"> Кетчуп</label>
+            <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="mayo"    data-price="0"> Майонеза</label>
+            <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="mustard" data-price="0"> Горчица</label>
+            <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="chili"   data-price="0"> Люто</label>
           </div>
           <button class="add-btn"
             data-name="${(it.name || '').replace(/"/g,'&quot;')}"
@@ -1328,17 +1357,15 @@ function productCardHTML(it, i, withAddons = false) {
             data-img="${it.img}">+</button>
         </div>`;
     }
-  }
+  } // <-- това затваря if (withAddons)
 
   return `
     <article class="product ${i % 2 ? 'even' : ''}">
-      <!-- LEFT column: снимка + под нея „с какво да бъде“ (само за burgeri) -->
       <div class="leftcol">
         <div class="photo" style="background-image:url('${it.img}')"></div>
         ${leftColAfterPhoto}
       </div>
 
-      <!-- RIGHT column -->
       <div class="pad">
         <h3 class="title">${esc(it.name)}</h3>
         ${desc}
@@ -1349,12 +1376,13 @@ function productCardHTML(it, i, withAddons = false) {
 
         ${
           current === 'burgeri'
-            ? actionsRowHTML                 // сосове вляво + бутон вдясно
-            : (wholeAddonsBlock ||           // другите категории
-               `<button class="add-btn"
+            ? actionsRowHTML
+            : (wholeAddonsBlock || `
+                <button class="add-btn"
                   data-name="${(it.name || '').replace(/"/g,'&quot;')}"
                   data-price="${it.price}"
-                  data-img="${it.img}">+</button>`)
+                  data-img="${it.img}">+</button>
+              `)
         }
       </div>
     </article>`;
@@ -1558,6 +1586,7 @@ if (cat === 'promocii'){
     return;
   }
 
+
   const items = (data?.items)||[];
   if (items.length === 0) {
     grid.innerHTML = `<p style="padding:16px;font-weight:700">Няма продукти в тази категория.</p>`;
@@ -1573,6 +1602,34 @@ grid.innerHTML = `
   bindAddButtons();
   recalcMobileOffsets();
 }
+
+// ⬇️ ГЛОБАЛНО – над bindAddButtons
+function groupPhrase(card, group, kind){
+  if (!card) return '';
+  const all = [...card.querySelectorAll(`.addon-checkbox[data-group="${group}"]`)];
+  if (!all.length) return '';
+
+  const labelOf = (b) => (b.closest('label')?.textContent || '')
+                          .trim()
+                          .replace(/^\+\s*/, '');
+
+  const allNames = all.map(labelOf);
+  const sel      = all.filter(b => b.checked);
+  const selNames = sel.map(labelOf);
+
+  if (sel.length === all.length && sel.length > 0) {
+    return kind === 'veg' ? 'с всичко' : 'всички сосове';
+  }
+  if (sel.length > 0) {
+    const missing = allNames.filter(n => !selNames.includes(n));
+    const base = kind === 'veg' ? 'всичко без — ' : 'всички сосове без — ';
+    return base + (missing.length ? missing.join(', ') : '(нищо)');
+  }
+  return '';
+}
+
+
+
 
 /* Добавяне – слушатели */
 function bindAddButtons(){
@@ -1614,6 +1671,18 @@ const addons = checks.map(ch => {
         addons,
         img
       });
+
+// ✏️ Бележка за тази карта: "с всичко"/"всичко без — …" + "всички сосове …"
+const vegLine   = card ? groupPhrase(card, 'veg',   'veg')   : '';
+const sauceLine = card ? groupPhrase(card, 'sauce', 'sauce') : '';
+
+const parts = [vegLine, sauceLine].filter(Boolean);
+if (parts.length) {
+  const line = `${baseName}: ${parts.join('; ')}`;
+  const cur  = (orderNoteEl.value || '').trim();
+  orderNoteEl.value = cur ? (cur + '\n' + line) : line;
+  localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+}
 
       btn.textContent = '✓';
       setTimeout(()=> btn.textContent = '+', 450);
@@ -2200,13 +2269,7 @@ if (!listEl.__boundAdd) {
       img
     });
 
-// авто-дописване в Забележката
-if (addons.length) {
-  const line = `${baseName}: ${addons.map(a => a.label).join(', ')}`;
-  const cur  = (orderNoteEl.value || '').trim();
-  orderNoteEl.value = cur ? (cur + '\n' + line) : line;
-  localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
-}
+
 
     const prev = btn.textContent;
     btn.textContent = '✓';
