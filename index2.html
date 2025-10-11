@@ -1456,17 +1456,20 @@ const esc = s => String(s)
 function productCardHTML(it, i, withAddons = false) {
   const desc = it.desc ? `<p class="desc">${esc(it.desc)}</p>` : '';
 
-  // десктопски блокове (остават както са)
-  let leftColAfterPhoto = '';
-  let actionsRowHTML = '';
-  let wholeAddonsBlock = '';
+  let leftColAfterPhoto = '';   // десктопски „Изберете…“ под снимката
+  let actionsRowHTML = '';      // десктопски „Сосове/Добавки +“
+  let wholeAddonsBlock = '';    // десктопски добавки за други категории
 
-  // МОБИЛНИ двойници (виж CSS кога се показват)
-  let mobileTitle = `<h3 class="mobile-title">${esc(it.name)}</h3>`;
-  let mobileVegHTML = '';       // „Изберете с какво да бъде“ (Сандвичи)
-  let mobileSaucesHTML = '';    // „Сосове“ (Сандвичи + Странджанки)
-  let mobileAddonsHTML = '';    // „Добавки“ (Порции)
-  let mobileAddBtn = '';        // + бутон в дъното
+  // мобилни двойници (вътре в .pad)
+  const mobileTitleHTML = `<div class="mobile-title">${esc(it.name)}</div>`;
+  let mobileVegHTML = '';
+  let mobileSaucesHTML = '';
+  let mobileAddonsHTML = '';
+  const mobileAddBtnHTML =
+    `<button class="add-btn mobile-add-btn"
+             data-name="${(it.name||'').replace(/"/g,'&quot;')}"
+             data-price="${it.price}"
+             data-img="${it.img}">+</button>`;
 
   if (withAddons) {
     if (current === 'burgeri') {
@@ -1487,7 +1490,6 @@ function productCardHTML(it, i, withAddons = false) {
             { c:'iceberg',  t:'Айсберг' },
             { c:'razyadka', t:'Разядка' }
           ];
-
       const sauces = [
         { c:'ketchup', t:'Кетчуп' },
         { c:'mayo',    t:'Майонеза' },
@@ -1495,7 +1497,7 @@ function productCardHTML(it, i, withAddons = false) {
         { c:'chili',   t:'Люто' }
       ];
 
-      /* ДЕСКТОП: „с какво да бъде“ — под снимката (скрито на мобилен) */
+      // десктоп под снимката
       leftColAfterPhoto = `
         <div class="addons addons-underimg">
           <div class="hdr">
@@ -1509,7 +1511,7 @@ function productCardHTML(it, i, withAddons = false) {
           `).join('')}
         </div>`;
 
-      /* ДЕСКТОП: „Сосове“ + бутон (скрито на мобилен) */
+      // десктоп ред със сосове + +
       actionsRowHTML = `
         <div class="actions-row">
           <div class="addons">
@@ -1529,9 +1531,9 @@ function productCardHTML(it, i, withAddons = false) {
             data-img="${it.img}">+</button>
         </div>`;
 
-      /* МОБИЛНИ: „Изберете…“, „Сосове“ и „+“ */
+      // мобилни двойници вътре в .pad
       mobileVegHTML = `
-        <div class="addons mobile-veg">
+        <div class="mobile-veg">
           <div class="hdr">
             Изберете с какво да бъде
             <button type="button" class="btn-all" data-target="veg">Всичко</button>
@@ -1542,9 +1544,8 @@ function productCardHTML(it, i, withAddons = false) {
             </label>
           `).join('')}
         </div>`;
-
       mobileSaucesHTML = `
-        <div class="addons mobile-sauces">
+        <div class="mobile-sauces">
           <div class="hdr">
             Сосове
             <button type="button" class="btn-all" data-target="sauce">Всичко</button>
@@ -1555,39 +1556,33 @@ function productCardHTML(it, i, withAddons = false) {
             </label>
           `).join('')}
         </div>`;
+    }
 
-      mobileAddBtn = `
-        <button class="add-btn mobile-add-btn"
-          data-name="${(it.name || '').replace(/"/g,'&quot;')}"
-          data-price="${it.price}"
-          data-img="${it.img}">+</button>`;
-    } else if (current === 'portsii') {
+    else if (current === 'portsii') {
+      // десктоп
       wholeAddonsBlock = `
         <div class="actions-row">
           <div class="addons">
             <div class="hdr">Добавки</div>
             <label><input type="checkbox" class="addon-checkbox" data-code="pitka" data-price="1.5"> + Питка</label>
-            <label><input type="checkbox" class="addon-checkbox" data-code="raz" data-price="1.5"> + Разядка 100 гр</label>
+            <label><input type="checkbox" class="addon-checkbox" data-code="raz"   data-price="1.5"> + Разядка 100 гр</label>
           </div>
           <button class="add-btn"
             data-name="${(it.name || '').replace(/"/g,'&quot;')}"
             data-price="${it.price}"
             data-img="${it.img}">+</button>
         </div>`;
-
+      // мобилни
       mobileAddonsHTML = `
-        <div class="addons mobile-addons">
+        <div class="mobile-addons">
           <div class="hdr">Добавки</div>
           <label><input type="checkbox" class="addon-checkbox" data-code="pitka" data-price="1.5"> + Питка</label>
-          <label><input type="checkbox" class="addon-checkbox" data-code="raz" data-price="1.5"> + Разядка 100 гр</label>
+          <label><input type="checkbox" class="addon-checkbox" data-code="raz"   data-price="1.5"> + Разядка 100 гр</label>
         </div>`;
+    }
 
-      mobileAddBtn = `
-        <button class="add-btn mobile-add-btn"
-          data-name="${(it.name || '').replace(/"/g,'&quot;')}"
-          data-price="${it.price}"
-          data-img="${it.img}">+</button>`;
-    } else if (current === 'strandzhanki') {
+    else if (current === 'strandzhanki') {
+      // десктоп
       wholeAddonsBlock = `
         <div class="actions-row">
           <div class="addons">
@@ -1605,9 +1600,9 @@ function productCardHTML(it, i, withAddons = false) {
             data-price="${it.price}"
             data-img="${it.img}">+</button>
         </div>`;
-
+      // мобилни
       mobileSaucesHTML = `
-        <div class="addons mobile-sauces">
+        <div class="mobile-sauces">
           <div class="hdr">
             Сосове
             <button type="button" class="btn-all" data-target="sauce">Всичко</button>
@@ -1617,12 +1612,6 @@ function productCardHTML(it, i, withAddons = false) {
           <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="mustard" data-price="0"> Горчица</label>
           <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="chili"   data-price="0"> Люто</label>
         </div>`;
-
-      mobileAddBtn = `
-        <button class="add-btn mobile-add-btn"
-          data-name="${(it.name || '').replace(/"/g,'&quot;')}"
-          data-price="${it.price}"
-          data-img="${it.img}">+</button>`;
     }
   } // /withAddons
 
@@ -1630,36 +1619,33 @@ function productCardHTML(it, i, withAddons = false) {
     <article class="product ${i % 2 ? 'even' : ''}">
       <div class="leftcol">
         <div class="photo" style="background-image:url('${it.img}')"></div>
-        ${mobileTitle}          <!-- ⬅️ ИМЕТО вече е СЛЕД снимката -->
         ${leftColAfterPhoto}
       </div>
 
       <div class="pad">
+        ${mobileTitleHTML}
         <h3 class="title">${esc(it.name)}</h3>
         ${desc}
 
-        ${current === 'burgeri' ? (mobileVegHTML || '') : ''}
-        ${current === 'burgeri' ? (mobileSaucesHTML || '') : ''}
-        ${current === 'portsii' ? (mobileAddonsHTML || '') : ''}
-        ${current === 'strandzhanki' ? (mobileSaucesHTML || '') : ''}
+        ${mobileVegHTML}
+        ${mobileSaucesHTML || mobileAddonsHTML}
 
         <div class="price-badge">
           <div class="lv">${fmtLv(it.price)}</div>
           <div class="eur">${fmtEur(it.price)}</div>
         </div>
 
-        ${mobileAddBtn || ''}
-
         ${
           current === 'burgeri'
-            ? actionsRowHTML
-            : (wholeAddonsBlock || `
-                <button class="add-btn"
-                  data-name="${(it.name || '').replace(/"/g,'&quot;')}"
-                  data-price="${it.price}"
-                  data-img="${it.img}">+</button>
-              `)
+            ? actionsRowHTML                             /* десктоп ред */
+            : (wholeAddonsBlock ||                       /* десктоп добавки */
+               `<button class="add-btn"
+                   data-name="${(it.name || '').replace(/"/g,'&quot;')}"
+                   data-price="${it.price}"
+                   data-img="${it.img}">+</button>`)
         }
+
+        ${mobileAddBtnHTML}  <!-- мобилен + (черен) -->
       </div>
     </article>`;
 }
