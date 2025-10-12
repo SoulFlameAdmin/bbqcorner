@@ -778,44 +778,75 @@ function productCardHTML(it, i, withAddons = false) {
     </article>`;
 }
 
-/* --- Увеличаване при двоен клик (desktop) --- */
-document.addEventListener("dblclick", e => {
-  const imgEl = e.target.closest(".photo");
-  if (!imgEl) return;
+/* === Fullscreen zoom (dblclick / double-tap) — отваря оригинала от папка snimki === */
+(function(){
+  let lastTap = 0;
 
-  const alreadyZoomed = imgEl.classList.contains("zoomed");
-  document.querySelectorAll(".photo.zoomed").forEach(el => el.classList.remove("zoomed"));
+  function openZoom(src){
+    if(!src) return;
 
-  if (alreadyZoomed) {
-    document.body.style.overflow = "";
-  } else {
-    imgEl.classList.add("zoomed");
-    document.body.style.overflow = "hidden";
-  }
-});
-
-/* --- Double-tap за мобилни --- */
-document.addEventListener("touchend", (e) => {
-  const imgEl = e.target.closest(".photo");
-  if (!imgEl) return;
-
-  const now = Date.now();
-  const last = imgEl._lastTap || 0;
-
-  if (now - last < 280) {
-    const already = imgEl.classList.contains("zoomed");
-    document.querySelectorAll(".photo.zoomed").forEach(el => el.classList.remove("zoomed"));
-    if (!already) {
-      imgEl.classList.add("zoomed");
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
+    // 🧠 ако не идва от snimki/, опитай да намериш оригинала
+    let zoomSrc = src;
+    if (!src.includes("snimki/")) {
+      const name = src.split("/").pop().split("?")[0]; // извадим името на файла
+      zoomSrc = "snimki/" + name;                      // сочи към snimki/име
     }
-    imgEl._lastTap = 0;
-  } else {
-    imgEl._lastTap = now;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'zoom-overlay';
+    const img = new Image();
+    img.src = zoomSrc;
+    img.alt = '';
+    wrap.appendChild(img);
+
+    function close(){
+      document.body.style.overflow = '';
+      wrap.remove();
+      document.removeEventListener('keydown', onEsc);
+    }
+    function onEsc(e){ if(e.key === 'Escape') close(); }
+
+    wrap.addEventListener('click', close);
+    document.addEventListener('keydown', onEsc);
+    document.body.appendChild(wrap);
+    document.body.style.overflow = 'hidden';
   }
-}, { passive: true });
+
+  function bgUrlOf(el){
+    const bg = getComputedStyle(el).backgroundImage; // url("...") или none
+    if(!bg || bg === 'none') return '';
+    const m = bg.match(/^url\((['"]?)(.+)\1\)$/i);
+    return m ? m[2] : '';
+  }
+
+  // 📱 Double tap (мобилно)
+  document.addEventListener('touchend', (e)=>{
+    const now = Date.now();
+    if(now - lastTap > 280){ lastTap = now; return; }
+    lastTap = 0;
+
+    const imgEl   = e.target.closest('.tile img, .water-card img');
+    const photoEl = e.target.closest('.photo');
+
+    if (imgEl) {
+      openZoom(imgEl.currentSrc || imgEl.src);
+    } else if (photoEl) {
+      openZoom(bgUrlOf(photoEl));
+    }
+  }, {passive:true});
+
+  // 💻 Double click (десктоп)
+  document.addEventListener('dblclick', (e)=>{
+    const imgEl   = e.target.closest('.tile img, .water-card img');
+    const photoEl = e.target.closest('.photo');
+    if (imgEl) {
+      openZoom(imgEl.currentSrc || imgEl.src);
+    } else if (photoEl) {
+      openZoom(bgUrlOf(photoEl));
+    }
+  });
+})();
+
 
 /* помощник за изреченията при бележката */
 function groupPhrase(card, group, kind){
