@@ -467,48 +467,31 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   }
 }
 
-
-/* === UNIVERSAL WATER-STYLE "+" === */
-.product, .tile, .water-card { position: relative; }
-
-/* цена вляво, място за бутона вдясно */
-.product .price-badge,
-.tile .price-badge,
-.water-card .price-badge {
-  display:inline-flex !important;
-  margin:0 56px 0 0 !important;
-  padding:10px 14px !important;
-  border-radius:12px !important;
+/* === FULLSCREEN LIGHTBOX === */
+.bbq-lightbox{
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0,0,0,.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
 }
-
-/* кръгъл черен + вдясно-долу */
-.product .add-btn,
-.tile .add-btn,
-.water-card .add-btn {
-  position:absolute !important;
-  right:12px; bottom:12px;
-  width:36px; height:36px;
-  display:flex !important; align-items:center; justify-content:center;
-  padding:0 !important;
-  border-radius:50% !important;
-  background:#000 !important; color:#fff !important;
-  font-size:20px !important; font-weight:900 !important;
-  box-shadow:0 6px 16px rgba(0,0,0,.25);
-  z-index:2;
+.bbq-lightbox.show{ display: flex; }
+.bbq-lightbox img{
+  max-width: 96vw;
+  max-height: 96vh;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 0 40px rgba(0,0,0,.6);
 }
-.product .add-btn:hover,
-.tile .add-btn:hover,
-.water-card .add-btn:hover { background:var(--accent) !important; }
-
-@media (max-width:900px){
-  .product .add-btn, .tile .add-btn, .water-card .add-btn {
-    width:42px; height:42px; font-size:22px !important;
-    right:10px; bottom:10px;
-  }
-  .product .price-badge, .tile .price-badge, .water-card .price-badge {
-    margin-right:62px !important;
-  }
+.bbq-lightbox .close{
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 26px;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
 }
-
-/* ако някой стар стил го е скривал */
-.product .add-btn{ display:flex !important; }

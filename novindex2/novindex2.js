@@ -1183,3 +1183,57 @@ window.addEventListener("scroll", () => {
   }
 });
 
+/* === FULLSCREEN ZOOM: двойно докосване/клик === */
+(function(){
+  const lb = document.getElementById('bbqLightbox');
+  const lbImg = document.getElementById('bbqLightImg');
+  const lbClose = lb.querySelector('.close');
+
+  function extractBgUrl(el){
+    const bg = getComputedStyle(el).backgroundImage || '';
+    const m = bg.match(/url\(["']?(.*?)["']?\)/i);
+    return m ? m[1] : '';
+  }
+
+  function openLightboxFrom(el){
+    const src = extractBgUrl(el);
+    if(!src) return;
+    lbImg.src = src;
+    lb.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox(){
+    lb.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  lbClose.addEventListener('click', closeLightbox);
+  lb.addEventListener('click', e=>{
+    if(e.target===lb) closeLightbox();
+  });
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape') closeLightbox();
+  });
+
+  // Desktop: двойно кликване
+  document.addEventListener('dblclick', e=>{
+    const photo = e.target.closest('.photo, .water-card img, .tile img');
+    if(!photo) return;
+    openLightboxFrom(photo);
+  });
+
+  // Mobile: двойно докосване
+  let lastTap = 0, tapTarget = null;
+  document.addEventListener('touchend', e=>{
+    const photo = e.target.closest('.photo, .water-card img, .tile img');
+    if(!photo) return;
+    const now = Date.now();
+    if(tapTarget===photo && now-lastTap<300){
+      openLightboxFrom(photo);
+      tapTarget = null; lastTap = 0;
+    }else{
+      tapTarget = photo; lastTap = now;
+    }
+  }, {passive:true});
+})();
