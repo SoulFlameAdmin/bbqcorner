@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Corner BBQ — Категория</title>
+
+  <!-- ВАЖНО: за да работят пътищата snimki/... от основната папка -->
+  <base href="../">
+
+  <!-- Икони -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+  <!-- Локален стил -->
+  <link rel="stylesheet" href="novindex2/novindex2.css" />
+</head>
+<body>
+
+  <div class="app">
+    <!-- Sidebar (ляво) -->
+    <aside class="sidebar">
+      <div class="sidebar-inner" id="sidebar"></div>
+    </aside>
+
+    <!-- Основно съдържание -->
+    <main class="content">
+      <!-- HOME -->
+      <a class="home-pill" href="index.html" title="Начало">
+        <i class="bi bi-house"></i><span>Начало</span>
+      </a>
+
+      <!-- CART BTN -->
+      <button
+        class="cart-btn"
+        id="cartBtn"
+        type="button"
+        title="Количка"
+        aria-controls="cartOverlay"
+        aria-expanded="false">
+        <i class="bi bi-cart3"></i>
+        <span>Количка</span>
+        <span class="cart-count" id="cartCount" aria-live="polite" aria-atomic="true">0</span>
+      </button>
+
+      <h1 class="h1" id="catTitle">САНДВИЧИ</h1>
+      <div id="productGrid"></div>
+    </main>
+  </div>
+
+  <!-- CART MODAL -->
+  <div class="cart-overlay" id="cartOverlay" aria-hidden="true">
+    <div class="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
+      <div class="cart-head">
+        <div class="title" id="cartTitle"><i class="bi bi-cart3"></i> Твоята количка</div>
+        <button class="cart-close" id="cartClose" type="button" aria-label="Затвори">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="cart-items" id="cartItems" role="list"></div>
+
+      <!-- Забележка към поръчката -->
+      <div id="noteWrapper" style="display:none; margin-top:14px;">
+        <label for="orderNote" style="font-weight:900; color:#ff7a00; display:block; margin-bottom:6px;">
+          Забележка към поръчката:
+        </label>
+        <textarea id="orderNote" rows="3" placeholder="Добавете специални изисквания или бележка..."
+          style="width:100%; border:1px solid #ccc; border-radius:10px; padding:10px; font-family:inherit; resize:vertical;"></textarea>
+      </div>
+
+      <div class="cart-total" id="cartTotalRow" style="display:none">
+        <span>Общо:</span>
+        <span id="cartTotal"></span>
+      </div>
+
+      <div class="cart-actions">
+        <button id="orderNow" class="order-btn" type="button" disabled>Поръчай сега</button>
+      </div>
+    </div>
+  </div>
+
+  <noscript style="display:block; padding:12px; text-align:center; font-weight:700;">
+    За да използвате сайта, активирайте JavaScript.
+  </noscript>
+
+  <!-- Локален скрипт -->
+  <script src="novindex2/novindex2.js" defer></script>
+</body>
+</html>

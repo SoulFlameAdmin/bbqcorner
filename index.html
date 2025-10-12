@@ -296,11 +296,20 @@ a,button{touch-action:manipulation}
 <script>
 /* ========== КАРТИНКИ ЗА КАТЕГОРИИ ========== */
 const FILE_MAP={burgeri:'snimki/produkti/1menu/burger.jpg',palachinki:'snimki/produkti/1menu/palachinki.jpg',strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',kartofi:'snimki/produkti/1menu/kartofi.jpg',salati:'snimki/produkti/1menu/salata.jpg',portsii:'snimki/produkti/1menu/porciq.jpg',dobavki:'snimki/produkti/1menu/dobavki.jpg',hell:'snimki/produkti/1menu/hell.jpg',voda:'snimki/produkti/ВОДА/voda_snimka.jpg',gazirana_voda:'snimki/produkti/ГАЗИРАНА_ВОДА/gaziranavoda_snimka.jpg',fanta:'snimki/produkti/ФАНТА/fanta_logo.jpg',studen_chai:'snimki/produkti/СТУДЕН_ЧАЙ/studen_chai_logo.jpg',kola:'snimki/produkti/КОЛА/kola_logo.jpg',sok:'snimki/produkti/СОК/cappy_logo.jpg',xixo:'snimki/produkti/ХИХО/xixo_logo.jpg',airqn:'snimki/produkti/АЙРАН/vereq_logo.jpg'};
+// Къде да отваряме категориите
+const CATEGORY_PAGE_LOCAL = 'file:///E:/BBQ_SITE/novindex2/novindex2.html';
+const CATEGORY_PAGE_WEB   = 'novindex2/novindex2.html';
+const CATEGORY_PAGE       = (location.protocol === 'file:') ? CATEGORY_PAGE_LOCAL : CATEGORY_PAGE_WEB;
+
 document.querySelectorAll('[data-key]').forEach(el=>{
-  const key=el.getAttribute('data-key'), path=FILE_MAP[key];
-  if(path) el.querySelector('.img').style.backgroundImage=`url("${path}")`;
-  el.setAttribute('href', `index2.html?cat=${encodeURIComponent(key)}`);
+  const key  = el.getAttribute('data-key');
+  const path = FILE_MAP[key];
+  if (path) el.querySelector('.img').style.backgroundImage = `url("${path}")`;
+
+  // -> вече към novindex2/novindex2.html
+  el.setAttribute('href', `${CATEGORY_PAGE}?cat=${encodeURIComponent(key)}`);
 });
+
 
 /* ========== CARD POP ANIM ========== */
 const POP_DELAY=1000;
