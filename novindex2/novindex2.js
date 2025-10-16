@@ -1173,89 +1173,95 @@ function recalcMobileOffsets(){
   if(!isMobile) return;
 
   const cart = document.getElementById("cartBtn");
-  const sb = document.querySelector(".sidebar");
+  const sb   = document.querySelector(".sidebar");
 
   const cartH = cart ? Math.ceil(cart.offsetHeight) + 12 : 54;
-  const sbH = sb ? Math.ceil(sb.getBoundingClientRect().height) : 100;
+  const sbH   = sb   ? Math.ceil(sb.getBoundingClientRect().height) : 100;
 
   document.documentElement.style.setProperty("--mobile-cart-h", cartH + "px");
   document.documentElement.style.setProperty("--mobile-sidebar-h", sbH + "px");
 }
-addEventListener("load", recalcMobileOffsets);
+addEventListener("load", recalcMobileOffsets, { once:true });
 addEventListener("resize", recalcMobileOffsets);
 addEventListener("orientationchange", recalcMobileOffsets);
 
-const sbObserver = new MutationObserver(()=>recalcMobileOffsets());
-sbObserver.observe(document.getElementById("sidebar"), { childList:true, subtree:true });
+const sidebarNode = document.getElementById("sidebar");
+if (sidebarNode) {
+  const sbObserver = new MutationObserver(recalcMobileOffsets);
+  sbObserver.observe(sidebarNode, { childList:true, subtree:true });
+}
 
+/* Скриване/показване на сайдбара при скрол */
 let lastScrollY = window.scrollY;
 let ticking = false;
+
 function handleScrollHideSidebar() {
   const sidebarEl = document.querySelector(".sidebar");
-  if (!sidebarEl) return;
+  if (!sidebarEl) { ticking = false; return; }
 
   const currentY = window.scrollY;
-  if (currentY > lastScrollY + 10) { sidebarEl.classList.add("hide-on-scroll"); }
-  else if (currentY < lastScrollY - 10) { sidebarEl.classList.remove("hide-on-scroll"); }
-
+  if (currentY > lastScrollY + 10) {
+    sidebarEl.classList.add("hide-on-scroll");
+  } else if (currentY < lastScrollY - 10) {
+    sidebarEl.classList.remove("hide-on-scroll");
+  }
   lastScrollY = currentY;
   ticking = false;
 }
-});
+
+addEventListener("scroll", () => {
+  if (!ticking) {
+    ticking = true;
+    requestAnimationFrame(handleScrollHideSidebar);
+  }
+}, { passive:true });
 
 /* === FULLSCREEN ZOOM: двойно докосване/клик === */
 (function(){
-  const lb = document.getElementById('bbqLightbox');
-  const lbImg = document.getElementById('bbqLightImg');
-  const lbClose = lb.querySelector('.close');
+  const lb     = document.getElementById('bbqLightbox');
+  const lbImg  = document.getElementById('bbqLightImg');
+  const lbClose= lb ? lb.querySelector('.close') : null;
+  if (!lb || !lbImg || !lbClose) return;
 
   function extractBgUrl(el){
     const bg = getComputedStyle(el).backgroundImage || '';
     const m = bg.match(/url\(["']?(.*?)["']?\)/i);
     return m ? m[1] : '';
   }
-
   function openLightboxFrom(el){
-    const src = extractBgUrl(el);
+    const src = el.tagName === 'IMG' ? el.src : extractBgUrl(el);
     if(!src) return;
     lbImg.src = src;
     lb.classList.add('show');
     document.body.style.overflow = 'hidden';
   }
-
   function closeLightbox(){
     lb.classList.remove('show');
     document.body.style.overflow = '';
   }
 
   lbClose.addEventListener('click', closeLightbox);
-  lb.addEventListener('click', e=>{
-    if(e.target===lb) closeLightbox();
-  });
-  document.addEventListener('keydown', e=>{
-    if(e.key==='Escape') closeLightbox();
-  });
+  lb.addEventListener('click', e => { if(e.target===lb) closeLightbox(); });
+  document.addEventListener('keydown', e => { if(e.key==='Escape') closeLightbox(); });
 
   // Desktop: двойно кликване
-  document.addEventListener('dblclick', e=>{
+  document.addEventListener('dblclick', e => {
     const photo = e.target.closest('.photo, .water-card img, .tile img');
-    if(!photo) return;
+    if (!photo) return;
     openLightboxFrom(photo);
   });
 
   // Mobile: двойно докосване
   let lastTap = 0, tapTarget = null;
-  document.addEventListener('touchend', e=>{
+  document.addEventListener('touchend', e => {
     const photo = e.target.closest('.photo, .water-card img, .tile img');
-    if(!photo) return;
+    if (!photo) return;
     const now = Date.now();
-    if(tapTarget===photo && now-lastTap<300){
+    if (tapTarget === photo && (now - lastTap) < 300) {
       openLightboxFrom(photo);
       tapTarget = null; lastTap = 0;
-    }else{
+    } else {
       tapTarget = photo; lastTap = now;
     }
-  }, {passive:true});
-
-
+  }, { passive:true });
 })();

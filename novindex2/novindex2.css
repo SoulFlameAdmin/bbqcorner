@@ -1,4 +1,3 @@
-
 :root{
   --gap:16px;
   --soft:#00000014;
@@ -12,7 +11,9 @@
   --mobile-sidebar-h:100px;
 }
 
-/* ===== БАЗА / ЛЕЙАУТ ===== */
+/* =========================
+   БАЗА / ЛЕЙАУТ
+   ========================= */
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#111;background:#fff}
@@ -26,10 +27,12 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .grid-products{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:900px){.grid-products{grid-template-columns:1fr}}
 
-/* скрий мобилните двойници по подразбиране (desktop) */
+/* desktop: скрий мобилните двойници */
 .mobile-title,.mobile-veg,.mobile-sauces,.mobile-addons,.mobile-add-btn{display:none!important}
 
-/* ===== SIDEBAR ===== */
+/* =========================
+   SIDEBAR
+   ========================= */
 .sidebar{
   position:sticky;top:0;height:100dvh;background:#fff;border-right:1px solid var(--soft);
   padding:20px 10px 16px 16px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
@@ -58,7 +61,9 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .cat.is-popping{transform:perspective(900px) translateY(-10px) scale(1.06) rotateX(3deg);box-shadow:var(--popShadow)}
 .cat[data-cat="kola"] .box,.cat[data-cat="xixo"] .box{background-size:contain;background-position:center;background-repeat:no-repeat;background-color:#fff}
 
-/* ===== HOME PILL ===== */
+/* =========================
+   HOME PILL
+   ========================= */
 .home-pill{
   position:fixed!important;top:16px;left:20px;z-index:1500;will-change:transform;height:48px;width:var(--home-closed);
   display:flex;align-items:center;justify-content:center;gap:10px;padding:0 12px;background:var(--accent);color:#fff;border-radius:14px;
@@ -69,7 +74,9 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .home-pill:hover{width:var(--home-open);justify-content:flex-start;padding:0 16px}
 .home-pill:hover span{opacity:1;transform:translateX(0)}
 
-/* ===== CART BTN ===== */
+/* =========================
+   CART BTN
+   ========================= */
 .cart-btn{
   position:fixed;top:12px;right:12px;z-index:2000;display:flex;align-items:center;gap:10px;background:#111;color:#fff;
   border-radius:14px;padding:10px 14px;text-decoration:none;box-shadow:var(--shadow);cursor:pointer;user-select:none
@@ -77,7 +84,9 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .cart-btn .bi{font-size:20px}
 .cart-count{min-width:22px;height:22px;border-radius:999px;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;padding:0 6px}
 
-/* ===== ПРОДУКТИ (общо) ===== */
+/* =========================
+   ПРОДУКТИ (карти)
+   ========================= */
 .product{
   display:flex;align-items:stretch;gap:0;background:#fff;border:1px solid var(--soft);border-radius:22px;box-shadow:var(--shadow);overflow:hidden
 }
@@ -114,7 +123,9 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .btn-all{display:inline-block;margin-left:8px;padding:2px 8px;font-weight:800;font-size:12px;border:1px solid var(--soft);border-radius:8px;background:#f6f6f6;cursor:pointer}
 .btn-all:hover{background:#fff;box-shadow:var(--shadow)}
 
-/* ===== ГАЛЕРИЯ HELL ===== */
+/* =========================
+   ГАЛЕРИЯ
+   ========================= */
 .gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 @media (max-width:1200px){.gallery{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:900px){.gallery{grid-template-columns:repeat(2,1fr)}}
@@ -125,7 +136,9 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .tile .price-badge{margin:10px auto 4px;display:block;text-align:center;border-radius:12px}
 .tile .add-btn{margin:10px auto 0;display:block}
 
-/* ===== ВОДА / ГАЗИРАНА ВОДА ===== */
+/* =========================
+   ВОДА / ГАЗИРАНА ВОДА
+   ========================= */
 .water-wrapper{display:flex;flex-direction:column;gap:26px;max-width:720px}
 .water-block h2{margin:0 0 8px;font-size:24px;font-weight:900;color:var(--accent)}
 .water-grid{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:16px;align-items:start}
@@ -136,7 +149,9 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .water-card .add-btn{margin:8px auto 0;display:block}
 @media (max-width:520px){.water-grid{grid-template-columns:1fr}}
 
-/* ===== CART ===== */
+/* =========================
+   CART
+   ========================= */
 .cart-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);backdrop-filter:blur(20px);display:none;align-items:flex-start;justify-content:flex-end;z-index:3000}
 .cart-panel{width:min(560px,100%);max-height:100dvh;overflow:auto;background:#fff;border-left:1px solid var(--soft);box-shadow:var(--popShadow);padding:18px 16px 20px;border-radius:16px 0 0 16px}
 .cart-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
@@ -155,7 +170,9 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .order-btn{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:12px 16px;font-weight:900;box-shadow:var(--shadow);cursor:pointer}
 .order-btn:disabled{opacity:.5;cursor:not-allowed}
 
-/* ===== ЗУУМ ===== */
+/* =========================
+   ЗУУМ (lightbox за снимки)
+   ========================= */
 .photo.zoomed{
   position:fixed!important;top:50%;left:50%;width:90vw!important;height:90vh!important;
   background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important;
@@ -165,15 +182,21 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 /* достъпност */
 @media (prefers-reduced-motion:reduce){.cat{transition:none}.photo{transition:none}}
 
-/* ===== ПРОМО / SLIDE ===== */
-.builder{background:#111;border:1px solid var(--soft);border-radius:14px;padding:12px;color:#fff;margin-top:12px}
+/* =========================================================
+   PROMO · BUILDER + SLIDE КАТАЛОГ + ВГРАДЕНИ КАРТИ
+   ========================================================= */
+
+/* ===== PROMO BUILDER ===== */
+.builder{
+  background:#111;border:1px solid var(--soft);border-radius:14px;padding:12px;color:#fff;margin-top:12px;box-shadow:var(--shadow)
+}
 .builder-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .builder-head .hint{opacity:.8;font-size:12px}
 .rows{display:flex;flex-direction:column;gap:10px}
 .row{display:grid;grid-template-columns:1fr 44px 1fr 140px 38px;gap:10px;align-items:center}
-.drop{border:2px dashed #ffffff2f;border-radius:12px;min-height:72px;padding:8px;display:flex;align-items:center;justify-content:center}
+.drop{border:2px dashed #ffffff2f;border-radius:12px;min-height:72px;padding:8px;display:flex;align-items:center;justify-content:center;background:#0f0f0f}
 .pluscell{font-weight:900;text-align:center;opacity:.8}
-.price-input{width:100%;border:1px solid var(--soft);border-radius:10px;padding:10px}
+.price-input{width:100%;border:1px solid var(--soft);border-radius:10px;padding:10px;background:#0e0f10;color:#fff}
 .row-del{background:#222;color:#fff;border:none;border-radius:10px;padding:10px;cursor:pointer}
 .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 .actions .btn{background:var(--accent);border:0;color:#fff;font-weight:900;border-radius:10px;padding:10px 14px;cursor:pointer;box-shadow:var(--shadow)}
@@ -183,7 +206,12 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .chip .nm{font-weight:800;font-size:13px}
 .chip .ds{font-size:12px;opacity:.8}
 .chip .x{margin-left:auto;cursor:pointer;opacity:.9}
-.slide{position:fixed;top:0;right:-420px;width:min(420px,100%);height:100dvh;background:#111;color:#fff;border-left:1px solid var(--soft);box-shadow:var(--popShadow);z-index:3200;transition:right .28s ease}
+
+/* ===== ДЕСЕН SLIDE КАТАЛОГ ===== */
+.slide{
+  position:fixed;top:0;right:-420px;width:min(420px,100%);height:100dvh;background:#111;color:#fff;
+  border-left:1px solid var(--soft);box-shadow:var(--popShadow);z-index:3200;transition:right .28s ease
+}
 .slide.open{right:0}
 .slide-head{display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid #ffffff14}
 .slide .btn{background:#222;border:0;color:#fff;border-radius:10px;padding:8px 10px;cursor:pointer}
@@ -212,7 +240,7 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   .s-gallery,.s-water{grid-template-columns:1fr}
 }
 
-/* ===== ПРОМО (embedded) ===== */
+/* ===== ПРОМО (embedded в страницата) ===== */
 .promo-wrap{background:#0e0f10;border-radius:16px;box-shadow:var(--shadow);padding:16px;color:#fff}
 .promo-head{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-weight:900;color:#ff7a00}
 .promo-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -220,14 +248,75 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
 .promo-sides{display:grid;grid-template-columns:1fr 1fr}
 .promo-img{height:220px;background:#e9ecef center/cover no-repeat}
 .promo-name{padding:8px 12px;font-weight:900}
-.promo-price{position:absolute;right:10px;top:10px;background:#ff7a00;color:#fff;border-radius:12px;padding:8px 10px;font-weight:900}
-.promo-del{position:absolute;left:10px;top:10px;border:0;background:#000a;color:#fff;border-radius:10px;padding:6px 10px;font-weight:900;cursor:pointer;z-index:2}
-@media (max-width:900px){.promo-grid{grid-template-columns:1fr}.promo-sides .promo-img{height:180px}}
+.promo-price{
+  position:absolute;right:10px;top:10px;background:var(--accent);color:#fff;border-radius:12px;
+  padding:8px 10px;font-weight:900;z-index:3
+}
+.promo-del{
+  position:absolute;left:10px;top:10px;border:0;background:#000a;color:#fff;border-radius:10px;
+  padding:6px 10px;font-weight:900;cursor:pointer;z-index:4
+}
+.promo-card .promo-add{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:46px;height:46px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:900;background:#000;color:#fff;border:0;cursor:pointer;
+  box-shadow:0 10px 24px rgba(0,0,0,.25);z-index:2
+}
+.promo-card .promo-add:hover{background:var(--accent)}
+@media (max-width:900px){
+  .promo-grid{grid-template-columns:1fr}
+  .promo-sides .promo-img{height:180px}
+}
 
-/* ===== МОБИЛЕН ≤900px: ЕДИН „+“ ВДЯСНО ОТ ЦЕНАТА ===== */
+/* =========================
+   EMBED (съвместимост)
+   ========================= */
+.embed-wrap{width:100%;min-height:70vh}
+.embed-wrap iframe{width:100%;height:calc(100dvh - 140px);border:0;border-radius:16px;background:#fff;box-shadow:var(--shadow)}
+
+/* =========================================================
+   UNIVERSAL „+ ДО ЦЕНАТА“ ЗА ОБИКНОВЕНИ КАРТИ
+   (product, tile, water-card) – кръгъл бутон долу вдясно
+   ========================================================= */
+.product,.tile,.water-card{position:relative}
+.product .price-badge,.tile .price-badge,.water-card .price-badge{
+  display:inline-flex!important;margin:0 56px 0 0!important;padding:10px 14px!important;border-radius:12px!important
+}
+.product .add-btn,.tile .add-btn,.water-card .add-btn{
+  position:absolute!important;right:12px;bottom:12px;width:36px;height:36px;
+  display:flex!important;align-items:center;justify-content:center;
+  padding:0!important;border-radius:50%!important;background:#000!important;color:#fff!important;
+  font-size:20px!important;font-weight:900!important;box-shadow:0 6px 16px rgba(0,0,0,.25);z-index:2
+}
+.product .add-btn:hover,.tile .add-btn:hover,.water-card .add-btn:hover{background:var(--accent)!important}
+@media (max-width:900px){
+  .product .add-btn,.tile .add-btn,.water-card .add-btn{width:42px;height:42px;font-size:22px!important;right:10px;bottom:10px}
+  .product .price-badge,.tile .price-badge,.water-card .price-badge{margin-right:62px!important}
+}
+
+/* =========================
+   FULLSCREEN LIGHTBOX
+   ========================= */
+.bbq-lightbox{
+  position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.9);
+  display:none;align-items:center;justify-content:center
+}
+.bbq-lightbox.show{display:flex}
+.bbq-lightbox img{
+  max-width:96vw;max-height:96vh;object-fit:contain;border-radius:16px;box-shadow:0 0 40px rgba(0,0,0,.6)
+}
+.bbq-lightbox .close{
+  position:absolute;top:14px;right:14px;font-size:26px;color:#fff;background:transparent;border:0;cursor:pointer
+}
+
+/* =========================
+   МОБИЛЕН ≤ 900px
+   ========================= */
 @media (max-width:900px){
 
   .cart-btn{top:8px;right:10px}
+
   .sidebar{
     position:fixed;top:var(--mobile-cart-h);left:0;right:0;height:auto;width:100%;
     border-right:none;border-bottom:1px solid var(--soft);padding:10px 8px 10px 12px;background:#fff;
@@ -268,300 +357,6 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   .mobile-veg .hdr,.mobile-sauces .hdr,.mobile-addons .hdr{font-weight:700;margin:0 0 4px 0}
   .mobile-veg label,.mobile-sauces label,.mobile-addons label{display:block;margin:2px 0}
 
-  /* --- Опция A: ако JS е направил .price-plus → цена + бутон вътре --- */
-  .price-plus{display:flex!important;align-items:center!important;gap:10px!important;margin-top:8px!important;flex-wrap:wrap}
-  .price-plus .price-badge{display:inline-flex!important;margin:0!important;border-radius:10px!important}
-  .price-plus .add-btn,.price-plus .mobile-add-btn{
-    display:inline-flex!important;width:auto!important;margin:0!important;padding:10px 14px!important;
-    font-size:16px!important;border-radius:12px!important;background:#000!important;color:#fff!important;font-weight:900
-  }
-
-  /* ===== ВСИЧКИ КАТЕГОРИИ (.product) – изрично изписани ===== */
-  /* A) Сандвичи (burgeri) */
-  .product .pad .price-badge{display:inline-flex!important;vertical-align:middle;margin:8px 0 0 0!important}
-  .product .pad .price-badge + .add-btn{
-    display:inline-flex!important;vertical-align:middle;margin:8px 0 0 8px!important;
-    padding:10px 14px!important;font-size:16px!important;border-radius:12px!important;background:#000!important;color:#fff!important;font-weight:900
-  }
-  .product .pad .mobile-add-btn{
-    display:inline-flex!important;vertical-align:middle;margin:8px 0 0 8px!important;
-    padding:10px 14px!important;font-size:16px!important;border-radius:12px!important;background:#000!important;color:#fff!important;font-weight:900
-  }
-  .product .pad:has(.price-badge + .add-btn) .mobile-add-btn{display:none!important}
-  .product .pad:has(.price-plus .add-btn) .mobile-add-btn{display:none!important}
-
-  /* B) Палачинки (palachinki) — същото поведение */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-  .product .pad:has(.price-badge + .add-btn) .mobile-add-btn{display:none!important}
-
-  /* C) Порции (portsii) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* D) Салати (salati) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* E) Картофи (kartofi) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* F) Странджанки (strandzhanki) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* G) Добавки (dobavki) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* H) Кола (kola) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* I) Фанта (fanta) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* J) Студен чай (studen_chai) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* K) Сок (sok) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* L) Айрян (airqn) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* M) Безалкохолни (bezalkoholni) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* N) Бира (bira) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* O) XIXO (xixo) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* P) Десерти (deserti) */
-  .product .pad .price-badge{display:inline-flex!important}
-  .product .pad .price-badge + .add-btn{display:inline-flex!important;margin-left:8px!important}
-
-  /* --- C) Галерия HELL: цена + бутон на един ред --- */
-  .tile{text-align:left}
-  .tile .price-badge{display:inline-flex!important;margin:10px 0 0 0!important;vertical-align:middle!important}
-  .tile .add-btn{
-    display:inline-flex!important;margin:10px 0 0 8px!important;vertical-align:middle!important;
-    padding:10px 14px!important;font-size:16px!important;border-radius:12px!important;background:#000!important;color:#fff!important;font-weight:900
-  }
-
-  /* --- D) Вода / Газирана вода: цена + бутон на един ред --- */
-  .water-card .price-badge{display:inline-flex!important;margin:10px 0 0 0!important;vertical-align:middle!important}
-  .water-card .add-btn{
-    display:inline-flex!important;margin:10px 0 0 8px!important;vertical-align:middle!important;
-    padding:10px 14px!important;font-size:16px!important;border-radius:12px!important;background:#000!important;color:#fff!important
-  }
-
-  .gallery{grid-template-columns:1fr 1fr}
-  @media (max-width:600px){.gallery{grid-template-columns:1fr}}
-}
-
-/* embedded promo (compat) */
-.embed-wrap{width:100%;min-height:70vh}
-.embed-wrap iframe{width:100%;height:calc(100dvh - 140px);border:0;border-radius:16px;background:#fff;box-shadow:var(--shadow)}
-
-
-
-/* ===== ПОКАЗВАЙ "+" ДО ВСЯКА ЦЕНА (UNIVERSAL FIX) ===== */
-.price-badge {
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  margin: 8px 0 0 0 !important;
-  vertical-align: middle !important;
-}
-
-/* Позициониране на бутона + веднага след цената */
-.price-badge + .add-btn {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-left: 8px !important;
-  padding: 10px 14px !important;
-  font-size: 16px !important;
-  font-weight: 900 !important;
-  border-radius: 12px !important;
-  background: #000 !important;
-  color: #fff !important;
-  box-shadow: 0 4px 10px rgba(0,0,0,.25);
-  cursor: pointer;
-  transition: all .25s ease;
-}
-.price-badge + .add-btn:hover {
-  background: var(--accent) !important;
-  transform: scale(1.04);
-}
-.price-badge + .add-btn:active {
-  transform: translateY(1px);
-}
-
-/* За всички категории (универсално) */
-.product .pad {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-
-
-/* === UNIVERSAL WATER-STYLE "+" === */
-
-/* всички карти да могат да позиционират абсолютно */
-.product, .tile, .water-card { position: relative; }
-
-/* цената вляво долу */
-.product .price-badge,
-.tile .price-badge,
-.water-card .price-badge {
-  display:inline-flex !important;
-  margin:0 56px 0 0 !important;   /* място за бутона вдясно */
-  padding:10px 14px !important;
-  border-radius:12px !important;
-}
-
-/* кръгъл черен + вдясно долу – еднакъв за всички типове карти */
-.product .add-btn,
-.tile .add-btn,
-.water-card .add-btn {
-  position:absolute !important;
-  right:12px; bottom:12px;
-  width:36px; height:36px;
-  display:flex !important; align-items:center; justify-content:center;
-  padding:0 !important;
-  border-radius:50% !important;
-  background:#000 !important; color:#fff !important;
-  font-size:20px !important; font-weight:900 !important;
-  box-shadow:0 6px 16px rgba(0,0,0,.25);
-  z-index:2;
-}
-.product .add-btn:hover,
-.tile .add-btn:hover,
-.water-card .add-btn:hover { background:var(--accent) !important; }
-
-/* мобилно – същото позициониране, по-голям „+“ за пръст */
-@media (max-width:900px){
-  .product .add-btn,
-  .tile .add-btn,
-  .water-card .add-btn {
-    width:42px; height:42px; font-size:22px !important;
-    right:10px; bottom:10px;
-  }
-  .product .price-badge,
-  .tile .price-badge,
-  .water-card .price-badge {
-    margin-right:62px !important;
-  }
-}
-
-/* === FULLSCREEN LIGHTBOX === */
-.bbq-lightbox{
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  background: rgba(0,0,0,.9);
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-.bbq-lightbox.show{ display: flex; }
-.bbq-lightbox img{
-  max-width: 96vw;
-  max-height: 96vh;
-  object-fit: contain;
-  border-radius: 16px;
-  box-shadow: 0 0 40px rgba(0,0,0,.6);
-}
-.bbq-lightbox .close{
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  font-size: 26px;
-  color: #fff;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-}
-
-/* кръгъл „+“ в центъра на промо картата */
-.promo-card .promo-add{
-  position:absolute; left:50%; top:50%;
-  transform:translate(-50%,-50%);
-  width:46px; height:46px; border-radius:50%;
-  display:inline-flex; align-items:center; justify-content:center;
-  font-size:22px; font-weight:900;
-  background:#000; color:#fff; border:0; cursor:pointer;
-  box-shadow:0 10px 24px rgba(0,0,0,.25); z-index:3;
-}
-.promo-card .promo-add:hover{ background:var(--accent); }
-.promo-card .promo-price{ z-index:2; }
-
-
-/* ===== PROMO · стил като Снимка 2 ===== */
-
-/* по-високи снимки и тъмен фон */
-.promo-card{
-  background:#0e0f10;
-  border:1px solid #00000020;
-  border-radius:18px;
-  overflow:hidden;
-  box-shadow:var(--shadow);
-}
-.promo-sides{ display:grid; grid-template-columns:1fr 1fr; align-items:stretch; }
-.promo-img{ height:320px; background:#111 center/contain no-repeat; }
-
-/* цена и Х */
-.promo-price{
-  position:absolute; right:16px; top:14px;
-  background:var(--accent); color:#fff; font-weight:900;
-  border-radius:14px; padding:10px 14px; z-index:4;
-}
-.promo-del{
-  position:absolute; left:14px; top:12px; z-index:5;
-  width:36px; height:36px; border-radius:999px;
-  display:flex; align-items:center; justify-content:center;
-  background:#000a; color:#fff; border:1px solid #ffffff22; font-weight:900;
-}
-
-
-/* кръгъл „+“ в центъра на промо картата */
-.promo-card .promo-add{
-  position:absolute; left:50%; top:50%;
-  transform:translate(-50%,-50%);
-  width:46px; height:46px; border-radius:50%;
-  display:inline-flex; align-items:center; justify-content:center;
-  font-size:22px; font-weight:900;
-  background:#000; color:#fff; border:0; cursor:pointer;
-  box-shadow:0 10px 24px rgba(0,0,0,.25); z-index:3;
-}
-.promo-card .promo-add:hover{ background:var(--accent); }
-
-
-/* override на старото правило, което позиционира „+“ в центъра */
-.promo-card .promo-add{ position:static !important; transform:none !important; }
-
-/* responsive */
-@media (max-width:900px){
-  .promo-img{ height:240px; }
-  .promo-bar{
-    grid-template-columns:48px 1fr;
-    grid-auto-rows:auto;
-    grid-template-areas:
-      "btn a"
-      "btn b";
-  }
-  .promo-bar .promo-add{ grid-area:btn; align-self:start; }
+  /* вградени промо карти – по-високи снимки */
+  .promo-sides .promo-img{height:240px}
 }
