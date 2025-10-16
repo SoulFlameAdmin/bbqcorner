@@ -50,19 +50,14 @@ function ensureMobilePlusRight(){
 window.addEventListener("load",  ensureMobilePlusRight);
 window.addEventListener("resize", ensureMobilePlusRight);
 
-
-
 /* ➜ Универсално: гарантира, че има бутон "+" след цената и го позиционира (като при вода) */
 function ensurePlusRightUniversal(){
   const hosts = document.querySelectorAll('.product, .tile, .water-card');
-
   hosts.forEach(card => {
-    // къде да търсим цена/бутон
     const pad   = card.querySelector('.pad') || card;
     const price = pad.querySelector('.price-badge') || card.querySelector('.price-badge');
     if (!price) return;
 
-    // намери "+" (вкл. мобилен), ако липсва — създай
     let plus = pad.querySelector('.add-btn') ||
                pad.querySelector('.mobile-add-btn') ||
                card.querySelector('.add-btn');
@@ -72,19 +67,16 @@ function ensurePlusRightUniversal(){
       plus.type = 'button';
       plus.className = 'add-btn';
       plus.textContent = '+';
-      // ако имаш нужда от данни – вземи от цената/картичката, но за нас е достатъчно да съществува
     } else {
       plus.classList.add('add-btn');
       plus.classList.remove('mobile-add-btn');
     }
 
-    // сложи бутона веднага след цената (в същия контейнер)
     if (plus !== price.nextElementSibling) {
       price.insertAdjacentElement('afterend', plus);
     }
   });
 }
-
 
 /* ===========================
    📦 КОЛИЧКА
@@ -273,11 +265,8 @@ const CAT_THUMBS = {
 
 /* === ДОБАВКИ (универсални) === */
 const ADDONS = {
-  // за ПОРЦИИ
   pitka:   { code:"pitka",   label:"Питка",          price:1.50 },
   raz:     { code:"raz",     label:"Разядка 100 гр", price:1.50 },
-
-  // за САНДВИЧИ (всички 0 лв)
   ketchup: { code:"ketchup", label:"Кетчуп",      price:0 },
   mayo:    { code:"mayo",    label:"Майонеза",    price:0 },
   mustard: { code:"mustard", label:"Горчица",     price:0 },
@@ -285,7 +274,7 @@ const ADDONS = {
   sharena: { code:"sharena", label:"Шарена сол",  price:0 },
 };
 
-/* Каталог с цени в лв. (копие от подадения HTML) */
+/* Каталог с цени в лв. */
 const CATALOG = {
   burgeri:{title:"САНДВИЧИ",items:[
     {name:"КОНСКА ПЛЕСКАВИЦА", price:9.00, img:"snimki/produkti/2menu/konski.jpg",
@@ -518,18 +507,29 @@ const CATALOG = {
   }
 };
 
+/* === ПРОМОЦИИ (A + B) === */
+const PROMOS = [
+  {
+    id: "promo1",
+    a: { name: "ТЕЛЕШКА ПЛЕСКАВИЦА", img: "snimki/produkti/2menu/sharska.jpg" },
+    b: { name: "Кола Кен", img: "snimki/produkti/КОЛА/kolaken.jpg" },
+    price: 9.99,
+    hero: "snimki/produkti/2menu/sharska.jpg"
+  }
+];
+
 /* Подредба на категориите */
 const ORDER = [
   "promocii",
   "burgeri","palachinki","strandzhanki","kartofi","salati","portsii","dobavki",
-  "hell","voda","gazirana_voda","fanta","studen_chai","kola" // "sok","xixo","airqn"
+  "hell","voda","gazirana_voda","fanta","studen_chai","kola"
 ];
 
 const sidebar = document.getElementById("sidebar");
 const grid    = document.getElementById("productGrid");
 const titleEl = document.getElementById("catTitle");
 
-/* Делегиран клик за бутоните "Всичко" (за групите veg/sauce) */
+/* Делегиран клик за „Всичко“ (veg/sauce) */
 grid.addEventListener("click", (e) => {
   const btn = e.target.closest(".btn-all");
   if (!btn) return;
@@ -576,7 +576,6 @@ const catHasAddons = (cat) => (cat === "portsii" || cat === "burgeri" || cat ===
 function productCardHTML(it, i, withAddons = false) {
   const desc = it.desc ? `<p class="desc">${esc(it.desc)}</p>` : "";
 
-  // общ ред: цена + бутон
   const pricePlusRow = `
     <div class="price-plus">
       <div class="price-badge">
@@ -590,16 +589,12 @@ function productCardHTML(it, i, withAddons = false) {
     </div>
   `;
 
-
-  // ----- мобилно заглавие (след снимката) -----
   const mobileTitle = `<h3 class="mobile-title">${esc(it.name)}</h3>`;
 
-  // десктопски блокове
   let leftColAfterPhoto = "";
   let actionsRowHTML = "";
   let wholeAddonsBlock = "";
 
-  // мобилни двойници
   let mobileVeg = "";
   let mobileSauces = "";
   let mobileAddons = "";
@@ -636,7 +631,6 @@ function productCardHTML(it, i, withAddons = false) {
         { c:"chili",   t:"Люто" }
       ];
 
-      // десктоп (под снимката и вдясно до бутона)
       leftColAfterPhoto = `
         <div class="addons addons-underimg">
           <div class="hdr">
@@ -668,7 +662,6 @@ function productCardHTML(it, i, withAddons = false) {
             data-img="${it.img}">+</button>
         </div>`;
 
-      // мобилни двойници
       mobileVeg = `
         <div class="mobile-veg">
           <div class="hdr">
@@ -694,7 +687,6 @@ function productCardHTML(it, i, withAddons = false) {
           `).join("")}
         </div>`;
     } else if (current === "portsii") {
-      // десктоп
       wholeAddonsBlock = `
         <div class="actions-row">
           <div class="addons">
@@ -707,7 +699,6 @@ function productCardHTML(it, i, withAddons = false) {
             data-price="${it.price}"
             data-img="${it.img}">+</button>
         </div>`;
-      // мобилно
       mobileAddons = `
         <div class="mobile-addons">
           <div class="hdr">Добавки</div>
@@ -715,7 +706,6 @@ function productCardHTML(it, i, withAddons = false) {
           <label><input type="checkbox" class="addon-checkbox" data-code="raz" data-price="1.5"> + Разядка 100 гр</label>
         </div>`;
     } else if (current === "strandzhanki") {
-      // десктоп
       wholeAddonsBlock = `
         <div class="actions-row">
           <div class="addons">
@@ -733,7 +723,6 @@ function productCardHTML(it, i, withAddons = false) {
             data-price="${it.price}"
             data-img="${it.img}">+</button>
         </div>`;
-      // мобилно
       mobileSauces = `
         <div class="mobile-sauces">
           <div class="hdr">
@@ -764,16 +753,11 @@ function productCardHTML(it, i, withAddons = false) {
         ${mobileSauces}
         ${mobileAddons}
 
-        ${pricePlusRow}  
+        ${pricePlusRow}
 
-        ${
-          current === "burgeri"
-            ? actionsRowHTML
-            : (wholeAddonsBlock || "")
-        }
+        ${ current === "burgeri" ? actionsRowHTML : (wholeAddonsBlock || "") }
 
         ${mobileAddBtn}
-
       </div>
     </article>`;
 }
@@ -842,8 +826,7 @@ function groupPhrase(card, group, kind){
   return "";
 }
 
-/* Добавяне – слушатели */
-/* Добавяне – слушатели */
+/* Добавяне – слушатели за стандартните продукти */
 function bindAddButtons(){
   grid.querySelectorAll(".add-btn").forEach(btn=>{
     btn.addEventListener("click", ()=>{
@@ -879,7 +862,6 @@ function bindAddButtons(){
         img
       });
 
-      // ✏️ Бележка: "с всичко"/"всичко без — …" + "всички сосове …"
       const vegLine   = card ? groupPhrase(card, "veg",   "veg")   : "";
       const sauceLine = card ? groupPhrase(card, "sauce", "sauce") : "";
       const parts = [vegLine, sauceLine].filter(Boolean);
@@ -898,45 +880,87 @@ function bindAddButtons(){
   });
 }
 
+/* === ПРОМО: „+“ → добавяне в количката като един артикул (централен бутон) === */
+function bindPromoButtons(){
+  grid.querySelectorAll(".promo-card .promo-add").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const card = btn.closest(".promo-card");
+      const id = card?.getAttribute("data-promo-id");
+      const p = PROMOS.find(x => x.id === id);
+      if (!p) return;
+
+      const displayName = `ПРОМО: ${p.a.name} + ${p.b.name}`;
+      const img = p.hero || p.a.img || p.b.img || "";
+      const price = Number(p.price) || 0;
+
+      addToCart({
+        _id: Date.now() + "" + Math.random(),
+        name: displayName,
+        baseName: displayName,
+        price: price,
+        basePrice: price,
+        img,
+        addons: [{ code: "promo", label: "Промо пакет", price: 0 }]
+      });
+
+      // запис в бележката (по-ясно за кухнята)
+      const line = `${displayName} (${fmtLv(price)} / ${fmtEur(price)})`;
+      const cur  = (orderNoteEl.value || "").trim();
+      orderNoteEl.value = cur ? (cur + "\n" + line) : line;
+      localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+
+      // малка визуална обратна връзка
+      const was = btn.textContent;
+      btn.textContent = "✓";
+      setTimeout(() => (btn.textContent = was), 450);
+    });
+  });
+}
 
 /* ===== Активиране на категория + рендер ===== */
 let current = null;
 
 function activate(cat, {fromNav=false, replace=false} = {}){
 
-  /* 🧡 ПРОМОЦИИ — прост статичен изглед (без Firebase) */
-if (cat === "promocii") {
-  current = "promocii";
-  sidebar.querySelectorAll(".cat")
-    .forEach(c => c.classList.toggle("active", c.dataset.cat === "promocii"));
+  /* 🧡 ПРОМОЦИИ — статичен изглед като Снимка 1 (централен „+“) */
+  if (cat === "promocii") {
+    current = "promocii";
+    sidebar.querySelectorAll(".cat")
+      .forEach(c => c.classList.toggle("active", c.dataset.cat === "promocii"));
 
-  const url = new URL(location.href);
-  if (url.searchParams.get("cat") !== "promocii") {
-    url.searchParams.set("cat", "promocii");
-    if (replace) history.replaceState({ cat: "promocii" }, "", url);
-    else if (fromNav) history.pushState({ cat: "promocii" }, "", url);
+    const url = new URL(location.href);
+    if (url.searchParams.get("cat") !== "promocii") {
+      url.searchParams.set("cat", "promocii");
+      if (replace) history.replaceState({ cat: "promocii" }, "", url);
+      else if (fromNav) history.pushState({ cat: "promocii" }, "", url);
+    }
+
+    titleEl.textContent = "ПРОМОЦИИ";
+
+    grid.innerHTML = `
+      <section class="promo-wrap">
+        <h2 class="promo-head">🔥 Corner BBQ — Промоции</h2>
+        <div class="promo-grid">
+          ${PROMOS.map(p => `
+            <article class="promo-card" data-promo-id="${p.id}">
+              <div class="promo-sides">
+                <div class="promo-img" style="background-image:url('${p.a.img}')"></div>
+                <div class="promo-img" style="background-image:url('${p.b.img}')"></div>
+              </div>
+              <div class="promo-price">${fmtLv(p.price)}</div>
+              <!-- Централният кръгъл „+“ -->
+              <button class="promo-add" type="button" aria-label="Добави промо">+</button>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    `;
+
+    bindPromoButtons();
+    recalcMobileOffsets();
+    ensurePlusRightUniversal?.();
+    return;
   }
-
-  titleEl.textContent = "ПРОМОЦИИ";
-
-  // ✅ Тук е промяната — вграждаме index7.html в iframe вътре
-const promoSrc = (location.protocol === "file:") ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
-grid.innerHTML = `
-  <section class="promo-wrap">
-    <h2 class="promo-head">🔥 Corner BBQ — Промоции</h2>
-    <iframe
-      src="${promoSrc}"
-      style="width:100%;height:80vh;border:0;border-radius:16px;box-shadow:0 0 20px rgba(0,0,0,.3);"
-      title="Corner BBQ Промоции"
-    ></iframe>
-  </section>
-`;
-
-
-  recalcMobileOffsets();
-  return;
-}
-
 
   const exists = !!CATALOG[cat];
   if(!exists) cat = "burgeri";
@@ -979,7 +1003,6 @@ grid.innerHTML = `
         `).join("")}
       </div>
     `;
-
     return;
   }
 
@@ -1178,11 +1201,6 @@ function handleScrollHideSidebar() {
   lastScrollY = currentY;
   ticking = false;
 }
-window.addEventListener("scroll", () => {
-  if (!ticking) {
-    window.requestAnimationFrame(handleScrollHideSidebar);
-    ticking = true;
-  }
 });
 
 /* === FULLSCREEN ZOOM: двойно докосване/клик === */

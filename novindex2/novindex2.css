@@ -536,26 +536,19 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   background:#000a; color:#fff; border:1px solid #ffffff22; font-weight:900;
 }
 
-/* ▼ Новият долен бар */
-.promo-bar{
-  display:grid;
-  grid-template-columns:48px 1fr 1fr;
-  gap:10px; align-items:center;
-  background:#0e0f10; color:#fff;
-  padding:10px 12px;
-}
 
-/* черен квадратен „+“ в бара */
-.promo-bar .promo-add{
-  width:42px; height:42px;
-  border:0; border-radius:12px;
-  display:flex; align-items:center; justify-content:center;
-  background:#000; color:#fff; font-size:22px; font-weight:900;
-  box-shadow:0 6px 16px rgba(0,0,0,.25); cursor:pointer;
+/* кръгъл „+“ в центъра на промо картата */
+.promo-card .promo-add{
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%);
+  width:46px; height:46px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:22px; font-weight:900;
+  background:#000; color:#fff; border:0; cursor:pointer;
+  box-shadow:0 10px 24px rgba(0,0,0,.25); z-index:3;
 }
-.promo-bar .promo-add:hover{ background:var(--accent); }
+.promo-card .promo-add:hover{ background:var(--accent); }
 
-.promo-bar .nm{ font-weight:900; color:#fff; }
 
 /* override на старото правило, което позиционира „+“ в центъра */
 .promo-card .promo-add{ position:static !important; transform:none !important; }
@@ -572,4 +565,3 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   }
   .promo-bar .promo-add{ grid-area:btn; align-self:start; }
 }
-
