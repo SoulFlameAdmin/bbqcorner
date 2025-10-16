@@ -489,34 +489,57 @@ db.ref('/promotions/items').on('value', snap => {
     return;
   }
 
-  items.forEach(p => {
-    const A = p.parts?.[0] || {};
-    const B = p.parts?.[1] || {};
-    const card = el('div', { className:'promo-card', 'data-id': p.id || '' },
-      el('button', { className:'promo-del', title:'Изтрий тази промоция', onclick:()=> tryDeletePromo(p.id) }, '✕'),
-      el('div', { className:'promo-img' },
-        el('img', { src: A.image || '/bbqsaitlogo.jpg', alt: A.name || 'Продукт A', loading:'lazy' }),
-        el('div', { className:'promo-overlay' }),
-        el('span', { className:'promo-tag' }, 'ПРОМО — A'),
-        el('div', { className:'promo-info' },
-          el('div', { className:'promo-name' }, A.name || '—'),
-          el('div', { className:'promo-desc' }, A.desc || '')
-        )
-      ),
-      el('div', { className:'promo-img' },
-        el('img', { src: B.image || '/bbqsaitlogo.jpg', alt: B.name || 'Продукт B', loading:'lazy' }),
-        el('div', { className:'promo-overlay' }),
-        el('span', { className:'promo-tag' }, 'ПРОМО — B'),
-        el('div', { className:'promo-info' },
-          el('div', { className:'promo-name' }, B.name || '—'),
-          el('div', { className:'promo-desc' }, B.desc || '')
-        )
+items.forEach(p => {
+  const A = p.parts?.[0] || {};
+  const B = p.parts?.[1] || {};
+  const totalPrice = Number(p.price || 0);
+
+  const card = el('div', {
+    className:'promo-card',
+    'data-id': p.id || '',
+    'data-price': String(totalPrice), // <- важно за sendPromoToParent
+    'data-a': A.name || '',
+    'data-b': B.name || ''
+  },
+    el('button', { className:'promo-del', title:'Изтрий тази промоция', onclick:()=> tryDeletePromo(p.id) }, '✕'),
+    el('div', { className:'promo-img' },
+      el('img', { src: A.image || '/bbqsaitlogo.jpg', alt: A.name || 'Продукт A', loading:'lazy' }),
+      el('div', { className:'promo-overlay' }),
+      el('span', { className:'promo-tag' }, 'ПРОМО — A'),
+      el('div', { className:'promo-info' },
+        el('div', { className:'promo-name' }, A.name || '—'),
+        el('div', { className:'promo-desc' }, A.desc || '')
       )
-    );
-    card.appendChild(el('div', { className:'promo-price' }, money(p.price || 0)));
-    card.appendChild(el('div', { className:'promo-plus' }, '+'));
-    promoGrid.appendChild(card);
-  });
+    ),
+    el('div', { className:'promo-img' },
+      el('img', { src: B.image || '/bbqsaitlogo.jpg', alt: B.name || 'Продукт B', loading:'lazy' }),
+      el('div', { className:'promo-overlay' }),
+      el('span', { className:'promo-tag' }, 'ПРОМО — B'),
+      el('div', { className:'promo-info' },
+        el('div', { className:'promo-name' }, B.name || '—'),
+        el('div', { className:'promo-desc' }, B.desc || '')
+      )
+    )
+  );
+
+  card.appendChild(el('div', { className:'promo-price' }, money(totalPrice)));
+
+  const plusBtn = el('button', {
+    className:'promo-plus',
+    type:'button',
+    title:'Добави в количката',
+    onclick: (e)=>{
+      const btn = e.currentTarget;
+      sendPromoToParent(card);
+      btn.textContent = '✓';
+      setTimeout(()=> btn.textContent = '+', 500);
+    }
+  }, '+');
+  card.appendChild(plusBtn);
+
+  promoGrid.appendChild(card);
+});
+
 
   // показвай X само в Admin режим
   toggleDeleteButtons();
@@ -873,6 +896,33 @@ async function tryDeletePromo(id){
 }
 
 
-  </script>
+function sendPromoToParent(card){
+  // вземи данни от dataset (виж стъпка 2)
+  const a = (card.dataset.a || '').trim();
+  const b = (card.dataset.b || '').trim();
+  const price = Number(card.dataset.price || 0);
+
+  // fallback, ако няма dataset – прочети от DOM
+  const leftName  = card.querySelector('.promo-img:nth-child(2) .promo-name')?.textContent.trim() || a;
+  const rightName = card.querySelector('.promo-img:nth-child(3) .promo-name')?.textContent.trim() || b;
+  const finalA = a || leftName || 'A';
+  const finalB = b || rightName || 'B';
+
+  // снимка (ползваме лявата, ако има)
+  const img = card.querySelector('.promo-img img')?.src || '/bbqsaitlogo.jpg';
+
+  const payload = {
+    type: 'bbq:addPromo',
+    name: `Промоция ${finalA} + ${finalB}`,
+    price,
+    img,
+    items: [finalA, finalB]
+  };
+
+  window.parent?.postMessage(payload, '*');
+}
+</script>
+
+
 </body>
 </html>
