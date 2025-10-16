@@ -10,7 +10,7 @@ const PROMO_IMG = (location.protocol === "file:")
   ? "file:///E:/BBQ_SITE/promociqlogo.jpg"
   : "/promociqlogo.jpg";
 const PROMO_LINK_LOCAL = "file:///E:/BBQ_SITE/index7.html";
-const PROMO_LINK_WEB   = "index7.html";
+const PROMO_LINK_WEB   = "/index7.html";
 
 /* малък helper за безопасен текст в HTML */
 const esc = (s) => String(s)
@@ -920,16 +920,18 @@ if (cat === "promocii") {
   titleEl.textContent = "ПРОМОЦИИ";
 
   // ✅ Тук е промяната — вграждаме index7.html в iframe вътре
-  grid.innerHTML = `
-    <section class="promo-wrap">
-      <h2 class="promo-head">🔥 Corner BBQ — Промоции</h2>
-      <iframe
-        src="file:///E:/BBQ_SITE/index7.html"
-        style="width:100%;height:80vh;border:0;border-radius:16px;box-shadow:0 0 20px rgba(0,0,0,.3);"
-        title="Corner BBQ Промоции"
-      ></iframe>
-    </section>
-  `;
+const promoSrc = (location.protocol === "file:") ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
+grid.innerHTML = `
+  <section class="promo-wrap">
+    <h2 class="promo-head">🔥 Corner BBQ — Промоции</h2>
+    <iframe
+      src="${promoSrc}"
+      style="width:100%;height:80vh;border:0;border-radius:16px;box-shadow:0 0 20px rgba(0,0,0,.3);"
+      title="Corner BBQ Промоции"
+    ></iframe>
+  </section>
+`;
+
 
   recalcMobileOffsets();
   return;
@@ -1236,4 +1238,6 @@ window.addEventListener("scroll", () => {
       tapTarget = photo; lastTap = now;
     }
   }, {passive:true});
+
+
 })();
