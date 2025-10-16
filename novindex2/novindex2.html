@@ -3,74 +3,78 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Corner BBQ — Категория</title>
+  <title>Corner BBQ — Промоции</title>
 
-  <!-- ВАЖНО: за да работят пътищата snimki/... от основната папка -->
+  <!-- за да работят snimki/... от корена -->
   <base href="../">
 
   <!-- Икони -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
-
-  <!-- Локален стил -->
+  <!-- Основен локален стил -->
   <link rel="stylesheet" href="novindex2/novindex2.css" />
+
+  <!-- Мини стилове: оставяме само iframe с промоции -->
+  <style>
+    body.is-promos #productGrid{ display:none !important; }
+    .promos-section{ display:block; width:100%; margin-top:16px; }
+    .promos-frame{
+      width:100%;
+      min-height:calc(100dvh - 140px);
+      border:0; border-radius:16px;
+      box-shadow:0 10px 28px rgba(0,0,0,.16);
+      background:#0e0f10;
+    }
+    @media (max-width:900px){
+      .promos-frame{ min-height:calc(100dvh - 100px); border-radius:12px; }
+    }
+  </style>
 </head>
-<body>
-
+<body class="is-promos">
   <div class="app">
-    <!-- Sidebar (ляво) -->
-    <aside class="sidebar">
-      <div class="sidebar-inner" id="sidebar"></div>
-    </aside>
+    <!-- Sidebar -->
+    <aside class="sidebar"><div class="sidebar-inner" id="sidebar"></div></aside>
 
-    <!-- Основно съдържание -->
+    <!-- Content -->
     <main class="content">
-      <!-- HOME -->
       <a class="home-pill" href="index.html" title="Начало">
         <i class="bi bi-house"></i><span>Начало</span>
       </a>
 
-      <!-- CART BTN -->
-      <button
-        class="cart-btn"
-        id="cartBtn"
-        type="button"
-        title="Количка"
-        aria-controls="cartOverlay"
-        aria-expanded="false">
-        <i class="bi bi-cart3"></i>
-        <span>Количка</span>
+      <!-- Количка -->
+      <button class="cart-btn" id="cartBtn" type="button" title="Количка" aria-controls="cartOverlay" aria-expanded="false">
+        <i class="bi bi-cart3"></i><span>Количка</span>
         <span class="cart-count" id="cartCount" aria-live="polite" aria-atomic="true">0</span>
       </button>
 
-      <h1 class="h1" id="catTitle">САНДВИЧИ</h1>
+      <h1 class="h1" id="catTitle">ПРОМОЦИИ</h1>
+
+      <!-- Вграден index7 -->
+      <section class="promos-section">
+        <iframe id="promosFrame" class="promos-frame" title="Corner BBQ — Промоции" src="" loading="lazy" referrerpolicy="no-referrer"></iframe>
+      </section>
+
+      <!-- Оставяме, но скрито -->
       <div id="productGrid"></div>
     </main>
   </div>
 
-  <!-- CART MODAL -->
+  <!-- Cart modal (както ти е по проекта) -->
   <div class="cart-overlay" id="cartOverlay" aria-hidden="true">
     <div class="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
       <div class="cart-head">
         <div class="title" id="cartTitle"><i class="bi bi-cart3"></i> Твоята количка</div>
-        <button class="cart-close" id="cartClose" type="button" aria-label="Затвори">
-          <i class="bi bi-x-lg" aria-hidden="true"></i>
-        </button>
+        <button class="cart-close" id="cartClose" type="button" aria-label="Затвори"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
       </div>
-
       <div class="cart-items" id="cartItems" role="list"></div>
 
-      <!-- Забележка към поръчката -->
       <div id="noteWrapper" style="display:none; margin-top:14px;">
-        <label for="orderNote" style="font-weight:900; color:#ff7a00; display:block; margin-bottom:6px;">
-          Забележка към поръчката:
-        </label>
+        <label for="orderNote" style="font-weight:900; color:#ff7a00; display:block; margin-bottom:6px;">Забележка към поръчката:</label>
         <textarea id="orderNote" rows="3" placeholder="Добавете специални изисквания или бележка..."
           style="width:100%; border:1px solid #ccc; border-radius:10px; padding:10px; font-family:inherit; resize:vertical;"></textarea>
       </div>
 
       <div class="cart-total" id="cartTotalRow" style="display:none">
-        <span>Общо:</span>
-        <span id="cartTotal"></span>
+        <span>Общо:</span><span id="cartTotal"></span>
       </div>
 
       <div class="cart-actions">
@@ -79,18 +83,66 @@
     </div>
   </div>
 
-  <noscript style="display:block; padding:12px; text-align:center; font-weight:700;">
-    За да използвате сайта, активирайте JavaScript.
-  </noscript>
+  <noscript style="display:block; padding:12px; text-align:center; font-weight:700;">За да използвате сайта, активирайте JavaScript.</noscript>
 
-  <!-- Локален скрипт -->
+  <!-- Твоят основен JS -->
   <script src="novindex2/novindex2.js" defer></script>
 
-<div id="bbqLightbox" class="bbq-lightbox" aria-hidden="true">
-  <button class="close" aria-label="Затвори">✕</button>
-  <img id="bbqLightImg" alt="">
-</div>
+  <!-- Лайтбокс -->
+  <div id="bbqLightbox" class="bbq-lightbox" aria-hidden="true">
+    <button class="close" aria-label="Затвори">✕</button>
+    <img id="bbqLightImg" alt="">
+  </div>
 
+  <!-- Свързване с index7: бутона „+“ праща към количката чрез postMessage -->
+  <script>
+    (function(){
+      const frame = document.getElementById('promosFrame');
 
+      // Предаваме всички текущи параметри + embed=1 към index7.html
+      const qs = new URLSearchParams(location.search);
+      qs.set('embed', '1'); // казваме на index7, че е вграден
+      // ако в URL има admin=1, index7 ще си поиска парола и ще включи Admin; иначе показва само промоциите
+      const src = 'index7.html' + '?' + qs.toString();
+      frame.src = src;
+
+      // --- количка: fallback към localStorage, ако няма глобална addToCart() ---
+      const CART_KEY = 'bbq_cart';
+      const $count = document.getElementById('cartCount');
+
+      const readCart = () => { try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch(_) { return []; } };
+      const writeCart = (items) => localStorage.setItem(CART_KEY, JSON.stringify(items));
+      const updateCount = () => {
+        const total = readCart().reduce((a,i)=> a + (Number(i.qty)||1), 0);
+        if ($count) $count.textContent = String(total);
+      };
+
+      function addPromoFallback(p){
+        const items = readCart();
+        const k = (p.name||'') + '|' + Number(p.price||0).toFixed(2);
+        const ex = items.find(i => i._k === k);
+        if (ex) ex.qty = (ex.qty||1) + 1;
+        else items.push({_k:k, type:'promo', name:p.name, img:p.img||p.image, price:Number(p.price||0), qty:1, meta:{items:p.items||[]}})
+        writeCart(items); updateCount();
+      }
+
+      // Слушаме събития от index7
+      window.addEventListener('message', (e) => {
+        const d = e?.data;
+        if (!d || d.type !== 'bbq:addPromo') return;
+
+        // Използваме твоята глобална функция, ако съществува
+        if (typeof window.addToCart === 'function') {
+          window.addToCart({ type:'promo', title:d.name, image:d.img, price:Number(d.price||0), items:d.items||[] });
+          updateCount();
+        } else {
+          // Иначе – локален fallback
+          addPromoFallback({ name:d.name, img:d.img, price:d.price, items:d.items });
+        }
+      });
+
+      updateCount();
+    })();
+  </script>
 </body>
 </html>

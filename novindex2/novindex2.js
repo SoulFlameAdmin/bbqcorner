@@ -1,19 +1,16 @@
 /* novindex2.js */
 "use strict";
 
-
 /* ===========================
    🧭 ПЪТИЩА И ПОМОЩНИ НЕЩА
    =========================== */
 
 /* 🔶 Промоции: лого и линкове (само за миниатюрата в сайдбара) */
-/* 🔶 Промоции: лого и линкове (само за миниатюрата в сайдбара) */
 const PROMO_IMG = (location.protocol === "file:")
   ? "file:///E:/BBQ_SITE/promociqlogo.jpg"
-  : "promociqlogo.jpg";           // беше "/promociqlogo.jpg"
+  : "promociqlogo.jpg";
 const PROMO_LINK_LOCAL = "file:///E:/BBQ_SITE/index7.html";
-const PROMO_LINK_WEB   = "index7.html";   // беше "/index7.html"
-
+const PROMO_LINK_WEB   = "index7.html";
 
 /* малък helper за безопасен текст в HTML */
 const esc = (s) => String(s)
@@ -26,6 +23,14 @@ const esc = (s) => String(s)
 const BGN_PER_EUR = 1.95583;
 const fmtLv  = v => (Number(v)||0).toFixed(2).replace(".",",") + " лв.";
 const fmtEur = v => ((Number(v)||0) / BGN_PER_EUR).toFixed(2).replace(".",",") + " €";
+
+/* Лека помощна функция за мобилни отмествания */
+function recalcMobileOffsets(){ 
+  // Тук може да сложиш реална логика за layout, ако е нужна.
+  // Сега просто гарантираме правилното позициониране на "+".
+  ensureMobilePlusRight();
+  ensurePlusRightUniversal();
+}
 
 /* ➜ На телефон мести бутона точно вдясно от цената */
 function ensureMobilePlusRight(){
@@ -74,7 +79,6 @@ function ensurePlusRightUniversal(){
       plus.classList.add('add-btn');
       plus.classList.remove('mobile-add-btn');
     }
-
     if (plus !== price.nextElementSibling) {
       price.insertAdjacentElement('afterend', plus);
     }
@@ -94,7 +98,7 @@ const cartTotalRow = document.getElementById("cartTotalRow");
 const cartTotal    = document.getElementById("cartTotal");
 const orderNowBtn  = document.getElementById("orderNow");
 
-/* ====== LS ключове (index2 -> index3) ====== */
+/* ====== LS ключове ====== */
 const LS_CART_ITEMS = "bbq_cart_items";
 const LS_CART_TOTAL = "bbq_cart_total";
 const LS_ORDER_NOTE = "bbq_order_note";
@@ -109,20 +113,19 @@ function addToCart(item){
 
 /* Основен рендер на количката */
 function updateCartUI(){
-  // бройка върху бутона
+  if (!cartCount || !cartItemsEl) return;
+
   cartCount.textContent = CART.length;
 
-  // празна количка
   if (CART.length === 0){
     cartItemsEl.innerHTML = `<div class="cart-empty">Количката е празна.</div>`;
-    cartTotalRow.style.display = "none";
-    orderNowBtn.disabled = true;
-    noteWrapper.style.display = "none";
+    if (cartTotalRow) cartTotalRow.style.display = "none";
+    if (orderNowBtn) orderNowBtn.disabled = true;
+    if (noteWrapper) noteWrapper.style.display = "none";
     persistCartSnapshot();
     return;
   }
 
-  // редове + видими добавки
   cartItemsEl.innerHTML = CART.map(it => {
     const addonsLine = it.addons?.length
       ? `<div style="font-size:12px; opacity:.8; margin-top:2px">
@@ -142,7 +145,6 @@ function updateCartUI(){
       </div>`;
   }).join("");
 
-  // премахване
   cartItemsEl.querySelectorAll("[data-remove]").forEach((btn)=>{
     btn.addEventListener("click", ()=>{
       const id = btn.getAttribute("data-remove");
@@ -151,17 +153,15 @@ function updateCartUI(){
     });
   });
 
-  // тотал + UI
   const total = CART.reduce((s, x)=> s + (Number(x.price)||0), 0);
-  cartTotal.textContent = `${fmtLv(total)}  (${fmtEur(total)})`;
-  cartTotalRow.style.display = "";
-  orderNowBtn.disabled = false;
-  noteWrapper.style.display = "block";
+  if (cartTotal) cartTotal.textContent = `${fmtLv(total)}  (${fmtEur(total)})`;
+  if (cartTotalRow) cartTotalRow.style.display = "";
+  if (orderNowBtn) orderNowBtn.disabled = false;
+  if (noteWrapper) noteWrapper.style.display = "block";
 
   persistCartSnapshot();
 
-  // запис на бележката (връзваме само веднъж)
-  if (!orderNoteEl.dataset.bound) {
+  if (orderNoteEl && !orderNoteEl.dataset.bound) {
     orderNoteEl.addEventListener("input", () => {
       localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
     });
@@ -170,7 +170,9 @@ function updateCartUI(){
 }
 
 function restoreOrderNote(){
-  orderNoteEl.value = localStorage.getItem(LS_ORDER_NOTE) || "";
+  if (orderNoteEl){
+    orderNoteEl.value = localStorage.getItem(LS_ORDER_NOTE) || "";
+  }
 }
 
 function persistCartSnapshot(){
@@ -181,7 +183,7 @@ function persistCartSnapshot(){
     const total = CART.reduce((s, x)=> s + (Number(x.price)||0), 0);
     localStorage.setItem(LS_CART_ITEMS, JSON.stringify(itemsSnapshot));
     localStorage.setItem(LS_CART_TOTAL, String(total));
-    localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value || "");
+    if (orderNoteEl) localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value || "");
   }catch(e){ console.warn("LS error:", e); }
 }
 
@@ -211,31 +213,35 @@ function restoreCartFromLS() {
 
 /* Отваряне/затваряне на модала */
 function openCart(){
+  if (!cartOverlay || !cartBtn) return;
   updateCartUI();
   cartOverlay.style.display = "flex";
   cartOverlay.setAttribute("aria-hidden","false");
-  cartBtn.setAttribute("aria-expanded","true");   // a11y
+  cartBtn.setAttribute("aria-expanded","true");
 }
 function closeCart(){
+  if (!cartOverlay || !cartBtn) return;
   cartOverlay.style.display = "none";
   cartOverlay.setAttribute("aria-hidden","true");
-  cartBtn.setAttribute("aria-expanded","false");  // a11y
+  cartBtn.setAttribute("aria-expanded","false");
 }
-document.getElementById("cartClose").addEventListener("click", closeCart);
-cartOverlay.addEventListener("click", (e)=>{ if(e.target === cartOverlay) closeCart(); });
-cartBtn.addEventListener("click", openCart);
-// затваряне с Escape
-document.addEventListener("keydown", (e)=>{
-  if (e.key === "Escape" && cartOverlay.style.display === "flex") closeCart();
-});
+const cartCloseBtn = document.getElementById("cartClose");
+if (cartCloseBtn) cartCloseBtn.addEventListener("click", closeCart);
+if (cartOverlay) {
+  cartOverlay.addEventListener("click", (e)=>{ if(e.target === cartOverlay) closeCart(); });
+}
+if (cartBtn) cartBtn.addEventListener("click", openCart);
+document.addEventListener("keydown", (e)=>{ if (e.key === "Escape" && cartOverlay && cartOverlay.style.display === "flex") closeCart(); });
 
 /* Поръчай сега → index3.html (локално или уеб) */
-orderNowBtn.addEventListener("click", ()=>{
-  if (CART.length === 0) return;
-  persistCartSnapshot();
-  const target = (location.protocol === "file:") ? "file:///E:/BBQ_SITE/index3.html" : "index3.html";
-  window.location.href = target;
-});
+if (orderNowBtn){
+  orderNowBtn.addEventListener("click", ()=>{
+    if (CART.length === 0) return;
+    persistCartSnapshot();
+    const target = (location.protocol === "file:") ? "file:///E:/BBQ_SITE/index3.html" : "index3.html";
+    window.location.href = target;
+  });
+}
 
 /* ===========================
    🖼️ КАТЕГОРИИ/КАТАЛОГ
@@ -510,17 +516,6 @@ const CATALOG = {
   }
 };
 
-/* === ПРОМОЦИИ (A + B) === */
-const PROMOS = [
-  {
-    id: "promo1",
-    a: { name: "ТЕЛЕШКА ПЛЕСКАВИЦА", img: "snimki/produkti/2menu/sharska.jpg" },
-    b: { name: "Кола Кен", img: "snimki/produkti/КОЛА/kolaken.jpg" },
-    price: 9.99,
-    hero: "snimki/produkti/2menu/sharska.jpg"
-  }
-];
-
 /* Подредба на категориите */
 const ORDER = [
   "promocii",
@@ -532,29 +527,41 @@ const sidebar = document.getElementById("sidebar");
 const grid    = document.getElementById("productGrid");
 const titleEl = document.getElementById("catTitle");
 
+/* === ПРОМО iframe от index7 === */
+const promosSection = document.getElementById("promosSection");
+const promosFrame   = document.getElementById("promosFrame");
+function showPromosIframe(show){
+  if (!promosSection) return;
+  promosSection.hidden = !show;
+}
+
 /* Делегиран клик за „Всичко“ (veg/sauce) */
-grid.addEventListener("click", (e) => {
-  const btn = e.target.closest(".btn-all");
-  if (!btn) return;
-  const group = btn.dataset.target;
-  const host  = btn.closest(".addons");
-  if (!group || !host) return;
+if (grid){
+  grid.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-all");
+    if (!btn) return;
+    const group = btn.dataset.target;
+    const host  = btn.closest(".addons");
+    if (!group || !host) return;
 
-  const boxes = [...host.querySelectorAll(`.addon-checkbox[data-group="${group}"]`)];
-  if (!boxes.length) return;
+    const boxes = [...host.querySelectorAll(`.addon-checkbox[data-group="${group}"]`)];
+    if (!boxes.length) return;
 
-  const allChecked = boxes.every(b => b.checked);
-  boxes.forEach(b => b.checked = !allChecked);
-});
+    const allChecked = boxes.every(b => b.checked);
+    boxes.forEach(b => b.checked = !allChecked);
+  });
+}
 
 /* Сайдбар рендер */
-sidebar.innerHTML = ORDER.map(key=>{
-  const label = (key === "promocii") ? "ПРОМОЦИИ" : (CATALOG[key].title);
-  const img   = CAT_THUMBS[key];
-  return `<a class="cat" data-cat="${key}" role="link" tabindex="0" aria-label="${label}">
-            <div class="box" style="background-image:url('${img}')" data-label="${label}"></div>
-          </a>`;
-}).join("");
+if (sidebar){
+  sidebar.innerHTML = ORDER.map(key=>{
+    const label = (key === "promocii") ? "ПРОМОЦИИ" : (CATALOG[key].title);
+    const img   = CAT_THUMBS[key];
+    return `<a class="cat" data-cat="${key}" role="link" tabindex="0" aria-label="${esc(label)}">
+              <div class="box" style="background-image:url('${img}')" data-label="${esc(label)}"></div>
+            </a>`;
+  }).join("");
+}
 
 /* pretty label за HELL */
 function prettyLabel(src){
@@ -601,7 +608,7 @@ function productCardHTML(it, i, withAddons = false) {
   let mobileVeg = "";
   let mobileSauces = "";
   let mobileAddons = "";
-  let mobileAddBtn = `
+  const mobileAddBtn = `
     <button class="mobile-add-btn add-btn"
       data-name="${(it.name || "").replace(/"/g,"&quot;")}"
       data-price="${it.price}"
@@ -769,10 +776,8 @@ function productCardHTML(it, i, withAddons = false) {
 document.addEventListener("dblclick", e => {
   const imgEl = e.target.closest(".photo");
   if (!imgEl) return;
-
   const alreadyZoomed = imgEl.classList.contains("zoomed");
   document.querySelectorAll(".photo.zoomed").forEach(el => el.classList.remove("zoomed"));
-
   if (alreadyZoomed) {
     document.body.style.overflow = "";
   } else {
@@ -785,10 +790,8 @@ document.addEventListener("dblclick", e => {
 document.addEventListener("touchend", (e) => {
   const imgEl = e.target.closest(".photo");
   if (!imgEl) return;
-
   const now = Date.now();
   const last = imgEl._lastTap || 0;
-
   if (now - last < 280) {
     const already = imgEl.classList.contains("zoomed");
     document.querySelectorAll(".photo.zoomed").forEach(el => el.classList.remove("zoomed"));
@@ -831,6 +834,7 @@ function groupPhrase(card, group, kind){
 
 /* Добавяне – слушатели за стандартните продукти */
 function bindAddButtons(){
+  if (!grid) return;
   grid.querySelectorAll(".add-btn").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const card = btn.closest(".product");
@@ -868,23 +872,48 @@ function bindAddButtons(){
       const vegLine   = card ? groupPhrase(card, "veg",   "veg")   : "";
       const sauceLine = card ? groupPhrase(card, "sauce", "sauce") : "";
       const parts = [vegLine, sauceLine].filter(Boolean);
-      if (parts.length) {
+      if (parts.length && orderNoteEl) {
         const line = `${baseName}: ${parts.join("; ")}`;
         const cur  = (orderNoteEl.value || "").trim();
         orderNoteEl.value = cur ? (cur + "\n" + line) : line;
         localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
       }
 
+      const was = btn.textContent;
       btn.textContent = "✓";
-      setTimeout(()=> btn.textContent = "+", 450);
+      setTimeout(()=> btn.textContent = was || "+", 450);
 
       checks.forEach(ch => ch.checked = false);
     });
   });
 }
 
-/* === ПРОМО: „+“ → добавяне в количката като един артикул (централен бутон) === */
+/* === ПРОМОЦИИ (A + B) === */
+const LS_PROMOS = "bbq_promos_v1";
+const PROMOS = [
+  {
+    id: "promo1",
+    a: { name: "ТЕЛЕШКА ПЛЕСКАВИЦА", img: "snimki/produkti/2menu/sharska.jpg" },
+    b: { name: "Кола Кен", img: "snimki/produkti/КОЛА/kolaken.jpg" },
+    price: 9.99,
+    hero: "snimki/produkti/2menu/sharska.jpg"
+  }
+];
+(function bootstrapPromosFromLS(){
+  try{
+    const raw = localStorage.getItem(LS_PROMOS);
+    if (!raw) return;
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) {
+      PROMOS.length = 0;
+      arr.forEach(p => PROMOS.push(p));
+    }
+  }catch(err){ console.warn("PROMO LS parse error:", err); }
+})();
+
+/* === ПРОМО: + бутон за картите в ПРОМОЦИИ === */
 function bindPromoButtons(){
+  if (!grid) return;
   grid.querySelectorAll(".promo-card .promo-add").forEach(btn => {
     btn.addEventListener("click", () => {
       const card = btn.closest(".promo-card");
@@ -906,16 +935,16 @@ function bindPromoButtons(){
         addons: [{ code: "promo", label: "Промо пакет", price: 0 }]
       });
 
-      // запис в бележката (по-ясно за кухнята)
-      const line = `${displayName} (${fmtLv(price)} / ${fmtEur(price)})`;
-      const cur  = (orderNoteEl.value || "").trim();
-      orderNoteEl.value = cur ? (cur + "\n" + line) : line;
-      localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+      if (orderNoteEl){
+        const line = `${displayName} (${fmtLv(price)} / ${fmtEur(price)})`;
+        const cur  = (orderNoteEl.value || "").trim();
+        orderNoteEl.value = cur ? (cur + "\n" + line) : line;
+        localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+      }
 
-      // малка визуална обратна връзка
       const was = btn.textContent;
       btn.textContent = "✓";
-      setTimeout(() => (btn.textContent = was), 450);
+      setTimeout(() => (btn.textContent = was || "+"), 450);
     });
   });
 }
@@ -924,12 +953,13 @@ function bindPromoButtons(){
 let current = null;
 
 function activate(cat, {fromNav=false, replace=false} = {}){
-
-  /* 🧡 ПРОМОЦИИ — статичен изглед като Снимка 1 (централен „+“) */
+  /* 🧡 ПРОМОЦИИ — статичен, без builder */
   if (cat === "promocii") {
     current = "promocii";
-    sidebar.querySelectorAll(".cat")
-      .forEach(c => c.classList.toggle("active", c.dataset.cat === "promocii"));
+    if (sidebar){
+      sidebar.querySelectorAll(".cat")
+        .forEach(c => c.classList.toggle("active", c.dataset.cat === "promocii"));
+    }
 
     const url = new URL(location.href);
     if (url.searchParams.get("cat") !== "promocii") {
@@ -938,51 +968,54 @@ function activate(cat, {fromNav=false, replace=false} = {}){
       else if (fromNav) history.pushState({ cat: "promocii" }, "", url);
     }
 
-    titleEl.textContent = "ПРОМОЦИИ";
+    if (titleEl) titleEl.textContent = "ПРОМОЦИИ";
 
+    const isLocal = (location.protocol === "file:" || location.hostname === "localhost");
+    const adminHref = isLocal ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
 
-// преди grid.innerHTML = `
-const isLocal = (location.protocol === "file:" || location.hostname === "localhost");
-const adminHref = isLocal ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
-
-grid.innerHTML = `
-  <section class="promo-wrap">
-    <div class="promo-head" style="display:flex;align-items:center;gap:10px;">
-      <h2 class="promo-head" style="margin:0;">🔥 Corner BBQ — Промоции</h2>
-      <a href="${adminHref}"
-         class="admin-badge"
-         style="margin-left:10px;background:#ff7a00;color:#fff;font-weight:900;
-                padding:8px 12px;border-radius:12px;text-decoration:none;display:inline-flex;align-items:center;">
-        Admin
-      </a>
-    </div>
-    <div class="promo-grid">
-      ${PROMOS.map(p => `
-        <article class="promo-card" data-promo-id="${p.id}">
-          <div class="promo-sides">
-            <div class="promo-img" style="background-image:url('${p.a.img}')"></div>
-            <div class="promo-img" style="background-image:url('${p.b.img}')"></div>
+    if (grid){
+      grid.innerHTML = `
+        <section class="promo-wrap">
+          <div class="promo-head" style="display:flex;align-items:center;gap:10px;">
+            <h2 class="promo-head" style="margin:0;">🔥 Corner BBQ — Промоции</h2>
+            <a href="${adminHref}"
+               class="admin-badge"
+               style="margin-left:10px;background:#ff7a00;color:#fff;font-weight:900;
+                      padding:8px 12px;border-radius:12px;text-decoration:none;display:inline-flex;align-items:center;">
+              Admin
+            </a>
           </div>
-          <div class="promo-price">${fmtLv(p.price)}</div>
-          <button class="promo-add" type="button" aria-label="Добави промо">+</button>
-        </article>
-      `).join("")}
-    </div>
-  </section>
-`;
+          <div class="promo-grid">
+            ${PROMOS.map(p => `
+              <article class="promo-card" data-promo-id="${p.id}">
+                <div class="promo-sides">
+                  <div class="promo-img" style="background-image:url('${p.a.img}')"></div>
+                  <div class="promo-img" style="background-image:url('${p.b.img}')"></div>
+                </div>
+                <div class="promo-price">${fmtLv(p.price)}</div>
+                <button class="promo-add" type="button" aria-label="Добави промо">+</button>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
 
     bindPromoButtons();
     recalcMobileOffsets();
-    ensurePlusRightUniversal?.();
+    ensurePlusRightUniversal();
     return;
   }
 
+  // === останалите категории
   const exists = !!CATALOG[cat];
   if(!exists) cat = "burgeri";
   current = cat;
 
-  sidebar.querySelectorAll(".cat").forEach(c=>c.classList.toggle("active", c.dataset.cat===cat));
-  titleEl.textContent = CATALOG[cat]?.title || cat.toUpperCase();
+  if (sidebar){
+    sidebar.querySelectorAll(".cat").forEach(c=>c.classList.toggle("active", c.dataset.cat===cat));
+  }
+  if (titleEl) titleEl.textContent = CATALOG[cat]?.title || cat.toUpperCase();
 
   const url2 = new URL(location.href);
   if (url2.searchParams.get("cat") !== cat) {
@@ -993,6 +1026,8 @@ grid.innerHTML = `
 
   const data = CATALOG[cat];
 
+  if (!grid) return;
+
   if (data.view === "water2") {
     grid.innerHTML = `
       <div class="water-wrapper">
@@ -1002,8 +1037,8 @@ grid.innerHTML = `
             <div class="water-grid">
               ${g.pair.map(p=>`
                 <div class="water-card">
-                  <img src="${p.src}" alt="${p.label}">
-                  <div class="water-name">${p.label}</div>
+                  <img src="${p.src}" alt="${esc(p.label)}">
+                  <div class="water-name">${esc(p.label)}</div>
                   ${typeof p.price === "number" ? `
                     <div class="price-badge">
                       <div class="lv">${fmtLv(p.price)}</div>
@@ -1018,6 +1053,9 @@ grid.innerHTML = `
         `).join("")}
       </div>
     `;
+    bindAddButtons();
+    recalcMobileOffsets();
+    ensurePlusRightUniversal();
     return;
   }
 
@@ -1025,7 +1063,7 @@ grid.innerHTML = `
     const hellPrice = data.hellPrice ?? 2.00;
     grid.innerHTML = data.groups.map(group=>{
       const pics = group.images.map(src=>{
-        const label = prettyLabel(src);
+        const label = esc(prettyLabel(src));
         return `
         <div>
           <div class="tile">
@@ -1040,7 +1078,7 @@ grid.innerHTML = `
         </div>`;
       }).join("");
       return `
-        <h2 class="sec-title">${group.heading}</h2>
+        <h2 class="sec-title">${esc(group.heading)}</h2>
         <div class="gallery">${pics}</div>
       `;
     }).join("");
@@ -1052,7 +1090,7 @@ grid.innerHTML = `
 
   if (data.groups && Array.isArray(data.groups)) {
     const groupsHTML = data.groups.map(group => `
-      <h2 class="sec-title">${group.heading}</h2>
+      <h2 class="sec-title">${esc(group.heading)}</h2>
       <div class="grid-products">
        ${group.items?.map((it,i)=> productCardHTML(it,i, catHasAddons(current))).join("")}
       </div>
@@ -1080,203 +1118,31 @@ grid.innerHTML = `
   ensureMobilePlusRight();
 }
 
-/* POP DELAY в сайдбара */
-const POP_DELAY = 100; // ms
+/* ===== Инициализация ===== */
 function shouldBypassDelay(evt){ return evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey || evt.button === 1; }
+const POP_DELAY = 100;
 function popThenActivate(el, key){
+  if (!el) return activate(key, {fromNav:true});
   el.classList.remove("is-pressed"); el.classList.add("is-popping"); el.dataset.locked = "1";
   setTimeout(()=>{ activate(key, {fromNav:true}); el.classList.remove("is-popping"); delete el.dataset.locked; }, POP_DELAY);
 }
-
-/* Чети cat от URL при зареждане */
 function initFromURL(){
   const params = new URLSearchParams(location.search);
   const cat = params.get("cat") || "burgeri";
   activate(cat, {replace:true});
 }
 
-/* Възстанови количката при първо зареждане */
 restoreCartFromLS();
-restoreOrderNote();
+restoreOrderNote?.();
 initFromURL();
-
-/* Събития за сайдбар картите */
-sidebar.querySelectorAll(".cat").forEach(catEl=>{
-  const key = catEl.dataset.cat;
-  catEl.addEventListener("touchstart", ()=>{
-    catEl.classList.add("is-pressed");
-    setTimeout(()=>catEl.classList.remove("is-pressed"), 120);
-  }, {passive:true});
-  catEl.addEventListener("mousedown", ()=>catEl.classList.add("is-pressed"));
-  catEl.addEventListener("mouseleave", ()=>catEl.classList.remove("is-pressed"));
-  catEl.addEventListener("mouseup",   ()=>catEl.classList.remove("is-pressed"));
-  catEl.addEventListener("click", (e)=>{
-    if (shouldBypassDelay(e)) return;
-    e.preventDefault();
-    if (catEl.dataset.locked==="1" || key===current) return;
-    popThenActivate(catEl, key);
-  });
-  catEl.addEventListener("keydown", (e)=>{
-    if (e.key==="Enter" || e.key===" "){
+if (sidebar){
+  sidebar.querySelectorAll(".cat").forEach(catEl=>{
+    const key = catEl.dataset.cat;
+    catEl.addEventListener("click", (e)=>{
+      if (shouldBypassDelay(e)) return;
       e.preventDefault();
       if (catEl.dataset.locked==="1" || key===current) return;
       popThenActivate(catEl, key);
-    }
+    });
   });
-});
-
-/* Back/Forward */
-addEventListener("popstate", (e)=>{
-  const cat = (e.state && e.state.cat) || new URLSearchParams(location.search).get("cat") || "burgeri";
-  activate(cat, {replace:true});
-});
-
-/* Почистване на класове при pageshow */
-addEventListener("pageshow", ()=>{
-  sidebar.querySelectorAll(".cat").forEach(c=>{ c.classList.remove("is-pressed","is-popping"); delete c.dataset.locked; });
-});
-
-/* Плаващо движение на бутона „Начало“ */
-(function(){
-  const home = document.querySelector(".home-pill");
-  const content = document.querySelector(".content");
-  if(!home || !content) return;
-
-  const TOP = 16, BOTTOM_MARGIN = 16, SPEED = 0.25;
-  let cur = 0, target = 0, rafId = 0;
-
-  function maxShift(){ return Math.max(0, window.innerHeight - TOP - BOTTOM_MARGIN - home.offsetHeight); }
-  function updateLeft(){
-    const rect = content.getBoundingClientRect();
-    home.style.left = (rect.left + 20) + "px";
-  }
-  function onScroll(){
-    const doc = document.documentElement;
-    const scrollMax = Math.max(1, doc.scrollHeight - window.innerHeight);
-    const progress = window.scrollY / scrollMax;
-    target = progress * maxShift();
-    if(!rafId) rafId = requestAnimationFrame(tick);
-  }
-  function tick(){
-    rafId = 0;
-    cur += (target - cur) * SPEED;
-    home.style.transform = `translateY(${cur.toFixed(2)}px)`;
-    if (Math.abs(target - cur) > 0.5) rafId = requestAnimationFrame(tick);
-  }
-  addEventListener("scroll", onScroll, {passive:true});
-  addEventListener("resize", ()=>{ updateLeft(); onScroll(); });
-  updateLeft(); onScroll();
-})();
-
-/* HOME според средата */
-(function(){
-  const home = document.querySelector(".home-pill");
-  if (!home) return;
-  const HOME_LOCAL = "file:///E:/BBQ_SITE/index.html";
-  const HOME_WEB   = "index.html";
-  home.addEventListener("click", function(e){
-    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button === 1) return;
-    e.preventDefault();
-    const target = (location.protocol === "file:") ? HOME_LOCAL : HOME_WEB;
-    window.location.href = target;
-  });
-})();
-
-/* ===== ДИНАМИЧНИ ОФСЕТИ (мобилен) ===== */
-function recalcMobileOffsets(){
-  const isMobile = window.matchMedia("(max-width: 900px)").matches;
-  if(!isMobile) return;
-
-  const cart = document.getElementById("cartBtn");
-  const sb   = document.querySelector(".sidebar");
-
-  const cartH = cart ? Math.ceil(cart.offsetHeight) + 12 : 54;
-  const sbH   = sb   ? Math.ceil(sb.getBoundingClientRect().height) : 100;
-
-  document.documentElement.style.setProperty("--mobile-cart-h", cartH + "px");
-  document.documentElement.style.setProperty("--mobile-sidebar-h", sbH + "px");
 }
-addEventListener("load", recalcMobileOffsets, { once:true });
-addEventListener("resize", recalcMobileOffsets);
-addEventListener("orientationchange", recalcMobileOffsets);
-
-const sidebarNode = document.getElementById("sidebar");
-if (sidebarNode) {
-  const sbObserver = new MutationObserver(recalcMobileOffsets);
-  sbObserver.observe(sidebarNode, { childList:true, subtree:true });
-}
-
-/* Скриване/показване на сайдбара при скрол */
-let lastScrollY = window.scrollY;
-let ticking = false;
-
-function handleScrollHideSidebar() {
-  const sidebarEl = document.querySelector(".sidebar");
-  if (!sidebarEl) { ticking = false; return; }
-
-  const currentY = window.scrollY;
-  if (currentY > lastScrollY + 10) {
-    sidebarEl.classList.add("hide-on-scroll");
-  } else if (currentY < lastScrollY - 10) {
-    sidebarEl.classList.remove("hide-on-scroll");
-  }
-  lastScrollY = currentY;
-  ticking = false;
-}
-
-addEventListener("scroll", () => {
-  if (!ticking) {
-    ticking = true;
-    requestAnimationFrame(handleScrollHideSidebar);
-  }
-}, { passive:true });
-
-/* === FULLSCREEN ZOOM: двойно докосване/клик === */
-(function(){
-  const lb     = document.getElementById('bbqLightbox');
-  const lbImg  = document.getElementById('bbqLightImg');
-  const lbClose= lb ? lb.querySelector('.close') : null;
-  if (!lb || !lbImg || !lbClose) return;
-
-  function extractBgUrl(el){
-    const bg = getComputedStyle(el).backgroundImage || '';
-    const m = bg.match(/url\(["']?(.*?)["']?\)/i);
-    return m ? m[1] : '';
-  }
-  function openLightboxFrom(el){
-    const src = el.tagName === 'IMG' ? el.src : extractBgUrl(el);
-    if(!src) return;
-    lbImg.src = src;
-    lb.classList.add('show');
-    document.body.style.overflow = 'hidden';
-  }
-  function closeLightbox(){
-    lb.classList.remove('show');
-    document.body.style.overflow = '';
-  }
-
-  lbClose.addEventListener('click', closeLightbox);
-  lb.addEventListener('click', e => { if(e.target===lb) closeLightbox(); });
-  document.addEventListener('keydown', e => { if(e.key==='Escape') closeLightbox(); });
-
-  // Desktop: двойно кликване
-  document.addEventListener('dblclick', e => {
-    const photo = e.target.closest('.photo, .water-card img, .tile img');
-    if (!photo) return;
-    openLightboxFrom(photo);
-  });
-
-  // Mobile: двойно докосване
-  let lastTap = 0, tapTarget = null;
-  document.addEventListener('touchend', e => {
-    const photo = e.target.closest('.photo, .water-card img, .tile img');
-    if (!photo) return;
-    const now = Date.now();
-    if (tapTarget === photo && (now - lastTap) < 300) {
-      openLightboxFrom(photo);
-      tapTarget = null; lastTap = 0;
-    } else {
-      tapTarget = photo; lastTap = now;
-    }
-  }, { passive:true });
-})();
