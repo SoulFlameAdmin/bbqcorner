@@ -7,11 +7,13 @@
    =========================== */
 
 /* 🔶 Промоции: лого и линкове (само за миниатюрата в сайдбара) */
+/* 🔶 Промоции: лого и линкове (само за миниатюрата в сайдбара) */
 const PROMO_IMG = (location.protocol === "file:")
   ? "file:///E:/BBQ_SITE/promociqlogo.jpg"
-  : "/promociqlogo.jpg";
+  : "promociqlogo.jpg";           // беше "/promociqlogo.jpg"
 const PROMO_LINK_LOCAL = "file:///E:/BBQ_SITE/index7.html";
-const PROMO_LINK_WEB   = "/index7.html";
+const PROMO_LINK_WEB   = "index7.html";   // беше "/index7.html"
+
 
 /* малък helper за безопасен текст в HTML */
 const esc = (s) => String(s)
@@ -938,24 +940,36 @@ function activate(cat, {fromNav=false, replace=false} = {}){
 
     titleEl.textContent = "ПРОМОЦИИ";
 
-    grid.innerHTML = `
-      <section class="promo-wrap">
-        <h2 class="promo-head">🔥 Corner BBQ — Промоции</h2>
-        <div class="promo-grid">
-          ${PROMOS.map(p => `
-            <article class="promo-card" data-promo-id="${p.id}">
-              <div class="promo-sides">
-                <div class="promo-img" style="background-image:url('${p.a.img}')"></div>
-                <div class="promo-img" style="background-image:url('${p.b.img}')"></div>
-              </div>
-              <div class="promo-price">${fmtLv(p.price)}</div>
-              <!-- Централният кръгъл „+“ -->
-              <button class="promo-add" type="button" aria-label="Добави промо">+</button>
-            </article>
-          `).join("")}
-        </div>
-      </section>
-    `;
+
+// преди grid.innerHTML = `
+const isLocal = (location.protocol === "file:" || location.hostname === "localhost");
+const adminHref = isLocal ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
+
+grid.innerHTML = `
+  <section class="promo-wrap">
+    <div class="promo-head" style="display:flex;align-items:center;gap:10px;">
+      <h2 class="promo-head" style="margin:0;">🔥 Corner BBQ — Промоции</h2>
+      <a href="${adminHref}"
+         class="admin-badge"
+         style="margin-left:10px;background:#ff7a00;color:#fff;font-weight:900;
+                padding:8px 12px;border-radius:12px;text-decoration:none;display:inline-flex;align-items:center;">
+        Admin
+      </a>
+    </div>
+    <div class="promo-grid">
+      ${PROMOS.map(p => `
+        <article class="promo-card" data-promo-id="${p.id}">
+          <div class="promo-sides">
+            <div class="promo-img" style="background-image:url('${p.a.img}')"></div>
+            <div class="promo-img" style="background-image:url('${p.b.img}')"></div>
+          </div>
+          <div class="promo-price">${fmtLv(p.price)}</div>
+          <button class="promo-add" type="button" aria-label="Добави промо">+</button>
+        </article>
+      `).join("")}
+    </div>
+  </section>
+`;
 
     bindPromoButtons();
     recalcMobileOffsets();
