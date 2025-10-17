@@ -1132,7 +1132,6 @@ function initFromURL(){
 restoreCartFromLS();
 restoreOrderNote?.();
 initFromURL();
-showPromosIframe(false); // гарантирано маха .is-promos при старт
 
 if (sidebar){
   sidebar.querySelectorAll(".cat").forEach(catEl=>{
