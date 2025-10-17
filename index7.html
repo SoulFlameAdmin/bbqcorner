@@ -18,6 +18,8 @@
          padding:14px 16px;background:linear-gradient(180deg,#0009,transparent);backdrop-filter:blur(6px)}
   .title{font-weight:900;letter-spacing:.3px;color:#ff7a00}
   .btn{border:1px solid var(--border);background:#ffffff14;color:#fff;border-radius:12px;padding:8px 12px;cursor:pointer}
+  /* NEW: стил за включен Admin */
+  .btn.on{ background:#ff7a00; border-color:#ff7a00; color:#111; font-weight:900; }
 
   .wrap{max-width:1300px;margin:0 auto;padding:16px}
 
@@ -46,23 +48,21 @@
     box-shadow:0 10px 26px rgba(0,0,0,.5)
   }
   /* X за изтриване (само в Admin) */
-.promo-del{
-  position:absolute;
-  top:12px;
-  left:12px;          /* вляво, за да не се бие с цената */
-  /* right:auto; */    /* (не е нужно, но може да стои) */
-  background:#ff7a00;
-  color:#fff;
-  border:none;
-  border-radius:50%;
-  width:28px;height:28px;
-  font-size:18px;font-weight:bold;
-  cursor:pointer;
-  display:none;        /* показва се само в Admin */
-  z-index:6;           /* <- ВАЖНО: стои над снимките/оверлея */
-  pointer-events:auto; /* гарантира кликаемост */
-}
-
+  .promo-del{
+    position:absolute;
+    top:12px;
+    left:12px;
+    background:#ff7a00;
+    color:#fff;
+    border:none;
+    border-radius:50%;
+    width:28px;height:28px;
+    font-size:18px;font-weight:bold;
+    cursor:pointer;
+    display:none;
+    z-index:6;
+    pointer-events:auto;
+  }
 
   /* Builder */
   .builder{margin-top:18px;background:#13151a;border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:none}
@@ -132,7 +132,8 @@
     <div class="title">🔥 Corner BBQ — Промоции</div>
     <div style="display:flex;gap:8px">
       <button id="adminBtn" class="btn">Admin</button>
-      <button id="catalogBtn" class="btn" title="Каталог">Каталог</button>
+      <!-- NEW: скрит по подразбиране -->
+      <button id="catalogBtn" class="btn" title="Каталог" style="display:none">Каталог</button>
     </div>
   </header>
 
@@ -210,7 +211,33 @@ let rows = [];    // builder редове [{A,B,price}]
 let view = 'cats';               // cats | cat | all
 let currentKey = null;           // ключ от CATALOG (index2)
 
-// ==== Авто-Admin в iframe: ?admin=1 или #admin=1 + следене за DOM промени ====
+/* ===================== Admin UI helper ===================== */
+function toggleDeleteButtons(forceShow=false){
+  const show = forceShow || isAdmin;
+  document.querySelectorAll('.promo-del').forEach(btn=>{
+    btn.style.display = show ? 'block' : 'none';
+  });
+}
+/* NEW: централизирано включване/изключване на Admin */
+function setAdminUI(enabled){
+  isAdmin = !!enabled;
+
+  // бутон Admin – визия и текст
+  adminBtn.classList.toggle('on', enabled);
+  adminBtn.textContent = enabled ? 'Admin (включен)' : 'Admin';
+
+  // показване/скриване на админ UI
+  builder.style.display = enabled ? 'block' : 'none';
+  if (!enabled) slide.classList.remove('open');
+
+  // Каталог – показва се само в админ режим
+  catalogBtn.style.display = enabled ? 'inline-block' : 'none';
+
+  // X за триене в картите
+  toggleDeleteButtons(enabled);
+}
+
+/* ==== Авто-Admin в iframe: ?admin=1 или #admin=1 + слушане за postMessage ==== */
 (() => {
   const hasFlag =
     new URLSearchParams(location.search).get('admin') === '1' ||
@@ -224,8 +251,7 @@ let currentKey = null;           // ключ от CATALOG (index2)
   } catch(_){}
 
   if (hasFlag || parentSaysAdmin) {
-    isAdmin = true;
-    toggleDeleteButtons(true);
+    setAdminUI(true);
     const mo = new MutationObserver(() => toggleDeleteButtons(true));
     mo.observe(document.getElementById('promoGrid'), { childList:true, subtree:true });
   }
@@ -233,8 +259,7 @@ let currentKey = null;           // ключ от CATALOG (index2)
   // резервно – слушай postMessage
   window.addEventListener('message', (e) => {
     if (e?.data?.type === 'bbq-admin' && e.data.enabled) {
-      isAdmin = true;
-      toggleDeleteButtons(true);
+      setAdminUI(true);
     }
   });
 })();
@@ -355,7 +380,7 @@ const CATALOG = {
     {name:'ФАНТА ПОРТОКАЛ БУТИЛКА',price:2.50,img:CAT_THUMBS.bezalkoholni},
     {name:'СПРАЙТ БУТИЛКА',price:2.50,img:CAT_THUMBS.bezalkoholni},
     {name:'СТУДЕН ЧАЙ',price:2.50,img:CAT_THUMBS.bezalkoholni},
-    {name:'КАПИ ПЪЛПИ',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'КАПИ ПЪЛПИ',price:2.50,img:CAT_THUMBS.bezalkохолни},
     {name:'КАПИ КУТИЯ',price:1.70,img:CAT_THUMBS.bezalkoholni},
     {name:'СОДА БУТИЛКА',price:1.90,img:CAT_THUMBS.bezalkoholni},
     {name:'МАЛКА МИНЕРАЛНА ВОДА',price:1.50,img:CAT_THUMBS.bezalkoholni},
@@ -489,93 +514,80 @@ db.ref('/promotions/items').on('value', snap => {
     return;
   }
 
-items.forEach(p => {
-  const A = p.parts?.[0] || {};
-  const B = p.parts?.[1] || {};
-  const totalPrice = Number(p.price || 0);
+  items.forEach(p => {
+    const A = p.parts?.[0] || {};
+    const B = p.parts?.[1] || {};
+    const totalPrice = Number(p.price || 0);
 
-  const card = el('div', {
-    className:'promo-card',
-    'data-id': p.id || '',
-    'data-price': String(totalPrice), // <- важно за sendPromoToParent
-    'data-a': A.name || '',
-    'data-b': B.name || ''
-  },
-    el('button', { className:'promo-del', title:'Изтрий тази промоция', onclick:()=> tryDeletePromo(p.id) }, '✕'),
-    el('div', { className:'promo-img' },
-      el('img', { src: A.image || '/bbqsaitlogo.jpg', alt: A.name || 'Продукт A', loading:'lazy' }),
-      el('div', { className:'promo-overlay' }),
-      el('span', { className:'promo-tag' }, 'ПРОМО — A'),
-      el('div', { className:'promo-info' },
-        el('div', { className:'promo-name' }, A.name || '—'),
-        el('div', { className:'promo-desc' }, A.desc || '')
+    const card = el('div', {
+      className:'promo-card',
+      'data-id': p.id || '',
+      'data-price': String(totalPrice),
+      'data-a': A.name || '',
+      'data-b': B.name || ''
+    },
+      el('button', { className:'promo-del', title:'Изтрий тази промоция', onclick:()=> tryDeletePromo(p.id) }, '✕'),
+      el('div', { className:'promo-img' },
+        el('img', { src: A.image || '/bbqsaitlogo.jpg', alt: A.name || 'Продукт A', loading:'lazy' }),
+        el('div', { className:'promo-overlay' }),
+        el('span', { className:'promo-tag' }, 'ПРОМО — A'),
+        el('div', { className:'promo-info' },
+          el('div', { className:'promo-name' }, A.name || '—'),
+          el('div', { className:'promo-desc' }, A.desc || '')
+        )
+      ),
+      el('div', { className:'promo-img' },
+        el('img', { src: B.image || '/bbqsaitlogo.jpg', alt: B.name || 'Продукт B', loading:'lazy' }),
+        el('div', { className:'promo-overlay' }),
+        el('span', { className:'promo-tag' }, 'ПРОМО — B'),
+        el('div', { className:'promo-info' },
+          el('div', { className:'promo-name' }, B.name || '—'),
+          el('div', { className:'promo-desc' }, B.desc || '')
+        )
       )
-    ),
-    el('div', { className:'promo-img' },
-      el('img', { src: B.image || '/bbqsaitlogo.jpg', alt: B.name || 'Продукт B', loading:'lazy' }),
-      el('div', { className:'promo-overlay' }),
-      el('span', { className:'promo-tag' }, 'ПРОМО — B'),
-      el('div', { className:'promo-info' },
-        el('div', { className:'promo-name' }, B.name || '—'),
-        el('div', { className:'promo-desc' }, B.desc || '')
-      )
-    )
-  );
+    );
 
-  card.appendChild(el('div', { className:'promo-price' }, money(totalPrice)));
+    card.appendChild(el('div', { className:'promo-price' }, money(totalPrice)));
 
-  const plusBtn = el('button', {
-    className:'promo-plus',
-    type:'button',
-    title:'Добави в количката',
-    onclick: (e)=>{
-      const btn = e.currentTarget;
-      sendPromoToParent(card);
-      btn.textContent = '✓';
-      setTimeout(()=> btn.textContent = '+', 500);
-    }
-  }, '+');
-  card.appendChild(plusBtn);
+    const plusBtn = el('button', {
+      className:'promo-plus',
+      type:'button',
+      title:'Добави в количката',
+      onclick: (e)=>{
+        const btn = e.currentTarget;
+        sendPromoToParent(card);
+        btn.textContent = '✓';
+        setTimeout(()=> btn.textContent = '+', 500);
+      }
+    }, '+');
+    card.appendChild(plusBtn);
 
-  promoGrid.appendChild(card);
-});
-
+    promoGrid.appendChild(card);
+  });
 
   // показвай X само в Admin режим
   toggleDeleteButtons();
 });
 
-
 /* ===================== Admin unlock ===================== */
 adminBtn.addEventListener('click', ()=>{
-  if(isAdmin){
-    isAdmin=false;
-    builder.style.display='none';
-    slide.classList.remove('open');
-    toggleDeleteButtons();
+  if (isAdmin){
+    setAdminUI(false);
     toast('Admin изключен');
     return;
   }
   const pass = prompt('Въведи парола (admin):');
-  if(pass===ADMIN_PASS){
-    isAdmin=true;
-    builder.style.display='block';
+  if (pass === ADMIN_PASS){
+    setAdminUI(true);
+    // по избор: отваря каталога веднага
     slide.classList.add('open');
-    if(rows.length===0) addRow();
+    if (rows.length===0) addRow();
     renderCategories();
-    toggleDeleteButtons();
     toast('Admin активен');
-  }else{
+  } else {
     toast('Грешна парола.');
   }
 });
-function toggleDeleteButtons(forceShow=false){
-  const show = forceShow || isAdmin;
-  document.querySelectorAll('.promo-del').forEach(btn=>{
-    btn.style.display = show ? 'block' : 'none';
-  });
-}
-
 
 /* ===================== Каталог от Firebase (за търсене по всички) ===================== */
 db.ref('/products').on('value',(snap)=>{
@@ -612,7 +624,7 @@ function renderCategories(){
 }
 function prettyLabel(src){
   let f = src.split('/').pop().split('.')[0].toLowerCase();
-  f = f.replace(/^hell_/,'').replace(/^ice_coffe_/,'').replace(/^ice_hell_/,'' );
+  f = f.replace(/^hell_/,'').replace(/^ice_coffe_/,'').replace(/^ice_hell_/,'');
   const map = {apple:'Apple', clasic:'Classic', classic:'Black Cherry', redgrape:'Red Grape',
                watermelon:'Watermelon', capochino:'Cappuccino', cappuccino:'Cappuccino',
                caramel:'Salted Caramel', coconut:'Coconut', doubleespresso:'Double Espresso',
@@ -855,7 +867,7 @@ saveBtn.addEventListener('click', async () => {
         price: Number(r.price||0),
         createdAt: Date.now(),
         active: true,
-        __admin_pass: ADMIN_PASS   // <- важно за правилата
+        __admin_pass: ADMIN_PASS
       }
     });
   }
@@ -886,7 +898,7 @@ async function tryDeletePromo(id){
       __deleted: true,
       active: false,
       updatedAt: Date.now(),
-      __admin_pass: ADMIN_PASS   // <- задължително
+      __admin_pass: ADMIN_PASS
     });
     toast('Промоцията е изтрита.');
   } catch(e) {
@@ -895,10 +907,8 @@ async function tryDeletePromo(id){
   }
 }
 
-
-
 function sendPromoToParent(card){
-  // 1) Цена: опитай dataset, после бейджа, без да форсираш 0 прекалено рано
+  // 1) Цена: dataset -> бейдж
   const fromDataset = () => {
     const raw = card?.dataset?.price;
     if (raw == null || raw === "") return NaN;
@@ -917,7 +927,7 @@ function sendPromoToParent(card){
   if (!Number.isFinite(price) || price <= 0) price = fromBadge();
   if (!Number.isFinite(price)) price = 0;
 
-  // 2) Имена A/B (както при теб)
+  // 2) Имена
   const a = (card.dataset.a || "").trim();
   const b = (card.dataset.b || "").trim();
   const leftName  = card.querySelector('.promo-img:nth-child(2) .promo-name')?.textContent.trim() || a;
@@ -928,7 +938,7 @@ function sendPromoToParent(card){
   // 3) Снимка
   const img = card.querySelector(".promo-img img")?.src || "/bbqsaitlogo.jpg";
 
-  // 4) Payload в НОВ формат (поддържан от novindex2.js/onPromoMessage)
+  // 4) Payload
   const payload = {
     type: "bbq:addPromo",
     name: `Промоция ${finalA} + ${finalB}`,
@@ -939,11 +949,6 @@ function sendPromoToParent(card){
 
   window.parent?.postMessage(payload, "*");
 }
-
-
-</script>
-
-
-
+  </script>
 </body>
 </html>
