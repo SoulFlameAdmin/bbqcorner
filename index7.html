@@ -42,11 +42,21 @@
     position:absolute;top:12px;right:12px;background:linear-gradient(180deg,#ff8a2a,#ff7a00);
     border:0;color:#111;font-weight:900;border-radius:14px;padding:10px 12px;box-shadow:0 10px 26px rgba(255,122,0,.45)
   }
-  .promo-plus{
-    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    background:#000d;border:1px solid #ffffff2a;color:#fff;font-weight:900;border-radius:12px;padding:6px 9px;
-    box-shadow:0 10px 26px rgba(0,0,0,.5)
-  }
+.promo-plus{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  background:linear-gradient(180deg,#ff8a2a,#ff7a00);   /* оранжев */
+  border:none;
+  color:#111;                                           /* тъмен текст */
+  font-weight:900;border-radius:12px;padding:15px 20px;
+  box-shadow:0 10px 26px rgba(0,0,0,.5);
+  transition:background .2s,color .2s,transform .12s;
+}
+.promo-plus.clicked{
+  background:#000;                                      /* черен при клик */
+  color:#fff;
+}
+.promo-plus:active{ transform:translate(-50%,-50%) scale(0.96); }
+
   /* X за изтриване (само в Admin) */
   .promo-del{
     position:absolute;
@@ -549,17 +559,27 @@ db.ref('/promotions/items').on('value', snap => {
 
     card.appendChild(el('div', { className:'promo-price' }, money(totalPrice)));
 
-    const plusBtn = el('button', {
-      className:'promo-plus',
-      type:'button',
-      title:'Добави в количката',
-      onclick: (e)=>{
-        const btn = e.currentTarget;
-        sendPromoToParent(card);
-        btn.textContent = '✓';
-        setTimeout(()=> btn.textContent = '+', 500);
-      }
-    }, '+');
+const plusBtn = el('button', {
+  className:'promo-plus',
+  type:'button',
+  title:'Добави в количката',
+  onclick: (e)=>{
+    const btn = e.currentTarget;
+
+    // добавяне в количката
+    sendPromoToParent(card);
+
+    // визуален feedback: става черен и „✓“ за 500ms, после обратно
+    btn.classList.add('clicked');
+    const oldText = btn.textContent;
+    btn.textContent = '✓';
+    setTimeout(()=>{
+      btn.classList.remove('clicked');
+      btn.textContent = oldText || '+';
+    }, 500);
+  }
+}, '+');
+
     card.appendChild(plusBtn);
 
     promoGrid.appendChild(card);

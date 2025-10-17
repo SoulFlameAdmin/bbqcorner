@@ -526,12 +526,29 @@ const grid    = document.getElementById("productGrid");
 const titleEl = document.getElementById("catTitle");
 
 function showPromosIframe(show){
-  // 1) винаги сменяме класа на <body>
-  document.body.classList.toggle('is-promos', !!show);
-  // 2) ако има секция – тогава пипаме и нейния display
+  // винаги махаме/слагаме класа САМО тук
+  if (show) {
+    document.body.classList.add('is-promos');
+  } else {
+    document.body.classList.remove('is-promos');
+  }
+
+  // ако имаш контейнер за промо секцията – покажи/скрий го
   const sec = document.getElementById('promosSection');
   if (sec) sec.style.display = show ? 'block' : 'none';
+
+  // fail-safe: когато НЕ сме в промо изглед,
+  // увери се, че критичните бутони/елементи са видими
+  if (!show) {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.style.display = ''; // reset
+    const cartOverlay = document.getElementById('cartOverlay');
+    const cartBtn = document.getElementById('cartBtn');
+    if (cartOverlay) cartOverlay.style.display = 'none';
+    if (cartBtn)      cartBtn.setAttribute('aria-expanded','false');
+  }
 }
+
 
 
 /* Делегиран клик за „Всичко“ (veg/sauce) */
@@ -1115,6 +1132,8 @@ function initFromURL(){
 restoreCartFromLS();
 restoreOrderNote?.();
 initFromURL();
+showPromosIframe(false); // гарантирано маха .is-promos при старт
+
 if (sidebar){
   sidebar.querySelectorAll(".cat").forEach(catEl=>{
     const key = catEl.dataset.cat;
