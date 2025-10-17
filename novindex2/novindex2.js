@@ -25,9 +25,7 @@ const fmtLv  = v => (Number(v)||0).toFixed(2).replace(".",",") + " лв.";
 const fmtEur = v => ((Number(v)||0) / BGN_PER_EUR).toFixed(2).replace(".",",") + " €";
 
 /* Лека помощна функция за мобилни отмествания */
-function recalcMobileOffsets(){ 
-  // Тук може да сложиш реална логика за layout, ако е нужна.
-  // Сега просто гарантираме правилното позициониране на "+".
+function recalcMobileOffsets(){
   ensureMobilePlusRight();
   ensurePlusRightUniversal();
 }
@@ -58,7 +56,7 @@ function ensureMobilePlusRight(){
 window.addEventListener("load",  ensureMobilePlusRight);
 window.addEventListener("resize", ensureMobilePlusRight);
 
-/* ➜ Универсално: гарантира, че има бутон "+" след цената и го позиционира (като при вода) */
+/* ➜ Универсално: само преместваме съществуващия “+” след цената. НЕ създаваме нов! */
 function ensurePlusRightUniversal(){
   const hosts = document.querySelectorAll('.product, .tile, .water-card');
   hosts.forEach(card => {
@@ -66,19 +64,12 @@ function ensurePlusRightUniversal(){
     const price = pad.querySelector('.price-badge') || card.querySelector('.price-badge');
     if (!price) return;
 
-    let plus = pad.querySelector('.add-btn') ||
-               pad.querySelector('.mobile-add-btn') ||
-               card.querySelector('.add-btn');
+    let plus = pad.querySelector('.add-btn') || card.querySelector('.add-btn') || null;
+    if (!plus) return; // ⚠️ няма бутон? не правим изкуствен
 
-    if (!plus) {
-      plus = document.createElement('button');
-      plus.type = 'button';
-      plus.className = 'add-btn';
-      plus.textContent = '+';
-    } else {
-      plus.classList.add('add-btn');
-      plus.classList.remove('mobile-add-btn');
-    }
+    plus.classList.add('add-btn');
+    plus.classList.remove('mobile-add-btn');
+
     if (plus !== price.nextElementSibling) {
       price.insertAdjacentElement('afterend', plus);
     }
@@ -107,15 +98,17 @@ const orderNoteEl   = document.getElementById("orderNote");
 
 /* Добавяне към количката */
 function addToCart(item){
+  // гард срещу празни артикули
+  if (!item || !item.baseName || !(item.price >= 0)) return;
   CART.push(item);
   updateCartUI();
 }
 
 /* Основен рендер на количката */
 function updateCartUI(){
-  if (!cartCount || !cartItemsEl) return;
+  if (!cartItemsEl) return;
 
-  cartCount.textContent = CART.length;
+  if (cartCount) cartCount.textContent = CART.length;
 
   if (CART.length === 0){
     cartItemsEl.innerHTML = `<div class="cart-empty">Количката е празна.</div>`;
@@ -133,7 +126,7 @@ function updateCartUI(){
          </div>` : "";
     return `
       <div class="cart-item">
-        <img src="${it.img}" alt="${esc(it.baseName || it.name)}">
+        <img src="${esc(it.img||"")}" alt="${esc(it.baseName || it.name)}">
         <div>
           <div class="name">${esc(it.baseName || it.name)}</div>
           ${addonsLine}
@@ -193,15 +186,20 @@ function restoreCartFromLS() {
     const items = JSON.parse(raw || "[]");
 
     if (Array.isArray(items) && items.length > 0) {
-      items.forEach(it => CART.push({
-        _id: it._id || (Date.now() + "" + Math.random()),
-        name: it.name || "Без име",
-        baseName: it.baseName || it.name || "Без име",
-        price: Number(it.price) || Number(it.basePrice) || 0,
-        basePrice: Number(it.basePrice) || Number(it.price) || 0,
-        img: it.img || "",
-        addons: Array.isArray(it.addons) ? it.addons : []
-      }));
+      items.forEach(it => {
+        const price = Number(it.price ?? it.basePrice ?? 0);
+        const baseName = it.baseName || it.name || "";
+        if (!baseName) return; // пропускаме счупени записи
+        CART.push({
+          _id: it._id || (Date.now() + "" + Math.random()),
+          name: it.name || baseName,
+          baseName,
+          price,
+          basePrice: Number(it.basePrice ?? price),
+          img: it.img || "",
+          addons: Array.isArray(it.addons) ? it.addons : []
+        });
+      });
     }
 
     updateCartUI();
@@ -527,13 +525,14 @@ const sidebar = document.getElementById("sidebar");
 const grid    = document.getElementById("productGrid");
 const titleEl = document.getElementById("catTitle");
 
-/* === ПРОМО iframe от index7 === */
-const promosSection = document.getElementById("promosSection");
-const promosFrame   = document.getElementById("promosFrame");
 function showPromosIframe(show){
-  if (!promosSection) return;
-  promosSection.hidden = !show;
+  // 1) винаги сменяме класа на <body>
+  document.body.classList.toggle('is-promos', !!show);
+  // 2) ако има секция – тогава пипаме и нейния display
+  const sec = document.getElementById('promosSection');
+  if (sec) sec.style.display = show ? 'block' : 'none';
 }
+
 
 /* Делегиран клик за „Всичко“ (veg/sauce) */
 if (grid){
@@ -837,10 +836,16 @@ function bindAddButtons(){
   if (!grid) return;
   grid.querySelectorAll(".add-btn").forEach(btn=>{
     btn.addEventListener("click", ()=>{
-      const card = btn.closest(".product");
-      const baseName  = btn.getAttribute("data-name");
-      const basePrice = Number(btn.getAttribute("data-price")) || 0;
+      const card = btn.closest(".product, .tile, .water-card");
+
+      const baseName  = btn.getAttribute("data-name")?.trim();
+      const basePrice = Number(btn.getAttribute("data-price"));
       const img       = btn.getAttribute("data-img") || "";
+
+      if (!baseName || !(basePrice >= 0)) {
+        // няма валидни данни – игнорираме
+        return;
+      }
 
       const checks = card ? [...card.querySelectorAll(".addon-checkbox:checked")] : [];
       const addons = checks.map(ch => {
@@ -888,126 +893,102 @@ function bindAddButtons(){
   });
 }
 
-/* === ПРОМОЦИИ (A + B) === */
-const LS_PROMOS = "bbq_promos_v1";
-const PROMOS = [
-  {
-    id: "promo1",
-    a: { name: "ТЕЛЕШКА ПЛЕСКАВИЦА", img: "snimki/produkti/2menu/sharska.jpg" },
-    b: { name: "Кола Кен", img: "snimki/produkti/КОЛА/kolaken.jpg" },
-    price: 9.99,
-    hero: "snimki/produkti/2menu/sharska.jpg"
-  }
-];
-(function bootstrapPromosFromLS(){
-  try{
-    const raw = localStorage.getItem(LS_PROMOS);
-    if (!raw) return;
-    const arr = JSON.parse(raw);
-    if (Array.isArray(arr)) {
-      PROMOS.length = 0;
-      arr.forEach(p => PROMOS.push(p));
-    }
-  }catch(err){ console.warn("PROMO LS parse error:", err); }
-})();
 
-/* === ПРОМО: + бутон за картите в ПРОМОЦИИ === */
-function bindPromoButtons(){
-  if (!grid) return;
-  grid.querySelectorAll(".promo-card .promo-add").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const card = btn.closest(".promo-card");
-      const id = card?.getAttribute("data-promo-id");
-      const p = PROMOS.find(x => x.id === id);
-      if (!p) return;
+function onPromoMessage(e){
+  const d = e?.data || {};
+  if (d.type !== "bbq:addPromo") return;
 
-      const displayName = `ПРОМО: ${p.a.name} + ${p.b.name}`;
-      const img = p.hero || p.a.img || p.b.img || "";
-      const price = Number(p.price) || 0;
+  // Поддръжка на НОВ формат: {name, price, img, items}
+  if (d.name || d.items) {
+    const displayName = String(d.name || "Промо пакет").trim();
+    const price = Number(d.price || 0);
+    const img   = d.img || d.image || "";
 
-      addToCart({
-        _id: Date.now() + "" + Math.random(),
-        name: displayName,
-        baseName: displayName,
-        price: price,
-        basePrice: price,
-        img,
-        addons: [{ code: "promo", label: "Промо пакет", price: 0 }]
-      });
+    // Записваме вложените продукти като "addons" (само за инфо)
+    const addons = Array.isArray(d.items)
+      ? d.items.map(x => ({ code: x.name || "", label: x.name || "", price: 0 }))
+      : [];
 
-      if (orderNoteEl){
-        const line = `${displayName} (${fmtLv(price)} / ${fmtEur(price)})`;
-        const cur  = (orderNoteEl.value || "").trim();
-        orderNoteEl.value = cur ? (cur + "\n" + line) : line;
-        localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
-      }
-
-      const was = btn.textContent;
-      btn.textContent = "✓";
-      setTimeout(() => (btn.textContent = was || "+"), 450);
+    addToCart({
+      _id: Date.now() + "" + Math.random(),
+      name: displayName,
+      baseName: displayName,
+      price, basePrice: price,
+      img, addons
     });
+
+    if (orderNoteEl){
+      const line = `${displayName} (${fmtLv(price)} / ${fmtEur(price)})`;
+      const cur  = (orderNoteEl.value || "").trim();
+      orderNoteEl.value = cur ? (cur + "\n" + line) : line;
+      localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+    }
+    return;
+  }
+
+  // Поддръжка на СТАР формат: {a:{name,img}, b:{name,img}, price, hero}
+  const aName = d.a?.name?.trim() || "A";
+  const bName = d.b?.name?.trim() || "B";
+  const displayName = (d.name && String(d.name).trim()) || `ПРОМО: ${aName} + ${bName}`;
+  const price = Number(d.price || 0);
+  const img   = d.hero || d.a?.img || d.b?.img || "";
+  const itemsLine = `${aName} + ${bName}`;
+
+  addToCart({
+    _id: Date.now() + "" + Math.random(),
+    name: displayName,
+    baseName: displayName,
+    price, basePrice: price,
+    img,
+    addons: [{ code: "promo", label: itemsLine, price: 0 }]
   });
+
+  if (orderNoteEl){
+    const line = `${displayName} (${fmtLv(price)} / ${fmtEur(price)})`;
+    const cur  = (orderNoteEl.value || "").trim();
+    orderNoteEl.value = cur ? (cur + "\n" + line) : line;
+    localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+  }
 }
+
+
+
+/* === Приемане на ПРОМО елементи от index7 чрез postMessage (ако ползваш iframe) === */
+window.addEventListener("message", onPromoMessage, false);
 
 /* ===== Активиране на категория + рендер ===== */
 let current = null;
 
 function activate(cat, {fromNav=false, replace=false} = {}){
-  /* 🧡 ПРОМОЦИИ — статичен, без builder */
-  if (cat === "promocii") {
-    current = "promocii";
-    if (sidebar){
-      sidebar.querySelectorAll(".cat")
-        .forEach(c => c.classList.toggle("active", c.dataset.cat === "promocii"));
-    }
+  /* 🧡 ПРОМОЦИИ — ако ползваш iframe промо страница */
+if (cat === "promocii") {
+  current = "promocii";
+  showPromosIframe(true);
 
-    const url = new URL(location.href);
-    if (url.searchParams.get("cat") !== "promocii") {
-      url.searchParams.set("cat", "promocii");
-      if (replace) history.replaceState({ cat: "promocii" }, "", url);
-      else if (fromNav) history.pushState({ cat: "promocii" }, "", url);
-    }
-
-    if (titleEl) titleEl.textContent = "ПРОМОЦИИ";
-
-    const isLocal = (location.protocol === "file:" || location.hostname === "localhost");
-    const adminHref = isLocal ? PROMO_LINK_LOCAL : PROMO_LINK_WEB;
-
-    if (grid){
-      grid.innerHTML = `
-        <section class="promo-wrap">
-          <div class="promo-head" style="display:flex;align-items:center;gap:10px;">
-            <h2 class="promo-head" style="margin:0;">🔥 Corner BBQ — Промоции</h2>
-            <a href="${adminHref}"
-               class="admin-badge"
-               style="margin-left:10px;background:#ff7a00;color:#fff;font-weight:900;
-                      padding:8px 12px;border-radius:12px;text-decoration:none;display:inline-flex;align-items:center;">
-              Admin
-            </a>
-          </div>
-          <div class="promo-grid">
-            ${PROMOS.map(p => `
-              <article class="promo-card" data-promo-id="${p.id}">
-                <div class="promo-sides">
-                  <div class="promo-img" style="background-image:url('${p.a.img}')"></div>
-                  <div class="promo-img" style="background-image:url('${p.b.img}')"></div>
-                </div>
-                <div class="promo-price">${fmtLv(p.price)}</div>
-                <button class="promo-add" type="button" aria-label="Добави промо">+</button>
-              </article>
-            `).join("")}
-          </div>
-        </section>
-      `;
-    }
-
-    bindPromoButtons();
-    recalcMobileOffsets();
-    ensurePlusRightUniversal();
-    return;
+  if (sidebar){
+    sidebar.querySelectorAll(".cat")
+      .forEach(c => c.classList.toggle("active", c.dataset.cat === "promocii"));
   }
 
+  const url = new URL(location.href);
+  if (url.searchParams.get("cat") !== "promocii") {
+    url.searchParams.set("cat", "promocii");
+    if (replace) history.replaceState({ cat: "promocii" }, "", url);
+    else if (fromNav) history.pushState({ cat: "promocii" }, "", url);
+  }
+
+  if (titleEl) titleEl.textContent = "ПРОМОЦИИ";
+
+  if (grid) grid.innerHTML = "";
+
+  recalcMobileOffsets();
+  ensurePlusRightUniversal();
+  return;
+}
+
+
   // === останалите категории
+showPromosIframe(false);       // ⟵ скрий промото, покажи продуктите
   const exists = !!CATALOG[cat];
   if(!exists) cat = "burgeri";
   current = cat;
@@ -1025,7 +1006,6 @@ function activate(cat, {fromNav=false, replace=false} = {}){
   }
 
   const data = CATALOG[cat];
-
   if (!grid) return;
 
   if (data.view === "water2") {
@@ -1146,3 +1126,5 @@ if (sidebar){
     });
   });
 }
+
+

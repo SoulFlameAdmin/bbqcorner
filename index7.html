@@ -896,34 +896,53 @@ async function tryDeletePromo(id){
 }
 
 
+
 function sendPromoToParent(card){
-  // вземи данни от dataset (виж стъпка 2)
-  const a = (card.dataset.a || '').trim();
-  const b = (card.dataset.b || '').trim();
-  const price = Number(card.dataset.price || 0);
-
-  // fallback, ако няма dataset – прочети от DOM
-  const leftName  = card.querySelector('.promo-img:nth-child(2) .promo-name')?.textContent.trim() || a;
-  const rightName = card.querySelector('.promo-img:nth-child(3) .promo-name')?.textContent.trim() || b;
-  const finalA = a || leftName || 'A';
-  const finalB = b || rightName || 'B';
-
-  // снимка (ползваме лявата, ако има)
-  const img = card.querySelector('.promo-img img')?.src || '/bbqsaitlogo.jpg';
-
-  const payload = {
-    type: 'bbq:addPromo',
-    name: `Промоция ${finalA} + ${finalB}`,
-    price,
-    img,
-    items: [finalA, finalB]
+  // 1) Цена: опитай dataset, после бейджа, без да форсираш 0 прекалено рано
+  const fromDataset = () => {
+    const raw = card?.dataset?.price;
+    if (raw == null || raw === "") return NaN;
+    const n = Number.parseFloat(String(raw).replace(",", "."));
+    return Number.isFinite(n) ? n : NaN;
+  };
+  const fromBadge = () => {
+    const txt = card.querySelector(".promo-price")?.textContent || "";
+    const n = Number.parseFloat(
+      txt.replace(/\s+/g,"").replace(/лв\.?/i,"").replace(",", ".")
+    );
+    return Number.isFinite(n) ? n : NaN;
   };
 
-  window.parent?.postMessage(payload, '*');
+  let price = fromDataset();
+  if (!Number.isFinite(price) || price <= 0) price = fromBadge();
+  if (!Number.isFinite(price)) price = 0;
+
+  // 2) Имена A/B (както при теб)
+  const a = (card.dataset.a || "").trim();
+  const b = (card.dataset.b || "").trim();
+  const leftName  = card.querySelector('.promo-img:nth-child(2) .promo-name')?.textContent.trim() || a;
+  const rightName = card.querySelector('.promo-img:nth-child(3) .promo-name')?.textContent.trim() || b;
+  const finalA = a || leftName || "A";
+  const finalB = b || rightName || "B";
+
+  // 3) Снимка
+  const img = card.querySelector(".promo-img img")?.src || "/bbqsaitlogo.jpg";
+
+  // 4) Payload в НОВ формат (поддържан от novindex2.js/onPromoMessage)
+  const payload = {
+    type: "bbq:addPromo",
+    name: `Промоция ${finalA} + ${finalB}`,
+    price: price,
+    img: img,
+    items: [{ name: finalA }, { name: finalB }]
+  };
+
+  window.parent?.postMessage(payload, "*");
 }
 
 
 </script>
+
 
 
 </body>
