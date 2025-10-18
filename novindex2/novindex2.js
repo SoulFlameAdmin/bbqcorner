@@ -798,6 +798,53 @@ function productCardHTML(it, i, withAddons = false) {
     </article>`;
 }
 
+
+// 🚗 "Достави" → Google Maps навигация (origin = моето местоположение, dest = адрес от поръчката)
+function getPosition(opts = { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }) {
+  return new Promise((resolve, reject) => {
+    if (!('geolocation' in navigator)) return reject(new Error('no-geo'));
+    navigator.geolocation.getCurrentPosition(resolve, reject, opts);
+  });
+}
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('button.btn[data-action="maps"]');
+  if (!btn) return;
+
+  // 1) Дестинация (адрес на клиента)
+  let destination = (btn.dataset.address || localStorage.getItem('bbq_last_address') || '').trim();
+  if (!destination) { alert('Няма адрес за доставка.'); return; }
+
+  // 2) Origin: GPS → My Location → (по избор) фиксиран адрес
+  let originParam = '';
+  try {
+    const pos = await getPosition();
+    originParam = `&origin=${pos.coords.latitude},${pos.coords.longitude}`;
+  } catch {
+    // ако няма HTTPS/разрешение
+    originParam = `&origin=My+Location`;
+    // ако искаш винаги от обекта, разкоментирай реда отдолу и махни горния:
+    // originParam = `&origin=${encodeURIComponent('Corner BBQ, Хасково')}`;
+  }
+
+  // 3) URL за навигация
+  const url = 'https://www.google.com/maps/dir/?api=1'
+            + originParam
+            + '&destination=' + encodeURIComponent(destination)
+            + '&travelmode=driving'
+            + '&dir_action=navigate';
+
+  // 4) Отваряне (на мобилно – директно в текущия таб)
+  if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+    // iOS/Android – опитай app, после web
+    // window.location.href = `comgooglemaps://?daddr=${encodeURIComponent(destination)}&directionsmode=driving`;
+    // setTimeout(() => { window.location.href = url; }, 300); // fallback към web
+    window.location.href = url; // прост и стабилен вариант
+  } else {
+    window.open(url, '_blank', 'noopener');
+  }
+});
+
 /* --- Увеличаване при двоен клик (desktop) --- */
 document.addEventListener("dblclick", e => {
   const imgEl = e.target.closest(".photo");
