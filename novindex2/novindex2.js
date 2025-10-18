@@ -558,22 +558,30 @@ function showPromosIframe(show){
 
 
 
-/* Делегиран клик за „Всичко“ (veg/sauce) */
+/* Делегиран клик за „Всичко“ (veg/sauce) — стабилно за desktop и mobile */
 if (grid){
   grid.addEventListener("click", (e) => {
-    const btn = e.target.closest(".btn-all");
+    const btn = e.target.closest("button.btn-all");
     if (!btn) return;
-    const group = btn.dataset.target;
-    const host  = btn.closest(".addons");
-    if (!group || !host) return;
 
-    const boxes = [...host.querySelectorAll(`.addon-checkbox[data-group="${group}"]`)];
+    e.preventDefault();
+    e.stopPropagation();
+
+    const group = btn.dataset.target;            // "veg" или "sauce"
+    const card  = btn.closest(".product");       // цялата карта
+    if (!group || !card) return;
+
+    const boxes = Array.from(card.querySelectorAll(`input.addon-checkbox[data-group="${group}"]`));
     if (!boxes.length) return;
 
-    const allChecked = boxes.every(b => b.checked);
-    boxes.forEach(b => b.checked = !allChecked);
+    const shouldCheck = !boxes.every(b => b.checked); // ако не са всички чекнати → чекваме всички
+    for (const b of boxes) {
+      b.checked = shouldCheck;
+      b.dispatchEvent(new Event("change", { bubbles: true })); // подсигури логика по change
+    }
   });
 }
+
 
 /* Сайдбар рендер */
 if (sidebar){
