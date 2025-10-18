@@ -64,8 +64,14 @@ function ensurePlusRightUniversal(){
     const price = pad.querySelector('.price-badge') || card.querySelector('.price-badge');
     if (!price) return;
 
-    let plus = pad.querySelector('.add-btn') || card.querySelector('.add-btn') || null;
-    if (!plus) return; // ⚠️ няма бутон? не правим изкуствен
+    // ако по погрешка има повече от един "+" — запази само първия
+    const allPlus = pad.querySelectorAll('.add-btn');
+    if (allPlus.length > 1) {
+      allPlus.forEach((b, i) => { if (i > 0) b.remove(); });
+    }
+
+    const plus = pad.querySelector('.add-btn') || card.querySelector('.add-btn');
+    if (!plus) return;
 
     plus.classList.add('add-btn');
     plus.classList.remove('mobile-add-btn');
@@ -75,6 +81,7 @@ function ensurePlusRightUniversal(){
     }
   });
 }
+
 
 /* ===========================
    📦 КОЛИЧКА
@@ -624,12 +631,7 @@ function productCardHTML(it, i, withAddons = false) {
   let mobileVeg = "";
   let mobileSauces = "";
   let mobileAddons = "";
-  const mobileAddBtn = `
-    <button class="mobile-add-btn add-btn"
-      data-name="${(it.name || "").replace(/"/g,"&quot;")}"
-      data-price="${it.price}"
-      data-img="${it.img}">+</button>
-  `;
+
 
   if (withAddons) {
     if (current === "burgeri") {
@@ -783,7 +785,7 @@ function productCardHTML(it, i, withAddons = false) {
 
         ${ current === "burgeri" ? actionsRowHTML : (wholeAddonsBlock || "") }
 
-        ${mobileAddBtn}
+       
       </div>
     </article>`;
 }
