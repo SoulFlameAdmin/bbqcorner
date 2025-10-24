@@ -144,6 +144,31 @@
 
       updateCount();
     })();
-  </script>
+
+
+
+ </script>
+
+
+<script>
+(function(){
+  const qs = new URLSearchParams(location.search);
+  const isModerator = qs.get('mode') === 'moderator';
+
+  if (isModerator) {
+    // 1) Покажи продуктите, скрий промо-iframe
+    document.body.classList.remove('is-promos');
+    const promos = document.getElementById('promosSection');
+    const grid   = document.getElementById('productGrid');
+    if (promos) promos.style.display = 'none';
+    if (grid)   grid.style.display   = 'block';
+  }
+})();
+</script>
+
+
+
+
+
 </body>
 </html>

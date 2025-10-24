@@ -18,7 +18,10 @@
 <meta name="twitter:title" content="Corner BBQ — Онлайн поръчки">
 <meta name="twitter:description" content="Corner BBQ — вкусът на истинския грил.">
 <meta name="format-detection" content="telephone=no" />
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Corner BBQ","url":"https://bbqcorner.vercel.app","logo":"https://bbqcorner.vercel.app/logo.png"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Corner BBQ","url":"https://bbqcorner.vercel.app","logo":"https://bbqcorner.vercel.app/logo.png"}
+
+
+</script>
 
 <style>
 :root{
@@ -192,6 +195,51 @@ a,button{touch-action:manipulation}
 
   .fab-items{ width:calc(100vw - 28px); }
 }
+
+
+/* 🧩 Стилове за падащото меню на бутона АДМИН */
+.admin-dropdown{position:relative}
+.admin-menu{
+  position:absolute;
+  top:110%;
+  right:0;
+  background:#fff;
+  border:1px solid #ccc;
+  border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.2);
+  padding:6px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  z-index:999;
+}
+
+
+/* ↓ Падащото меню е скрито по подразбиране */
+.admin-menu{ display:none; }
+
+/* ↓ Показва се само когато контейнерът има .open */
+.admin-dropdown.open .admin-menu{
+  display:flex;
+}
+
+/* (ако запазиш hidden в HTML, гарантираме, че остава скрито) */
+.admin-menu[hidden]{ display:none !important; }
+
+
+.btn-sub{
+  background:#f9f9f9;
+  color:#111;
+  border:none;
+  border-radius:10px;
+  padding:8px 12px;
+  text-align:left;
+  font-weight:600;
+  cursor:pointer;
+  transition:background .2s;
+}
+.btn-sub:hover{background:#eee}
+
 </style>
 </head>
 <body>
@@ -211,12 +259,28 @@ a,button{touch-action:manipulation}
         </svg>
       </label>
 
-      <div class="fab-items">
-        <button id="reviewsBtn" class="btn-fab">Отзиви и препоръки</button>
-        <button id="adminBtn" class="admin-btn">АДМИН</button>
-        <button id="trackBtn" class="track-btn" aria-label="Проследи поръчката">ПРОСЛЕДИ ПОРЪЧКАТА</button>
-      </div>
-    </div>
+    <div class="fab-items">
+  <!-- 🧩 Отзиви -->
+  <button id="reviewsBtn" class="btn-fab">Отзиви и препоръки</button>
+
+  <!-- 🧩 Нов бутон АДМИН с подменю -->
+<div class="admin-dropdown">
+  <button id="adminBtn" class="admin-btn">АДМИН ▾</button>
+  <div id="adminMenu" class="admin-menu">
+    <button class="btn-sub" id="adminPanelBtn">Admin Panel</button>
+    <button class="btn-sub" id="moderatorBtn">Moderator</button>
+  </div>
+</div>
+
+
+
+
+  <!-- 🧩 Проследи -->
+  <button id="trackBtn" class="track-btn" aria-label="Проследи поръчката">ПРОСЛЕДИ ПОРЪЧКАТА</button>
+</div>
+</div>
+
+
     <!-- ========= /FAB MENU ========= -->
 
     <div class="hero-inner"></div>
@@ -338,26 +402,95 @@ toTop.addEventListener('click', () => scrollTo({ top:0, behavior:'smooth' }));
   document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') chk.checked=false; });
 })();
 
-/* ========== ADMIN LOGIN ========== */
-const ADMIN_PASSWORD='bbqcornera123';
-const adminBtn=document.getElementById('adminBtn');
-const authEl=document.getElementById('auth');
-const nameEl=document.getElementById('adminName');
-const pwdEl=document.getElementById('pwd');
-const rememberEl=document.getElementById('remember');
-const loginBtn=document.getElementById('loginBtn');
-const errEl=document.getElementById('err');
-const msgEl=document.getElementById('msg');
+/* ========== ADMIN LOGIN + DROPDOWN (clean) ========== */
+const ADMIN_PASSWORD = 'bbqcornera123';
+
+/* ================= ADMIN DROPDOWN (toggle .open) ================= */
+const adminBtn       = document.getElementById('adminBtn');
+const adminMenu      = document.getElementById('adminMenu');
+const adminPanelBtn  = document.getElementById('adminPanelBtn');
+const moderatorBtn   = document.getElementById('moderatorBtn');
+const menuChk        = document.getElementById('menuChk');
+const adminDD        = document.querySelector('.admin-dropdown'); // контейнерът
+
+/* login overlay refs */
+const authEl     = document.getElementById('auth');
+const nameEl     = document.getElementById('adminName');
+const pwdEl      = document.getElementById('pwd');
+const rememberEl = document.getElementById('remember');
+const loginBtn   = document.getElementById('loginBtn');
+const errEl      = document.getElementById('err');
+const msgEl      = document.getElementById('msg');
 
 function openPanel(){ window.location.href='index4.html'; }
-adminBtn.addEventListener('click',()=>{
-  const remembered = localStorage.getItem('adminRemembered')==='1';
-  const savedName = (localStorage.getItem('adminName')||'').trim();
-  if(remembered && savedName){ localStorage.setItem('adminVerified','1'); openPanel(); return; }
-  errEl.style.display='none'; msgEl.style.display='none';
-  nameEl.value=''; pwdEl.value=''; rememberEl.checked=false;
-  authEl.classList.add('show'); setTimeout(()=>nameEl.focus(),0);
+
+/* 1) Клик на АДМИН → показва/скрива подменюто */
+adminBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  adminDD.classList.toggle('open');
 });
+
+/* 2) Клик извън → затваря подменюто */
+document.addEventListener('click', (e) => {
+  if (!adminDD.contains(e.target)) adminDD.classList.remove('open');
+});
+
+/* 3) Затваряне на FAB → затваря подменюто */
+menuChk.addEventListener('change', () => {
+  if (!menuChk.checked) adminDD.classList.remove('open');
+});
+
+/* ✅ 4) MODERATOR LOGIN – само парола + пренасочване към novindex2 */
+const moderatorPassword = 'bbqcornera123';
+const MODERATOR_URL = (location.protocol === 'file:')
+  ? 'file:///E:/BBQ_SITE/novindex2/novindex2.html?mode=moderator'
+  : 'novindex2/novindex2.html?mode=moderator';
+
+if (moderatorBtn) {
+  moderatorBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    adminDD.classList.remove('open');
+
+    const entered = prompt('🔐 Въведи парола за модератор:');
+    if (entered === null) return;
+
+    if (entered.trim() === moderatorPassword) {
+      alert('✅ Достъп разрешен — отварям Moderator Mode.');
+      window.location.href = MODERATOR_URL;
+    } else {
+      alert('❌ Грешна парола.');
+    }
+  });
+}
+
+
+/* 4) Admin Panel → директен вход ако е „запомнен“, иначе login overlay */
+adminPanelBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  adminDD.classList.remove('open');
+
+  const remembered = localStorage.getItem('adminRemembered')==='1';
+  const savedName  = (localStorage.getItem('adminName')||'').trim();
+
+  if (remembered && savedName){
+    localStorage.setItem('adminVerified','1');
+    openPanel();
+    return;
+  }
+
+  errEl.style.display='none';
+  msgEl.style.display='none';
+  nameEl.value='';
+  pwdEl.value='';
+  rememberEl.checked=false;
+  authEl.classList.add('show');
+  setTimeout(()=>nameEl.focus(),0);
+});
+
+
+
+
+/* 6) Login (само ЕДИН блок) */
 function doLogin(){
   const name=(nameEl.value||'').trim();
   const pwd=(pwdEl.value||'').trim();
@@ -368,8 +501,10 @@ function doLogin(){
     errEl.style.display='block'; return;
   }
   errEl.style.display='none'; msgEl.style.display='block';
-  localStorage.setItem('adminVerified','1'); localStorage.setItem('adminName', name);
-  if(remember){ localStorage.setItem('adminRemembered','1'); } else { localStorage.removeItem('adminRemembered'); }
+  localStorage.setItem('adminVerified','1');
+  localStorage.setItem('adminName', name);
+  if(remember){ localStorage.setItem('adminRemembered','1'); }
+  else{ localStorage.removeItem('adminRemembered'); }
   setTimeout(()=>{ authEl.classList.remove('show'); openPanel(); }, 900);
 }
 loginBtn.addEventListener('click', doLogin);
@@ -377,6 +512,7 @@ nameEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault();
 pwdEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doLogin(); }});
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') authEl.classList.remove('show'); });
 authEl.addEventListener('click', e=>{ if(e.target===authEl) authEl.classList.remove('show'); });
+
 
 /* ========== TRACK ORDER BUTTON logic ========== */
 const trackBtn = document.getElementById('trackBtn');
@@ -425,6 +561,13 @@ if (trackBtn) {
   });
   logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
 })();
+
+
+
+
+
+
+
 </script>
 
 <!-- ========== REVIEWS (Firebase) ========== -->
