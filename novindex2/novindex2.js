@@ -1,6 +1,3 @@
-pak ne zarejdat vuv vercel 
-
-
 
 
 
@@ -26,7 +23,17 @@ const esc = (s) => String(s)
   .replace(/>/g,"&gt;")
   .replace(/"/g,"&quot;");
 
+/* 🔗 ASSET helper: абсолютен base + URL-ENCODE (работи и локално, и на Vercel) */
+const ASSET_ROOT = (location.protocol === "file:")
+  ? "file:///E:/BBQ_SITE/"
+  : (location.pathname.includes("/novindex2/") ? "/novindex2/" : "/");
 
+function asset(p){
+  if (!p) return "";
+  if (/^(https?:|data:)/i.test(p)) return p;
+  const clean = String(p).replace(/^\/+/, "");
+  return ASSET_ROOT + encodeURI(clean);
+}
 
 /* Цени – конвертор */
 const BGN_PER_EUR = 1.95583;
@@ -143,7 +150,7 @@ function updateCartUI(){
          </div>` : "";
     return `
       <div class="cart-item">
-        <img src="${asset(it.img||"")}" alt="${esc(it.baseName || it.name)}">
+        <img src="${esc(it.img||"")}" alt="${esc(it.baseName || it.name)}">
         <div>
           <div class="name">${esc(it.baseName || it.name)}</div>
           ${addonsLine}
@@ -532,8 +539,6 @@ const CATALOG = {
 };
 
 
-// Копие на дефолтния каталог за авто-възстановяване
-const DEFAULT_CATALOG = JSON.parse(JSON.stringify(CATALOG));
 
 
 /* Подредба на категориите */
@@ -574,20 +579,6 @@ if (savedMainData) {
     console.warn("⚠️ Грешка при зареждане на BBQ_MAIN_CATALOG:", err);
   }
 }
-
-// 🔧 Авто-ремонт на категории, които изискват groups/view
-["palachinki","hell","voda","gazirana_voda"].forEach(k=>{
-  const def = DEFAULT_CATALOG[k];
-  const cur = CATALOG[k];
-  if (!cur || (!Array.isArray(cur.items) && !Array.isArray(cur.groups) && !cur.view)) {
-    // ако LS е изтрил структурата – върни дефолта
-    CATALOG[k] = JSON.parse(JSON.stringify(def));
-  } else {
-    // допълни липсващите части от дефолта
-    if (def?.groups && !Array.isArray(cur.groups)) CATALOG[k].groups = JSON.parse(JSON.stringify(def.groups));
-    if (def?.view && !cur.view) CATALOG[k].view = def.view;
-  }
-});
 
 
 // 🔁 Авто-рефреш на текущия таб, когато друг таб запише MAIN каталога
@@ -685,25 +676,6 @@ function prettyLabel(src){
 }
 
 const catHasAddons = (cat) => (cat === "portsii" || cat === "burgeri" || cat === "strandzhanki");
-
-// 🔧 БАЗОВ ПЪТ ЗА РЕСУРСИ – работи и локално, и в Vercel, на всяка дълбочина
-const ASSET_ROOT = (() => {
-  if (location.protocol === "file:") return "file:///E:/BBQ_SITE/";
-  // Директорията на текущия документ, винаги завършва на "/"
-  return location.pathname.endsWith("/")
-    ? location.pathname
-    : location.pathname.replace(/[^/]+$/, "/");
-})();
-
-function asset(p){
-  if (!p) return "";
-  if (/^(https?:|data:)/i.test(p)) return p;
-  const clean = String(p).replace(/^\/+/, "");
-  return ASSET_ROOT + encodeURI(clean);
-}
-
-const DEFAULT_PRODUCT_IMG = "snimki/default.jpg";
-
 
 /* === РЕНДЕР НА ПРОДУКТ === */
 // === BEGIN REPLACE: productCardHTML – добавя пер-продукт добавки (it.addons) ===
@@ -2138,7 +2110,8 @@ for (const key of ORDER) {
 /* =====================================================
    🧠 ПЕРМАНЕНТНО ЗАПАЗВАНЕ В ОСНОВНИЯ КАТАЛОГ (index2)
    ===================================================== */
-
+// placeholder за продукти, ако снимката бъде орязана
+const DEFAULT_PRODUCT_IMG = "snimki/default.jpg";
 
 // орязване на снимките в payload, докато се побере в localStorage
 function trimImagesUntilFits(obj, maxBytes = 4_800_000){
