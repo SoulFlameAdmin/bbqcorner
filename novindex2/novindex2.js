@@ -1,3 +1,6 @@
+pak ne zarejdat vuv vercel 
+
+
 
 
 
@@ -23,17 +26,7 @@ const esc = (s) => String(s)
   .replace(/>/g,"&gt;")
   .replace(/"/g,"&quot;");
 
-/* 🔗 ASSET helper: абсолютен base + URL-ENCODE (работи и локално, и на Vercel) */
-const ASSET_ROOT = (location.protocol === "file:")
-  ? "file:///E:/BBQ_SITE/"
-  : (location.pathname.includes("/novindex2/") ? "/novindex2/" : "/");
 
-function asset(p){
-  if (!p) return "";
-  if (/^(https?:|data:)/i.test(p)) return p;
-  const clean = String(p).replace(/^\/+/, "");
-  return ASSET_ROOT + encodeURI(clean);
-}
 
 /* Цени – конвертор */
 const BGN_PER_EUR = 1.95583;
