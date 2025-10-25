@@ -677,6 +677,11 @@ function prettyLabel(src){
 
 const catHasAddons = (cat) => (cat === "portsii" || cat === "burgeri" || cat === "strandzhanki");
 
+// === GLOBAL fallbacks (used in both normal & moderator modes)
+const DEFAULT_PRODUCT_IMG = "snimki/default.jpg";
+const DEFAULT_CAT_THUMB   = "snimki/produkti/1menu/default.jpg";
+
+
 /* === РЕНДЕР НА ПРОДУКТ === */
 // === BEGIN REPLACE: productCardHTML – добавя пер-продукт добавки (it.addons) ===
 function productCardHTML(it, i, withAddons = false) {
@@ -1201,7 +1206,7 @@ if (new URLSearchParams(location.search).get("mode") === "moderator") {
               <div class="lv">${fmtLv(hellPrice)}</div>
               <div class="eur">${fmtEur(hellPrice)}</div>
             </div>
-            <button class="add-btn" data-name="${label.replace(/"/g,"&quot;")}" data-price="${hellPrice}" data-img="${asset(src)}">+</button>
+            <button class="add-btn" data-name="${label.replace(/"/g,"&quot;")}" data-price="${hellPrice}" data-img="${src}">+</button>
           </div>
           <div class="caption">${label}</div>
         </div>`;
@@ -1632,7 +1637,7 @@ function pushMainFromDraftDebounced(){
 
     sidebar.innerHTML = ORDER.map(key=>{
       const label=(key==="promocii") ? "ПРОМОЦИИ" : (CATALOG[key]?.title || key.toUpperCase());
-      const img  = CAT_THUMBS[key] || DEFAULT_CAT_THUMB;
+      const img  = asset(CAT_THUMBS[key] || DEFAULT_CAT_THUMB);
       return `
         <a class="cat" draggable="true" data-cat="${esc(key)}" role="link" tabindex="0" aria-label="${esc(label)}">
           <div class="box cat-box" style="background-image:url('${img}')" data-label="${esc(label)}">
@@ -2110,8 +2115,7 @@ for (const key of ORDER) {
 /* =====================================================
    🧠 ПЕРМАНЕНТНО ЗАПАЗВАНЕ В ОСНОВНИЯ КАТАЛОГ (index2)
    ===================================================== */
-// placeholder за продукти, ако снимката бъде орязана
-const DEFAULT_PRODUCT_IMG = "snimki/default.jpg";
+
 
 // орязване на снимките в payload, докато се побере в localStorage
 function trimImagesUntilFits(obj, maxBytes = 4_800_000){
@@ -2806,15 +2810,20 @@ saveToMainNow();
         max-width:360px;
         box-shadow:0 2px 6px rgba(0,0,0,0.1);
       `;
-      card.innerHTML = `
-        <div style="font-weight:700;">${item.name || "Без име"}</div>
-        <div style="color:#444;">${parseFloat(item.price||0).toFixed(2)} лв.</div>
-        <button class="editAddonsBtn"
-          style="background:#ff7a00;color:#fff;border:none;
-          border-radius:8px;padding:6px 12px;margin-top:6px;cursor:pointer;">
-          Добавки
-        </button>
-      `;
+card.innerHTML = `
+  <div class="photo" style="
+    width:100%;height:160px;border-radius:10px;margin-bottom:8px;
+    background-image:url('${asset(item.img || DEFAULT_PRODUCT_IMG)}');
+    background-size:cover;background-position:center;
+  "></div>
+  <div style="font-weight:700;">${esc(item.name || "Без име")}</div>
+  <div style="color:#444;">${fmtLv(item.price || 0)}</div>
+  <button class="editAddonsBtn"
+    style="background:#ff7a00;color:#fff;border:none;border-radius:8px;
+           padding:6px 12px;margin-top:6px;cursor:pointer;">
+    Добавки
+  </button>
+`;
       card.querySelector(".editAddonsBtn").onclick = () => openAddonsEditor(i, card);
       grid.appendChild(card);
     });
