@@ -1285,47 +1285,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // >>> LOAD ONLY IN MOD MODE — START
 if (isModerator) {
-  try {
-    // Чернови CATALOG / ORDER (само за модератор)
-    const savedCatalogRaw = localStorage.getItem("CATALOG");
-    const savedOrderRaw   = localStorage.getItem("ORDER");
-
-    if (savedCatalogRaw) {
-      const draftCatalog = JSON.parse(savedCatalogRaw);
-      if (draftCatalog && typeof draftCatalog === "object") {
-        Object.keys(draftCatalog).forEach(key => {
-          const d = draftCatalog[key] || {};
-          if (!CATALOG[key]) CATALOG[key] = { title: (d.title || key.toUpperCase()), items: [] };
-          if (d.title)      CATALOG[key].title      = d.title;
-          if (d.view)       CATALOG[key].view       = d.view;
-          if (d.hellPrice != null) CATALOG[key].hellPrice = d.hellPrice;
-          if (Array.isArray(d.items))  CATALOG[key].items  = d.items;
-          if (Array.isArray(d.groups)) CATALOG[key].groups = d.groups;
-        });
-      }
-    }
-
-    if (savedOrderRaw) {
-      const draftOrder = JSON.parse(savedOrderRaw);
-      if (Array.isArray(draftOrder) && draftOrder.length) {
-        ORDER.length = 0;
-        draftOrder.forEach(k => ORDER.push(k));
-      }
-    }
-
-    // Допълнително: миниатюри от черновата (ако има)
-    const draft = JSON.parse(localStorage.getItem("bbq_mod_draft_v3") || "{}");
-    if (draft && draft.cat_thumbs) Object.assign(CAT_THUMBS, draft.cat_thumbs);
-
-    // Fail-safe: гарантирай дефиниция за всяка категория от ORDER
-    ORDER.forEach(k => {
-      if (!CATALOG[k]) CATALOG[k] = { title: (CATALOG[k]?.title || k.toUpperCase()), items: [] };
-    });
-  } catch (e) {
-    console.warn("⚠️ MOD draft load error:", e);
-  }
-}
-// >>> LOAD ONLY IN MOD MODE — END
+  // Чернови (CATALOG/ORDER) — ако ги има
+  const savedCatalog = localStorage.getItem("CATALOG");
+  const savedOrder   = localStorage.getItem("ORDER");
+  if (savedCatalog) Object.assign(CATALOG, JSON.parse(savedCatalog));
+  if (savedOrder) { ORDER.length = 0; ORDER.push(...JSON.parse(savedOrder)); }
 
   // Перманентен снапшот (BBQ_MAIN_CATALOG)
   const savedMainData = localStorage.getItem("BBQ_MAIN_CATALOG");
