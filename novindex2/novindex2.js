@@ -542,19 +542,30 @@ const ORDER = [
 /* =====================================================
    🧠 Зареждане на перманентния каталог (BBQ_MAIN_CATALOG)
    ===================================================== */
-const savedMainData = localStorage.getItem("BBQ_MAIN_CATALOG");
-if (savedMainData) {
+/* ===== LOAD BBQ_MAIN_CATALOG (ако съществува) ===== */
+(() => {
   try {
-    const data = JSON.parse(savedMainData);
-    if (data.CATALOG) Object.assign(CATALOG, data.CATALOG);
+    const raw = localStorage.getItem("BBQ_MAIN_CATALOG");
+    if (!raw) return;
+    const data = JSON.parse(raw);
+
+    if (data.CATALOG)    Object.assign(CATALOG, data.CATALOG);
     if (Array.isArray(data.ORDER)) {
       ORDER.length = 0;
       ORDER.push(...data.ORDER);
     }
+    if (data.ADDONS)     Object.assign(ADDONS, data.ADDONS);
+    if (data.cat_thumbs) Object.assign(CAT_THUMBS, data.cat_thumbs);
+
+    // fail-safe: всяка категория от ORDER да е дефинирана
+    ORDER.forEach(k => {
+      if (!CATALOG[k]) CATALOG[k] = { title: (CATALOG[k]?.title || k.toUpperCase()), items: [] };
+    });
   } catch (err) {
     console.warn("⚠️ Грешка при зареждане на BBQ_MAIN_CATALOG:", err);
   }
-}
+})();
+
 
 function ensureShape(key, shape){
   const c = CATALOG[key] || {};
@@ -571,7 +582,7 @@ ensureShape("gazirana_voda","water2");
 ensureShape("hell","gallery");
 ensureShape("palachinki","groups");
 
-/* ===================================================== 🧠 Възстановяване на добавките ===================================================== */ try { const savedData = JSON.parse(localStorage.getItem("BBQ_MAIN_CATALOG") || "{}"); if (savedData && savedData.CATALOG) { Object.assign(CATALOG, savedData.CATALOG); } if (savedData.ADDONS) { Object.assign(ADDONS, savedData.ADDONS); } console.log("✅ Заредени добавки:", ADDONS); } catch (err) { console.warn("⚠️ Грешка при възстановяване на добавките:", err); }
+
 
 const sidebar = document.getElementById("sidebar");
 const grid    = document.getElementById("productGrid");
@@ -1274,11 +1285,47 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // >>> LOAD ONLY IN MOD MODE — START
 if (isModerator) {
-  // Чернови (CATALOG/ORDER) — ако ги има
-  const savedCatalog = localStorage.getItem("CATALOG");
-  const savedOrder   = localStorage.getItem("ORDER");
-  if (savedCatalog) Object.assign(CATALOG, JSON.parse(savedCatalog));
-  if (savedOrder) { ORDER.length = 0; ORDER.push(...JSON.parse(savedOrder)); }
+  try {
+    // Чернови CATALOG / ORDER (само за модератор)
+    const savedCatalogRaw = localStorage.getItem("CATALOG");
+    const savedOrderRaw   = localStorage.getItem("ORDER");
+
+    if (savedCatalogRaw) {
+      const draftCatalog = JSON.parse(savedCatalogRaw);
+      if (draftCatalog && typeof draftCatalog === "object") {
+        Object.keys(draftCatalog).forEach(key => {
+          const d = draftCatalog[key] || {};
+          if (!CATALOG[key]) CATALOG[key] = { title: (d.title || key.toUpperCase()), items: [] };
+          if (d.title)      CATALOG[key].title      = d.title;
+          if (d.view)       CATALOG[key].view       = d.view;
+          if (d.hellPrice != null) CATALOG[key].hellPrice = d.hellPrice;
+          if (Array.isArray(d.items))  CATALOG[key].items  = d.items;
+          if (Array.isArray(d.groups)) CATALOG[key].groups = d.groups;
+        });
+      }
+    }
+
+    if (savedOrderRaw) {
+      const draftOrder = JSON.parse(savedOrderRaw);
+      if (Array.isArray(draftOrder) && draftOrder.length) {
+        ORDER.length = 0;
+        draftOrder.forEach(k => ORDER.push(k));
+      }
+    }
+
+    // Допълнително: миниатюри от черновата (ако има)
+    const draft = JSON.parse(localStorage.getItem("bbq_mod_draft_v3") || "{}");
+    if (draft && draft.cat_thumbs) Object.assign(CAT_THUMBS, draft.cat_thumbs);
+
+    // Fail-safe: гарантирай дефиниция за всяка категория от ORDER
+    ORDER.forEach(k => {
+      if (!CATALOG[k]) CATALOG[k] = { title: (CATALOG[k]?.title || k.toUpperCase()), items: [] };
+    });
+  } catch (e) {
+    console.warn("⚠️ MOD draft load error:", e);
+  }
+}
+// >>> LOAD ONLY IN MOD MODE — END
 
   // Перманентен снапшот (BBQ_MAIN_CATALOG)
   const savedMainData = localStorage.getItem("BBQ_MAIN_CATALOG");
@@ -1978,14 +2025,23 @@ addBtn("➕ Добави добавка", 220, () => {
    🧠 ПЕРМАНЕНТНО ЗАПАЗВАНЕ В ОСНОВНИЯ КАТАЛОГ (index2)
    ===================================================== */
 addBtn("💾 Запази всичко в основния сайт", 50, () => {
-  const mainData = {
-    CATALOG,
-    ORDER,
-    ADDONS: JSON.parse(localStorage.getItem("ADDONS") || "{}")
-  };
-  localStorage.setItem("BBQ_MAIN_CATALOG", JSON.stringify(mainData));
-  toast("✅ Всички промени са записани в основния сайт");
+  try {
+    const draft = (JSON.parse(localStorage.getItem("bbq_mod_draft_v3") || "{}") || {});
+    const mainData = {
+      CATALOG,
+      ORDER,
+      ADDONS,                       // всички дефиниции на добавки
+      cat_thumbs: CAT_THUMBS,       // миниатюри за сайдбара
+      addons_labels: draft.addons_labels || {},
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem("BBQ_MAIN_CATALOG", JSON.stringify(mainData));
+    toast("✅ Записано. Излез от MOD (Изход) за да видиш промените.");
+  } catch (e) {
+    alert("❌ Проблем при запис: " + e.message);
+  }
 });
+
 
 /* =====================================================
    🧠 Зареждане на добавките от паметта
