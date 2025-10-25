@@ -1254,6 +1254,31 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.removeItem(LS_MODE_FLAG);
   }
 
+
+// >>> LOAD ONLY IN MOD MODE — START
+if (isModerator) {
+  // Чернови (CATALOG/ORDER) — ако ги има
+  const savedCatalog = localStorage.getItem("CATALOG");
+  const savedOrder   = localStorage.getItem("ORDER");
+  if (savedCatalog) Object.assign(CATALOG, JSON.parse(savedCatalog));
+  if (savedOrder) { ORDER.length = 0; ORDER.push(...JSON.parse(savedOrder)); }
+
+  // Перманентен снапшот (BBQ_MAIN_CATALOG)
+  const savedMainData = localStorage.getItem("BBQ_MAIN_CATALOG");
+  if (savedMainData) {
+    try {
+      const data = JSON.parse(savedMainData);
+      if (data.CATALOG)     Object.assign(CATALOG, data.CATALOG);
+      if (Array.isArray(data.ORDER)) { ORDER.length = 0; ORDER.push(...data.ORDER); }
+      if (data.cat_thumbs)  Object.assign(CAT_THUMBS, data.cat_thumbs);
+      if (data.ADDON_LABELS) ADDON_LABELS = data.ADDON_LABELS;
+      if (data.ADDONS)      Object.assign(ADDONS, data.ADDONS);
+    } catch(e){ console.warn("MAIN load error:", e); }
+  }
+}
+// >>> LOAD ONLY IN MOD MODE — END
+
+
   // 4️⃣ Функция за изход
   const exitModeratorMode = () => {
     localStorage.removeItem(LS_MODE_FLAG);
@@ -1264,14 +1289,16 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
 // Възстановяване на CATALOG/ORDER от localStorage при зареждане
-const savedCatalog = localStorage.getItem("CATALOG");
-const savedOrder = localStorage.getItem("ORDER");
-if (savedCatalog) Object.assign(CATALOG, JSON.parse(savedCatalog));
-if (savedOrder) {
-  ORDER.length = 0;
-  ORDER.push(...JSON.parse(savedOrder));
+// ❗ СЕГА: само в модератор режим
+if (isModerator) {
+  const savedCatalog = localStorage.getItem("CATALOG");
+  const savedOrder   = localStorage.getItem("ORDER");
+  if (savedCatalog) Object.assign(CATALOG, JSON.parse(savedCatalog));
+  if (savedOrder) {
+    ORDER.length = 0;
+    ORDER.push(...JSON.parse(savedOrder));
+  }
 }
-
 
 
   // Ако не сме в модератор режим — прекратяваме
@@ -1309,47 +1336,63 @@ if (savedOrder) {
   const setMemory = (obj)=>save(LS_MOD_DRAFT,obj);
 
   /* ===== Snapshot runtime → object ===== */
-  const snapshotRuntime = ()=>{
-    const snap = { order:[...ORDER], catalog:{}, cat_thumbs:{}, addons_labels: read(LS_MOD_DRAFT,{}).addons_labels || {} };
-    ORDER.forEach(k=>{
-      const c=CATALOG[k];
-      if(!c) return;
-      snap.catalog[k] = {
-        title: c.title || k.toUpperCase(),
-        items: Array.isArray(c.items) ? c.items.map(it=>({
-          name: it.name||"Продукт",
-          desc: it.desc||"",
-          price: Number(it.price)||0,
-          img: it.img||""
-        })) : []
-      };
-      snap.cat_thumbs[k] = CAT_THUMBS[k] || DEFAULT_CAT_THUMB;
-    });
-    return snap;
-  };
-  const applySaved = (data)=>{
-    if(!data||typeof data!=="object") return;
 
-    if(Array.isArray(data.order)&&data.order.length){
-      const known=new Set(ORDER);
-      data.order.forEach(k=>{ if(!known.has(k)) ORDER.push(k); });
-      const rest=ORDER.filter(k=>!data.order.includes(k));
-      ORDER.length=0; data.order.forEach(k=>ORDER.push(k)); rest.forEach(k=>ORDER.push(k));
-    }
-    if(data.catalog&&typeof data.catalog==="object"){
-      Object.entries(data.catalog).forEach(([key,val])=>{
-        if(!CATALOG[key]){ CATALOG[key]={ title:val.title||key.toUpperCase(), items:[] }; CAT_THUMBS[key]=CAT_THUMBS[key]||DEFAULT_CAT_THUMB; }
-        CATALOG[key].title = val.title || CATALOG[key].title || key.toUpperCase();
-        CATALOG[key].items = (val.items||[]).map(it=>({ name:it.name||"Продукт", desc:it.desc||"", price:Number(it.price)||0, img:it.img||"" }));
-      });
-    }
-    if(data.cat_thumbs&&typeof data.cat_thumbs==="object"){
-      Object.entries(data.cat_thumbs).forEach(([k,v])=>{ CAT_THUMBS[k]=v||CAT_THUMBS[k]||DEFAULT_CAT_THUMB; });
-    }
-    if(data.addons_labels&&typeof data.addons_labels==="object"){
-      const mem=getMemory(); mem.addons_labels = data.addons_labels; setMemory(mem);
-    }
-  };
+const snapshotRuntime = ()=>{
+  const snap = { order:[...ORDER], catalog:{}, cat_thumbs:{}, addons_labels: read(LS_MOD_DRAFT,{}).addons_labels || {} };
+  ORDER.forEach(k=>{
+    const c = CATALOG[k] || {};
+    const normItem = it => ({
+      name: it.name||"Продукт",
+      desc: it.desc||"",
+      price: Number(it.price)||0,
+      img: it.img||""
+    });
+
+    snap.catalog[k] = {
+      title: c.title || k.toUpperCase(),
+      view: c.view || undefined,
+      hellPrice: c.hellPrice || undefined,
+      items: Array.isArray(c.items) ? c.items.map(normItem) : undefined,
+      groups: Array.isArray(c.groups) ? c.groups.map(g => ({
+        heading: g.heading || "",
+        items: Array.isArray(g.items) ? g.items.map(normItem) : undefined,
+        images: Array.isArray(g.images) ? [...g.images] : undefined,
+        pair: Array.isArray(g.pair) ? g.pair.map(p => ({...p})) : undefined
+      })) : undefined
+    };
+    snap.cat_thumbs[k] = CAT_THUMBS[k] || DEFAULT_CAT_THUMB;
+  });
+  return snap;
+};
+
+
+const applySaved = (data)=>{
+  if(!data||typeof data!=="object") return;
+
+  if(Array.isArray(data.order)&&data.order.length){
+    const known=new Set(ORDER);
+    data.order.forEach(k=>{ if(!known.has(k)) ORDER.push(k); });
+    const rest=ORDER.filter(k=>!data.order.includes(k));
+    ORDER.length=0; data.order.forEach(k=>ORDER.push(k)); rest.forEach(k=>ORDER.push(k));
+  }
+
+  if(data.catalog&&typeof data.catalog==="object"){
+    Object.entries(data.catalog).forEach(([key,val])=>{
+      if(!CATALOG[key]){ CATALOG[key]={ title:val.title||key.toUpperCase(), items:[] }; }
+      CATALOG[key].title     = val.title || CATALOG[key].title;
+      CATALOG[key].view      = val.view ?? CATALOG[key].view;
+      CATALOG[key].hellPrice = val.hellPrice ?? CATALOG[key].hellPrice;
+      if (Array.isArray(val.items))  CATALOG[key].items  = val.items;
+      if (Array.isArray(val.groups)) CATALOG[key].groups = val.groups;
+    });
+  }
+
+  if(data.cat_thumbs) Object.assign(CAT_THUMBS, data.cat_thumbs||{});
+  if(data.addons_labels) {
+    const mem=getMemory(); mem.addons_labels = data.addons_labels; setMemory(mem);
+  }
+};
+
 
   const persistDraft = ()=> save(LS_MOD_DRAFT, { ...snapshotRuntime(), addons_labels: read(LS_MOD_DRAFT,{}).addons_labels || {} });
   const savePermanent = ()=> save(LS_MOD_DATA, snapshotRuntime());
@@ -1911,39 +1954,6 @@ addBtn("➕ Добави добавка", 220, () => {
     rebuildSidebar();
     popThenActivate(null, key);
   });
-
-/* =====================================================
-   🧠 Зареждане и възстановяване на перманентния каталог (BBQ_MAIN_CATALOG)
-   ===================================================== */
-try {
-  const savedMainData = localStorage.getItem("BBQ_MAIN_CATALOG");
-  if (savedMainData) {
-    const data = JSON.parse(savedMainData);
-
-    // ✅ Зареждаме категориите и подредбата
-    if (data.CATALOG) Object.assign(CATALOG, data.CATALOG);
-    if (Array.isArray(data.ORDER)) {
-      ORDER.length = 0;
-      ORDER.push(...data.ORDER);
-    }
-
-    // ✅ Зареждаме добавките (ако има)
-    if (data.ADDONS) Object.assign(ADDONS, data.ADDONS);
-
-    console.log("✅ Зареден каталог и добавки:", { CATALOG, ADDONS });
-  }
-} catch (err) {
-  console.warn("⚠️ Грешка при зареждане на BBQ_MAIN_CATALOG:", err);
-}
-
-/* =====================================================
-   🛡️ Fail-safe: гарантира, че всяка категория е дефинирана
-   ===================================================== */
-for (const key of ORDER) {
-  if (!CATALOG[key]) {
-    CATALOG[key] = { title: key.toUpperCase(), items: [] };
-  }
-}
 
 
 
