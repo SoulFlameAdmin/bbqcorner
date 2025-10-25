@@ -693,6 +693,25 @@ function prettyLabel(src){
 
 const catHasAddons = (cat) => (cat === "portsii" || cat === "burgeri" || cat === "strandzhanki");
 
+// 🔧 БАЗОВ ПЪТ ЗА РЕСУРСИ – работи и локално, и в Vercel, на всяка дълбочина
+const ASSET_ROOT = (() => {
+  if (location.protocol === "file:") return "file:///E:/BBQ_SITE/";
+  // Директорията на текущия документ, винаги завършва на "/"
+  return location.pathname.endsWith("/")
+    ? location.pathname
+    : location.pathname.replace(/[^/]+$/, "/");
+})();
+
+function asset(p){
+  if (!p) return "";
+  if (/^(https?:|data:)/i.test(p)) return p;
+  const clean = String(p).replace(/^\/+/, "");
+  return ASSET_ROOT + encodeURI(clean);
+}
+
+const DEFAULT_PRODUCT_IMG = "snimki/default.jpg";
+
+
 /* === РЕНДЕР НА ПРОДУКТ === */
 // === BEGIN REPLACE: productCardHTML – добавя пер-продукт добавки (it.addons) ===
 function productCardHTML(it, i, withAddons = false) {
@@ -2126,8 +2145,7 @@ for (const key of ORDER) {
 /* =====================================================
    🧠 ПЕРМАНЕНТНО ЗАПАЗВАНЕ В ОСНОВНИЯ КАТАЛОГ (index2)
    ===================================================== */
-// placeholder за продукти, ако снимката бъде орязана
-const DEFAULT_PRODUCT_IMG = "snimki/default.jpg";
+
 
 // орязване на снимките в payload, докато се побере в localStorage
 function trimImagesUntilFits(obj, maxBytes = 4_800_000){
