@@ -567,6 +567,16 @@ if (savedMainData) {
   }
 }
 
+
+// 🔁 Авто-рефреш на текущия таб, когато друг таб запише MAIN каталога
+window.addEventListener("storage", (e) => {
+  if (e.key === "BBQ_MAIN_CATALOG" || e.key === "BBQ_MAIN_SAVE_BUMP") {
+    location.reload();
+  }
+});
+
+
+
 /* ===================================================== 🧠 Възстановяване на добавките ===================================================== */ try { const savedData = JSON.parse(localStorage.getItem("BBQ_MAIN_CATALOG") || "{}"); if (savedData && savedData.CATALOG) { Object.assign(CATALOG, savedData.CATALOG); } if (savedData.ADDONS) { Object.assign(ADDONS, savedData.ADDONS); } console.log("✅ Заредени добавки:", ADDONS); } catch (err) { console.warn("⚠️ Грешка при възстановяване на добавките:", err); }
 
 const sidebar = document.getElementById("sidebar");
@@ -803,7 +813,7 @@ function productCardHTML(it, i, withAddons = false) {
   return `
     <article class="product ${i % 2 ? "even" : ""}">
       <div class="leftcol">
-        <div class="photo" style="background-image:url('${it.img}')"></div>
+        <div class="photo" style="background-image:url('${it.img || DEFAULT_PRODUCT_IMG}')"></div>
       </div>
 
       <div class="pad">
@@ -1361,20 +1371,37 @@ if (savedOrder) {
     setTimeout(()=>{d.style.opacity="0"; setTimeout(()=>d.remove(),180)},1300);
   };
 
-// ===== Image helpers (compression) ===== //novo
-async function fileToCompressedDataURL(file, maxW=1000, maxH=1000, quality=0.72){
+// ✅ по-агресивна компресия + гаранция за размер
+async function fileToCompressedDataURL(file, maxW=800, maxH=800, quality=0.6){
   const url = URL.createObjectURL(file);
   const img = new Image(); img.src = url;
   await new Promise(res => img.onload = res);
-  let {width:w, height:h} = img;
-  const ratio = Math.min(1, maxW / w, maxH / h);
-  const cw = Math.round(w * ratio), ch = Math.round(h * ratio);
+
+  let w = img.width, h = img.height;
+  let ratio = Math.min(1, maxW / w, maxH / h);
+  let cw = Math.round(w * ratio), ch = Math.round(h * ratio);
+
   const canvas = document.createElement("canvas");
-  canvas.width = cw; canvas.height = ch;
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, 0, 0, cw, ch);
+
+  let q = quality, dataURL;
+
+  while (true) {
+    canvas.width = cw; canvas.height = ch;
+    ctx.clearRect(0,0,cw,ch);
+    ctx.drawImage(img, 0, 0, cw, ch);
+    dataURL = canvas.toDataURL("image/jpeg", q);
+
+    // целим се под ~120 KB текст (около 160k символа base64)
+    if (dataURL.length <= 160_000 || (cw <= 360 && ch <= 360 && q <= 0.5)) break;
+
+    // сваляме качество; ако падне много – намаляваме и размер
+    q -= 0.08;
+    if (q < 0.5) { cw = Math.round(cw * 0.85); ch = Math.round(ch * 0.85); }
+  }
+
   URL.revokeObjectURL(url);
-  return canvas.toDataURL("image/jpeg", quality);
+  return dataURL;
 }
 
 function pickAndCompress(cb){
@@ -1382,12 +1409,11 @@ function pickAndCompress(cb){
   input.type = "file"; input.accept = "image/*";
   input.onchange = async (ev)=>{
     const f = ev.target.files?.[0]; if(!f) return;
-    const dataURL = await fileToCompressedDataURL(f);
+    const dataURL = await fileToCompressedDataURL(f); // вече агресивно
     cb(dataURL);
   };
   input.click();
 }
-
 
   /* ===== Addons editor memory (пер-категория) =====
      { addons_labels: { burgeri: { veg:[..], sauce:[..] }, strandzhanki:{...}, portsii:{ paid:[ {code,label,price}, ... ] } } }
@@ -1438,9 +1464,41 @@ function pickAndCompress(cb){
     }
   };
 
-  const persistDraft = ()=> save(LS_MOD_DRAFT, { ...snapshotRuntime(), addons_labels: read(LS_MOD_DRAFT,{}).addons_labels || {} });
+const persistDraft = () => {
+  save(LS_MOD_DRAFT, { 
+    ...snapshotRuntime(), 
+    addons_labels: read(LS_MOD_DRAFT, {}).addons_labels || {} 
+  });
+  pushMainFromDraftDebounced(); // ⬅️ важно
+};
+
   const savePermanent = ()=> save(LS_MOD_DATA, snapshotRuntime());
 
+/* ===== AUTO SAVE към MAIN (BBQ_MAIN_CATALOG) ===== */
+const AUTO_SAVE_TO_MAIN = true;          // ← ако не искаш автомата, смени на false
+let _mainSaveTimer = null;
+
+function pushMainFromDraftDebounced(){
+  if (!AUTO_SAVE_TO_MAIN) return;
+  clearTimeout(_mainSaveTimer);
+  _mainSaveTimer = setTimeout(()=>{
+    const snap = snapshotRuntime();
+    const payload = {
+      CATALOG: snap.catalog,
+      ORDER: snap.order,
+      ADDON_LABELS: snap.addons_labels,
+      cat_thumbs: snap.cat_thumbs,
+      ADDONS: JSON.parse(localStorage.getItem("ADDONS") || "{}"),
+      savedAt: Date.now()
+    };
+    try {
+      localStorage.setItem("BBQ_MAIN_CATALOG", JSON.stringify(payload));
+      localStorage.setItem("BBQ_MAIN_SAVE_BUMP", String(Date.now())); // ping към другите табове
+    } catch (e) {
+      console.warn("AUTO-SAVE error:", e);
+    }
+  }, 400);
+}
 
 
   /* ===== Trash ===== */
@@ -2039,41 +2097,81 @@ for (const key of ORDER) {
 /* =====================================================
    🧠 ПЕРМАНЕНТНО ЗАПАЗВАНЕ В ОСНОВНИЯ КАТАЛОГ (index2)
    ===================================================== */
-// === BEGIN REPLACE: Save All to Main Site (safe) ===
-function safeSetItemBig(key, object){
-  const text = JSON.stringify(object);
-  try {
-    localStorage.setItem(key, text);
-    return true;
-  } catch (e) {
-    console.warn("Quota exceeded, trying to strip big images…", e);
-    // fallback: изрежи прекалено големите data URL-и
-    const maxLen = 500_000; // ~500KB текст
-    const obj = JSON.parse(text);
+// placeholder за продукти, ако снимката бъде орязана
+const DEFAULT_PRODUCT_IMG = "snimki/default.jpg";
 
-    if (obj.cat_thumbs){
-      for (const k in obj.cat_thumbs){
-        const s = obj.cat_thumbs[k] || "";
-        if (s.startsWith("data:") && s.length > maxLen) obj.cat_thumbs[k] = "";
-      }
-    }
-    if (obj.CATALOG){
-      for (const cat in obj.CATALOG){
-        const items = obj.CATALOG[cat]?.items || [];
-        items.forEach(it=>{
-          if (it.img && it.img.startsWith("data:") && it.img.length > maxLen) it.img = "";
-        });
-      }
-    }
-    try {
-      localStorage.setItem(key, JSON.stringify(obj));
-      toast("⚠️ .");
-      return true;
-    } catch (e2) {
-      alert("❌ Съдържанието е твърде голямо за LocalStorage. Намали размерите на снимките.");
-      return false;
+// орязване на снимките в payload, докато се побере в localStorage
+function trimImagesUntilFits(obj, maxBytes = 4_800_000){
+  const clone = JSON.parse(JSON.stringify(obj));
+  const refs = [];
+
+  // събираме всички dataURL-и (категорийни миниатюри)
+  if (clone.cat_thumbs) {
+    for (const k in clone.cat_thumbs) {
+      const s = clone.cat_thumbs[k] || "";
+      if (s.startsWith("data:")) refs.push({ path:["cat_thumbs",k], len:s.length });
     }
   }
+  // и по продуктите
+  if (clone.CATALOG) {
+    for (const cat in clone.CATALOG) {
+      const items = clone.CATALOG[cat]?.items || [];
+      items.forEach((it, i)=>{
+        const s = it.img || "";
+        if (s.startsWith("data:")) refs.push({ path:["CATALOG",cat,"items",i,"img"], len:s.length });
+      });
+    }
+  }
+
+  // най-големите първо
+  refs.sort((a,b)=>b.len - a.len);
+
+  const size = x => JSON.stringify(x).length;
+
+  while (size(clone) > maxBytes && refs.length) {
+    const { path } = refs.shift();
+    // намери обекта по path и изчисти стойността
+    let t = clone;
+    for (let i=0; i<path.length-1; i++) t = t[path[i]];
+    t[path[path.length-1]] = ""; // режем снимката
+  }
+  return clone;
+}
+
+function safeSetItemBig(key, object){
+  let payload = object;
+
+  // предварително – ако сме над лимита, режем снимки
+  if (JSON.stringify(payload).length > 4_800_000) {
+    payload = trimImagesUntilFits(payload);
+  }
+
+  try {
+    localStorage.setItem(key, JSON.stringify(payload));
+    if (payload !== object) {
+      // инфо тост – снимките са орязани, останалото е запазено
+      (window.toast||console.log)("⚠️ Част от големите снимки не бяха запазени (побиране в LocalStorage).");
+    }
+    return true;
+  } catch (e) {
+    alert("❌ Съдържанието е твърде голямо за LocalStorage дори след орязване на снимки.");
+    return false;
+  }
+}
+
+
+function saveToMainNow(){
+  const snap = snapshotRuntime();
+  const payload = {
+    CATALOG: snap.catalog,
+    ORDER: snap.order,
+    ADDON_LABELS: snap.addons_labels,
+    cat_thumbs: snap.cat_thumbs,
+    ADDONS: JSON.parse(localStorage.getItem("ADDONS") || "{}"),
+    savedAt: Date.now()
+  };
+  safeSetItemBig("BBQ_MAIN_CATALOG", payload);
+  localStorage.setItem("BBQ_MAIN_SAVE_BUMP", String(Date.now())); // рефреш на основния сайт в друг таб
 }
 
 addBtn("💾 Запази всичко в основния сайт", 50, () => {
@@ -2414,7 +2512,7 @@ function openAddonsEditor(index, cardEl) {
     // 💾 Перманентно записваме данните
     if (!CATALOG[key].items[index]) CATALOG[key].items[index] = item;
     CATALOG[key].items[index].addons = item.addons;
-    localStorage.setItem("CATALOG", JSON.stringify(CATALOG));
+    saveToMainNow();
 
     if (selectedAddons.length === 0) {
       toast("⚠️ Не си избрал добавки!");
@@ -2670,8 +2768,7 @@ document.addEventListener("DOMContentLoaded", () => {
         { name: "Палачинка XL", desc: "Голям размер", price: 5.50, img: "snimki/default.jpg" }
       ]
     };
-    localStorage.setItem("CATALOG", JSON.stringify(CATALOG));
-    localStorage.setItem("ORDER", JSON.stringify(ORDER));
+saveToMainNow();
   }
 
   // Рендериране
@@ -2743,4 +2840,3 @@ document.addEventListener("DOMContentLoaded", () => {
   const cur=currentCat(); if(titleEl && CATALOG[cur]?.title) titleEl.textContent = CATALOG[cur].title;
   activate(cur, {replace:true});
 });
-
