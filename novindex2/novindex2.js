@@ -540,32 +540,37 @@ const ORDER = [
 
 
 /* =====================================================
-   🧠 Зареждане на перманентния каталог (BBQ_MAIN_CATALOG)
+   ☁️ Зареждане от облака (Upstash Redis) + fallback
    ===================================================== */
-/* ===== LOAD BBQ_MAIN_CATALOG (ако съществува) ===== */
-(() => {
+(async function loadFromCloud(){
   try {
-    const raw = localStorage.getItem("BBQ_MAIN_CATALOG");
-    if (!raw) return;
-    const data = JSON.parse(raw);
+    const r = await fetch("/api/catalog", { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const data = await r.json();
 
-    if (data.CATALOG)    Object.assign(CATALOG, data.CATALOG);
-    if (Array.isArray(data.ORDER)) {
-      ORDER.length = 0;
-      ORDER.push(...data.ORDER);
+    if (data && typeof data === "object") {
+      if (data.CATALOG)    Object.assign(CATALOG, data.CATALOG);
+      if (Array.isArray(data.ORDER)) { ORDER.length = 0; ORDER.push(...data.ORDER); }
+      if (data.ADDONS)     Object.assign(ADDONS, data.ADDONS);
+      if (data.cat_thumbs) Object.assign(CAT_THUMBS, data.cat_thumbs);
+      console.log("✅ Данните са заредени от облака.");
     }
-    if (data.ADDONS)     Object.assign(ADDONS, data.ADDONS);
-    if (data.cat_thumbs) Object.assign(CAT_THUMBS, data.cat_thumbs);
-
-    // fail-safe: всяка категория от ORDER да е дефинирана
-    ORDER.forEach(k => {
-      if (!CATALOG[k]) CATALOG[k] = { title: (CATALOG[k]?.title || k.toUpperCase()), items: [] };
-    });
-  } catch (err) {
-    console.warn("⚠️ Грешка при зареждане на BBQ_MAIN_CATALOG:", err);
+  } catch (e) {
+    console.warn("☁️ Облакът е недостъпен, зареждам от localStorage:", e);
+    try {
+      const raw = localStorage.getItem("BBQ_MAIN_CATALOG");
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data.CATALOG)    Object.assign(CATALOG, data.CATALOG);
+      if (Array.isArray(data.ORDER)) { ORDER.length = 0; ORDER.push(...data.ORDER); }
+      if (data.ADDONS)     Object.assign(ADDONS, data.ADDONS);
+      if (data.cat_thumbs) Object.assign(CAT_THUMBS, data.cat_thumbs);
+      console.log("✅ Заредено локално копие (offline fallback).");
+    } catch (e2) {
+      console.warn("⚠️ Local fallback също неуспешен:", e2);
+    }
   }
 })();
-
 
 function ensureShape(key, shape){
   const c = CATALOG[key] || {};
@@ -1985,21 +1990,38 @@ addBtn("➕ Добави добавка", 220, () => {
 
 
 
-addBtn("💾 Запази всичко в основния сайт", 50, () => {
+addBtn("💾 Запази всичко в основния сайт", 50, async () => {
+  // 1) събираме моментна снимка от редактора
+  const draft = JSON.parse(localStorage.getItem("bbq_mod_draft_v3") || "{}") || {};
+  const payload = {
+    CATALOG: JSON.parse(JSON.stringify(CATALOG)),
+    ORDER:   [...ORDER],
+    ADDONS:  JSON.parse(JSON.stringify(ADDONS)),
+    cat_thumbs: { ...CAT_THUMBS, ...(draft.cat_thumbs || {}) },
+    addons_labels: draft.addons_labels || {},
+    savedAt: new Date().toISOString()
+  };
+
+  // 2) опит за облачен запис (Upstash Redis през /api/catalog)
   try {
-    const draft = JSON.parse(localStorage.getItem("bbq_mod_draft_v3") || "{}") || {};
-    const snapshot = {
-      CATALOG: JSON.parse(JSON.stringify(CATALOG)),
-      ORDER:   [...ORDER],
-      ADDONS:  JSON.parse(JSON.stringify(ADDONS)),
-      cat_thumbs: { ...CAT_THUMBS, ...(draft.cat_thumbs || {}) },
-      addons_labels: draft.addons_labels || {},
-      savedAt: new Date().toISOString()
-    };
-    localStorage.setItem("BBQ_MAIN_CATALOG", JSON.stringify(snapshot));
-    toast("✅ Записано. Излез от MOD (Изход), за да видиш промените.");
-  } catch (e) {
-    alert("❌ Проблем при запис: " + e.message);
+    const r = await fetch("/api/catalog", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) throw new Error(await r.text());
+
+    toast("✅ Записано в основния сайт. Излез от MOD (Изход) и рефрешни.");
+  } catch (err) {
+    console.warn("Cloud save failed, falling back to localStorage:", err);
+
+    // 3) fallback – локален запис (офлайн/временен)
+    try {
+      localStorage.setItem("BBQ_MAIN_CATALOG", JSON.stringify(payload));
+      toast("⚠️ Записано локално (офлайн режим). Излез от MOD и рефрешни.");
+    } catch (e2) {
+      alert("❌ Проблем при запис: " + e2.message);
+    }
   }
 });
 
