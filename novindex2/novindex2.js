@@ -23,18 +23,6 @@ const esc = (s) => String(s)
   .replace(/>/g,"&gt;")
   .replace(/"/g,"&quot;");
 
-/* 🔗 ASSET helper: абсолютен base + URL-ENCODE (работи и локално, и на Vercel) */
-const ASSET_ROOT = (location.protocol === "file:")
-  ? "file:///E:/BBQ_SITE/"
-  : (location.pathname.includes("/novindex2/") ? "/novindex2/" : "/");
-
-function asset(p){
-  if (!p) return "";
-  if (/^(https?:|data:)/i.test(p)) return p;
-  const clean = String(p).replace(/^\/+/, "");
-  return ASSET_ROOT + encodeURI(clean);
-}
-
 /* Цени – конвертор */
 const BGN_PER_EUR = 1.95583;
 const fmtLv  = v => (Number(v)||0).toFixed(2).replace(".",",") + " лв.";
@@ -45,7 +33,6 @@ function recalcMobileOffsets(){
   ensureMobilePlusRight();
   ensurePlusRightUniversal();
 }
-
 
 /* ➜ На телефон мести бутона точно вдясно от цената */
 function ensureMobilePlusRight(){
@@ -552,42 +539,19 @@ const ORDER = [
 /* =====================================================
    🧠 Зареждане на перманентния каталог (BBQ_MAIN_CATALOG)
    ===================================================== */
-let ADDON_LABELS = {}; // етикети/цени на груповите добавки по категории
-
 const savedMainData = localStorage.getItem("BBQ_MAIN_CATALOG");
 if (savedMainData) {
   try {
     const data = JSON.parse(savedMainData);
-
-    // Каталог + подредба
     if (data.CATALOG) Object.assign(CATALOG, data.CATALOG);
     if (Array.isArray(data.ORDER)) {
       ORDER.length = 0;
       ORDER.push(...data.ORDER);
     }
-
-    // Миниатюри за категориите (sidebar)
-    if (data.cat_thumbs) Object.assign(CAT_THUMBS, data.cat_thumbs);
-
-    // Етикети/цени на груповите добавки (veg/sauce/paid) по категории
-    if (data.ADDON_LABELS) ADDON_LABELS = data.ADDON_LABELS;
-
-    // (по желание) глобален речник на добавки
-    if (data.ADDONS) Object.assign(ADDONS, data.ADDONS);
-
   } catch (err) {
     console.warn("⚠️ Грешка при зареждане на BBQ_MAIN_CATALOG:", err);
   }
 }
-
-
-// 🔁 Авто-рефреш на текущия таб, когато друг таб запише MAIN каталога
-window.addEventListener("storage", (e) => {
-  if (e.key === "BBQ_MAIN_CATALOG" || e.key === "BBQ_MAIN_SAVE_BUMP") {
-    location.reload();
-  }
-});
-
 
 
 /* ===================================================== 🧠 Възстановяване на добавките ===================================================== */ try { const savedData = JSON.parse(localStorage.getItem("BBQ_MAIN_CATALOG") || "{}"); if (savedData && savedData.CATALOG) { Object.assign(CATALOG, savedData.CATALOG); } if (savedData.ADDONS) { Object.assign(ADDONS, savedData.ADDONS); } console.log("✅ Заредени добавки:", ADDONS); } catch (err) { console.warn("⚠️ Грешка при възстановяване на добавките:", err); }
@@ -653,7 +617,7 @@ if (sidebar){
     const label = (key === "promocii") ? "ПРОМОЦИИ" : (CATALOG[key].title);
     const img   = CAT_THUMBS[key];
     return `<a class="cat" data-cat="${key}" role="link" tabindex="0" aria-label="${esc(label)}">
-              <div class="box" style="background-image:url('${asset(img)}')" data-label="${esc(label)}"></div>
+              <div class="box" style="background-image:url('${img}')" data-label="${esc(label)}"></div>
             </a>`;
   }).join("");
 }
@@ -677,13 +641,7 @@ function prettyLabel(src){
 
 const catHasAddons = (cat) => (cat === "portsii" || cat === "burgeri" || cat === "strandzhanki");
 
-// === GLOBAL fallbacks (used in both normal & moderator modes)
-const DEFAULT_PRODUCT_IMG = "snimki/default.jpg";
-const DEFAULT_CAT_THUMB   = "snimki/produkti/1menu/default.jpg";
-
-
 /* === РЕНДЕР НА ПРОДУКТ === */
-// === BEGIN REPLACE: productCardHTML – добавя пер-продукт добавки (it.addons) ===
 function productCardHTML(it, i, withAddons = false) {
   const desc = it.desc ? `<p class="desc">${esc(it.desc)}</p>` : "";
 
@@ -702,16 +660,14 @@ function productCardHTML(it, i, withAddons = false) {
 
   const mobileTitle = `<h3 class="mobile-title">${esc(it.name)}</h3>`;
 
+  // --- десен блок с добавки + единствен "+" до цената ---
   let addonsBlock = "";
   let wholeAddonsBlock = "";
-
-  // ⬇️ пер-продукт платени добавки, запазени от модератора (валидни за всички категории)
-  const customPaid = Array.isArray(it.addons) ? it.addons.filter(a=>a && a.label) : [];
 
   if (withAddons) {
     if (current === "burgeri") {
       const isPulled = /ДЪРПАНО/i.test(it.name || "");
-      const vegDefaults = isPulled
+      const vegList = isPulled
         ? [
             { c:"cheddar", t:"Течен чедър" },
             { c:"bbq",     t:"Барбекю сос" },
@@ -728,7 +684,7 @@ function productCardHTML(it, i, withAddons = false) {
             { c:"razyadka", t:"Разядка" }
           ];
 
-      const saucesDefaults = [
+      const sauces = [
         { c:"ketchup", t:"Кетчуп" },
         { c:"mayo",    t:"Майонеза" },
         { c:"mustard", t:"Горчица" },
@@ -741,7 +697,7 @@ function productCardHTML(it, i, withAddons = false) {
             Изберете с какво да бъде
             <button type="button" class="btn-all" data-target="veg">Всичко</button>
           </div>
-          ${vegDefaults.map(x => `
+          ${vegList.map(x => `
             <label>
               <input type="checkbox" class="addon-checkbox" data-group="veg" data-code="${x.c}" data-price="0"> ${x.t}
             </label>
@@ -753,45 +709,24 @@ function productCardHTML(it, i, withAddons = false) {
             Сосове
             <button type="button" class="btn-all" data-target="sauce">Всичко</button>
           </div>
-          ${saucesDefaults.map(x => `
+          ${sauces.map(x => `
             <label>
               <input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="${x.c}" data-price="0"> ${x.t}
             </label>
           `).join("")}
         </div>
       `;
-
-      // ако има пер-продукт платени добавки – покажи ги
-      if (customPaid.length) {
-        addonsBlock += `
-          <div class="addons">
-            <div class="hdr">Платени добавки</div>
-            ${customPaid.map(a => `
-              <label>
-                <input type="checkbox" class="addon-checkbox" data-price="${Number(a.price)||0}">
-                + ${esc(a.label||"Добавка")}
-              </label>
-            `).join("")}
-          </div>
-        `;
-      }
-
     } else if (current === "portsii") {
+      // платени добавки – в дясната колона, без втори "+" бутон
       wholeAddonsBlock = `
         <div class="addons">
           <div class="hdr">Добавки</div>
           <label><input type="checkbox" class="addon-checkbox" data-code="pitka" data-price="1.5"> + Питка</label>
           <label><input type="checkbox" class="addon-checkbox" data-code="raz"   data-price="1.5"> + Разядка 100 гр</label>
-          ${customPaid.map(a => `
-            <label>
-              <input type="checkbox" class="addon-checkbox" data-price="${Number(a.price)||0}">
-              + ${esc(a.label||"Добавка")}
-            </label>
-          `).join("")}
         </div>
       `;
-
     } else if (current === "strandzhanki") {
+      // сосове – в дясната колона, без втори "+" бутон
       wholeAddonsBlock = `
         <div class="addons">
           <div class="hdr">
@@ -802,27 +737,6 @@ function productCardHTML(it, i, withAddons = false) {
           <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="mayo"    data-price="0"> Майонеза</label>
           <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="mustard" data-price="0"> Горчица</label>
           <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="chili"   data-price="0"> Люто</label>
-          ${customPaid.map(a => `
-            <label>
-              <input type="checkbox" class="addon-checkbox" data-price="${Number(a.price)||0}">
-              + ${esc(a.label||"Добавка")}
-            </label>
-          `).join("")}
-        </div>
-      `;
-    }
-  } else {
-    // ⬇️ Дори когато категорията НЕ е в специалния списък – ако продуктът има записани добавки, покажи ги
-    if (customPaid.length) {
-      wholeAddonsBlock = `
-        <div class="addons">
-          <div class="hdr">Добавки</div>
-          ${customPaid.map(a => `
-            <label>
-              <input type="checkbox" class="addon-checkbox" data-price="${Number(a.price)||0}">
-              + ${esc(a.label||"Добавка")}
-            </label>
-          `).join("")}
         </div>
       `;
     }
@@ -831,7 +745,7 @@ function productCardHTML(it, i, withAddons = false) {
   return `
     <article class="product ${i % 2 ? "even" : ""}">
       <div class="leftcol">
-        <div class="photo" style="background-image:url('${asset(it.img || DEFAULT_PRODUCT_IMG)}')"></div>
+        <div class="photo" style="background-image:url('${it.img}')"></div>
       </div>
 
       <div class="pad">
@@ -844,7 +758,6 @@ function productCardHTML(it, i, withAddons = false) {
       </div>
     </article>`;
 }
-// === END REPLACE ===
 
 
 // 🚗 "Достави" → Google Maps навигация (origin = моето местоположение, dest = адрес от поръчката)
@@ -1171,14 +1084,14 @@ if (new URLSearchParams(location.search).get("mode") === "moderator") {
             <div class="water-grid">
               ${g.pair.map(p=>`
                 <div class="water-card">
-                  <img src="${asset(p.src)}" alt="${esc(p.label)}">
+                  <img src="${p.src}" alt="${esc(p.label)}">
                   <div class="water-name">${esc(p.label)}</div>
                   ${typeof p.price === "number" ? `
                     <div class="price-badge">
                       <div class="lv">${fmtLv(p.price)}</div>
                       <div class="eur">${fmtEur(p.price)}</div>
                     </div>
-                    <button class="add-btn" data-name="${p.label.replace(/"/g,"&quot;")}" data-price="${p.price}" data-img="${asset(p.src)}">+</button>
+                    <button class="add-btn" data-name="${p.label.replace(/"/g,"&quot;")}" data-price="${p.price}" data-img="${p.src}">+</button>
                   ` : ``}
                 </div>
               `).join("")}
@@ -1201,7 +1114,7 @@ if (new URLSearchParams(location.search).get("mode") === "moderator") {
         return `
         <div>
           <div class="tile">
-            <img src="${asset(src)}" alt="${label}">
+            <img src="${src}" alt="${label}">
             <div class="price-badge">
               <div class="lv">${fmtLv(hellPrice)}</div>
               <div class="eur">${fmtEur(hellPrice)}</div>
@@ -1389,50 +1302,6 @@ if (savedOrder) {
     setTimeout(()=>{d.style.opacity="0"; setTimeout(()=>d.remove(),180)},1300);
   };
 
-// ✅ по-агресивна компресия + гаранция за размер
-async function fileToCompressedDataURL(file, maxW=800, maxH=800, quality=0.6){
-  const url = URL.createObjectURL(file);
-  const img = new Image(); img.src = url;
-  await new Promise(res => img.onload = res);
-
-  let w = img.width, h = img.height;
-  let ratio = Math.min(1, maxW / w, maxH / h);
-  let cw = Math.round(w * ratio), ch = Math.round(h * ratio);
-
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-
-  let q = quality, dataURL;
-
-  while (true) {
-    canvas.width = cw; canvas.height = ch;
-    ctx.clearRect(0,0,cw,ch);
-    ctx.drawImage(img, 0, 0, cw, ch);
-    dataURL = canvas.toDataURL("image/jpeg", q);
-
-    // целим се под ~120 KB текст (около 160k символа base64)
-    if (dataURL.length <= 160_000 || (cw <= 360 && ch <= 360 && q <= 0.5)) break;
-
-    // сваляме качество; ако падне много – намаляваме и размер
-    q -= 0.08;
-    if (q < 0.5) { cw = Math.round(cw * 0.85); ch = Math.round(ch * 0.85); }
-  }
-
-  URL.revokeObjectURL(url);
-  return dataURL;
-}
-
-function pickAndCompress(cb){
-  const input = document.createElement("input");
-  input.type = "file"; input.accept = "image/*";
-  input.onchange = async (ev)=>{
-    const f = ev.target.files?.[0]; if(!f) return;
-    const dataURL = await fileToCompressedDataURL(f); // вече агресивно
-    cb(dataURL);
-  };
-  input.click();
-}
-
   /* ===== Addons editor memory (пер-категория) =====
      { addons_labels: { burgeri: { veg:[..], sauce:[..] }, strandzhanki:{...}, portsii:{ paid:[ {code,label,price}, ... ] } } }
   */
@@ -1482,42 +1351,8 @@ function pickAndCompress(cb){
     }
   };
 
-const persistDraft = () => {
-  save(LS_MOD_DRAFT, { 
-    ...snapshotRuntime(), 
-    addons_labels: read(LS_MOD_DRAFT, {}).addons_labels || {} 
-  });
-  pushMainFromDraftDebounced(); // ⬅️ важно
-};
-
+  const persistDraft = ()=> save(LS_MOD_DRAFT, { ...snapshotRuntime(), addons_labels: read(LS_MOD_DRAFT,{}).addons_labels || {} });
   const savePermanent = ()=> save(LS_MOD_DATA, snapshotRuntime());
-
-/* ===== AUTO SAVE към MAIN (BBQ_MAIN_CATALOG) ===== */
-const AUTO_SAVE_TO_MAIN = true;          // ← ако не искаш автомата, смени на false
-let _mainSaveTimer = null;
-
-function pushMainFromDraftDebounced(){
-  if (!AUTO_SAVE_TO_MAIN) return;
-  clearTimeout(_mainSaveTimer);
-  _mainSaveTimer = setTimeout(()=>{
-    const snap = snapshotRuntime();
-    const payload = {
-      CATALOG: snap.catalog,
-      ORDER: snap.order,
-      ADDON_LABELS: snap.addons_labels,
-      cat_thumbs: snap.cat_thumbs,
-      ADDONS: JSON.parse(localStorage.getItem("ADDONS") || "{}"),
-      savedAt: Date.now()
-    };
-    try {
-      localStorage.setItem("BBQ_MAIN_CATALOG", JSON.stringify(payload));
-      localStorage.setItem("BBQ_MAIN_SAVE_BUMP", String(Date.now())); // ping към другите табове
-    } catch (e) {
-      console.warn("AUTO-SAVE error:", e);
-    }
-  }, 400);
-}
-
 
   /* ===== Trash ===== */
   const trashPush = entry => { const a=read(LS_MOD_TRASH,[]); a.unshift({ ...entry, ts:Date.now() }); save(LS_MOD_TRASH,a); };
@@ -1637,7 +1472,7 @@ function pushMainFromDraftDebounced(){
 
     sidebar.innerHTML = ORDER.map(key=>{
       const label=(key==="promocii") ? "ПРОМОЦИИ" : (CATALOG[key]?.title || key.toUpperCase());
-      const img  = asset(CAT_THUMBS[key] || DEFAULT_CAT_THUMB);
+      const img  = CAT_THUMBS[key] || DEFAULT_CAT_THUMB;
       return `
         <a class="cat" draggable="true" data-cat="${esc(key)}" role="link" tabindex="0" aria-label="${esc(label)}">
           <div class="box cat-box" style="background-image:url('${img}')" data-label="${esc(label)}">
@@ -1676,18 +1511,20 @@ function pushMainFromDraftDebounced(){
       t.querySelectorAll("button").forEach(b=>Object.assign(b.style,{border:"none",borderRadius:"8px",padding:"4px 6px",background:"rgba(0,0,0,.55)",color:"#fff",cursor:"pointer"}));
     });
 
-// смяна на икона (📁) — с компресия
-sidebar.querySelectorAll(".cat-pic").forEach(btn=>{
-  btn.addEventListener("click",(e)=>{
-    e.stopPropagation();
-    const catKey = e.target.closest(".cat")?.dataset?.cat; if(!catKey) return;
-    pickAndCompress((url)=>{
-      CAT_THUMBS[catKey] = url;
-      persistDraft();
-      rebuildSidebar();
+    // смяна на икона (📁)
+    sidebar.querySelectorAll(".cat-pic").forEach(btn=>{
+      btn.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        const catKey=e.target.closest(".cat")?.dataset?.cat; if(!catKey) return;
+        const input=document.createElement("input"); input.type="file"; input.accept="image/*";
+        input.onchange=ev=>{
+          const f=ev.target.files?.[0]; if(!f) return;
+          const r=new FileReader(); r.onload=ev2=>{ CAT_THUMBS[catKey]=ev2.target.result; persistDraft(); rebuildSidebar(); };
+          r.readAsDataURL(f);
+        };
+        input.click();
+      });
     });
-  });
-});
 
     // преименуване (🖊)
     sidebar.querySelectorAll(".cat-rename").forEach(btn=>{
@@ -1762,24 +1599,22 @@ sidebar.querySelectorAll(".cat-pic").forEach(btn=>{
       });
     });
 
- 
-// смяна на снимки (карта/галерия/вода) — с компресия
-document.querySelectorAll(".product .photo, .tile img, .water-card img").forEach(img=>{
-  img.style.cursor="pointer";
-  img.addEventListener("click",()=>{
-    pickAndCompress((url)=>{
-      if(img.tagName==="IMG") img.src = url; else img.style.backgroundImage = `url('${url}')`;
-      const key = currentCat(); const cards = [...grid.querySelectorAll(".product")];
-      const i = cards.findIndex(x=>x.contains(img));
-      if(i>=0 && CATALOG[key]?.items?.[i]){
-        CATALOG[key].items[i].img = url;
-        persistDraft();
-      }
+    // смяна на снимки (карта/галерия/вода)
+    document.querySelectorAll(".product .photo, .tile img, .water-card img").forEach(img=>{
+      img.style.cursor="pointer";
+      img.addEventListener("click",()=>{
+        const input=document.createElement("input"); input.type="file"; input.accept="image/*";
+        input.onchange=e=>{
+          const f=e.target.files?.[0]; if(!f) return;
+          const r=new FileReader(); r.onload=ev=>{
+            const url=ev.target.result; if(img.tagName==="IMG") img.src=url; else img.style.backgroundImage=`url('${url}')`;
+            const key=currentCat(); const cards=[...grid.querySelectorAll(".product")];
+            const i=cards.findIndex(x=>x.contains(img)); if(i>=0 && CATALOG[key]?.items?.[i]){ CATALOG[key].items[i].img=url; persistDraft(); }
+          }; r.readAsDataURL(f);
+        };
+        input.click();
+      });
     });
-  });
-});
-
-
 
     // РЕДАКТОР за Сосове/Добавки:
     // 1) правим текстовете в чекбоксовете редактируеми (label)
@@ -2115,100 +1950,15 @@ for (const key of ORDER) {
 /* =====================================================
    🧠 ПЕРМАНЕНТНО ЗАПАЗВАНЕ В ОСНОВНИЯ КАТАЛОГ (index2)
    ===================================================== */
-
-
-// орязване на снимките в payload, докато се побере в localStorage
-function trimImagesUntilFits(obj, maxBytes = 4_800_000){
-  const clone = JSON.parse(JSON.stringify(obj));
-  const refs = [];
-
-  // събираме всички dataURL-и (категорийни миниатюри)
-  if (clone.cat_thumbs) {
-    for (const k in clone.cat_thumbs) {
-      const s = clone.cat_thumbs[k] || "";
-      if (s.startsWith("data:")) refs.push({ path:["cat_thumbs",k], len:s.length });
-    }
-  }
-  // и по продуктите
-  if (clone.CATALOG) {
-    for (const cat in clone.CATALOG) {
-      const items = clone.CATALOG[cat]?.items || [];
-      items.forEach((it, i)=>{
-        const s = it.img || "";
-        if (s.startsWith("data:")) refs.push({ path:["CATALOG",cat,"items",i,"img"], len:s.length });
-      });
-    }
-  }
-
-  // най-големите първо
-  refs.sort((a,b)=>b.len - a.len);
-
-  const size = x => JSON.stringify(x).length;
-
-  while (size(clone) > maxBytes && refs.length) {
-    const { path } = refs.shift();
-    // намери обекта по path и изчисти стойността
-    let t = clone;
-    for (let i=0; i<path.length-1; i++) t = t[path[i]];
-    t[path[path.length-1]] = ""; // режем снимката
-  }
-  return clone;
-}
-
-function safeSetItemBig(key, object){
-  let payload = object;
-
-  // предварително – ако сме над лимита, режем снимки
-  if (JSON.stringify(payload).length > 4_800_000) {
-    payload = trimImagesUntilFits(payload);
-  }
-
-  try {
-    localStorage.setItem(key, JSON.stringify(payload));
-    if (payload !== object) {
-      // инфо тост – снимките са орязани, останалото е запазено
-      (window.toast||console.log)("⚠️ Част от големите снимки не бяха запазени (побиране в LocalStorage).");
-    }
-    return true;
-  } catch (e) {
-    alert("❌ Съдържанието е твърде голямо за LocalStorage дори след орязване на снимки.");
-    return false;
-  }
-}
-
-
-function saveToMainNow(){
-  const snap = snapshotRuntime();
-  const payload = {
-    CATALOG: snap.catalog,
-    ORDER: snap.order,
-    ADDON_LABELS: snap.addons_labels,
-    cat_thumbs: snap.cat_thumbs,
-    ADDONS: JSON.parse(localStorage.getItem("ADDONS") || "{}"),
-    savedAt: Date.now()
-  };
-  safeSetItemBig("BBQ_MAIN_CATALOG", payload);
-  localStorage.setItem("BBQ_MAIN_SAVE_BUMP", String(Date.now())); // рефреш на основния сайт в друг таб
-}
-
 addBtn("💾 Запази всичко в основния сайт", 50, () => {
-  const snap = snapshotRuntime();
-  const payload = {
-    CATALOG: snap.catalog,
-    ORDER: snap.order,
-    ADDON_LABELS: snap.addons_labels,
-    cat_thumbs: snap.cat_thumbs,
-    ADDONS: JSON.parse(localStorage.getItem("ADDONS") || "{}"),
-    savedAt: Date.now()
+  const mainData = {
+    CATALOG,
+    ORDER,
+    ADDONS: JSON.parse(localStorage.getItem("ADDONS") || "{}")
   };
-  if (safeSetItemBig("BBQ_MAIN_CATALOG", payload)) {
-    toast("✅ Всичко е запазено в сайта");
-  }
+  localStorage.setItem("BBQ_MAIN_CATALOG", JSON.stringify(mainData));
+  toast("✅ Всички промени са записани в основния сайт");
 });
-// === END REPLACE ===
-
-
-
 
 /* =====================================================
    🧠 Зареждане на добавките от паметта
@@ -2529,7 +2279,7 @@ function openAddonsEditor(index, cardEl) {
     // 💾 Перманентно записваме данните
     if (!CATALOG[key].items[index]) CATALOG[key].items[index] = item;
     CATALOG[key].items[index].addons = item.addons;
-    saveToMainNow();
+    localStorage.setItem("CATALOG", JSON.stringify(CATALOG));
 
     if (selectedAddons.length === 0) {
       toast("⚠️ Не си избрал добавки!");
@@ -2785,7 +2535,8 @@ document.addEventListener("DOMContentLoaded", () => {
         { name: "Палачинка XL", desc: "Голям размер", price: 5.50, img: "snimki/default.jpg" }
       ]
     };
-saveToMainNow();
+    localStorage.setItem("CATALOG", JSON.stringify(CATALOG));
+    localStorage.setItem("ORDER", JSON.stringify(ORDER));
   }
 
   // Рендериране
@@ -2810,20 +2561,15 @@ saveToMainNow();
         max-width:360px;
         box-shadow:0 2px 6px rgba(0,0,0,0.1);
       `;
-card.innerHTML = `
-  <div class="photo" style="
-    width:100%;height:160px;border-radius:10px;margin-bottom:8px;
-    background-image:url('${asset(item.img || DEFAULT_PRODUCT_IMG)}');
-    background-size:cover;background-position:center;
-  "></div>
-  <div style="font-weight:700;">${esc(item.name || "Без име")}</div>
-  <div style="color:#444;">${fmtLv(item.price || 0)}</div>
-  <button class="editAddonsBtn"
-    style="background:#ff7a00;color:#fff;border:none;border-radius:8px;
-           padding:6px 12px;margin-top:6px;cursor:pointer;">
-    Добавки
-  </button>
-`;
+      card.innerHTML = `
+        <div style="font-weight:700;">${item.name || "Без име"}</div>
+        <div style="color:#444;">${parseFloat(item.price||0).toFixed(2)} лв.</div>
+        <button class="editAddonsBtn"
+          style="background:#ff7a00;color:#fff;border:none;
+          border-radius:8px;padding:6px 12px;margin-top:6px;cursor:pointer;">
+          Добавки
+        </button>
+      `;
       card.querySelector(".editAddonsBtn").onclick = () => openAddonsEditor(i, card);
       grid.appendChild(card);
     });
@@ -2862,3 +2608,4 @@ card.innerHTML = `
   const cur=currentCat(); if(titleEl && CATALOG[cur]?.title) titleEl.textContent = CATALOG[cur].title;
   activate(cur, {replace:true});
 });
+
