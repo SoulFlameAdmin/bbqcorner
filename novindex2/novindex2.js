@@ -23,6 +23,18 @@ const esc = (s) => String(s)
   .replace(/>/g,"&gt;")
   .replace(/"/g,"&quot;");
 
+/* 🔗 ASSET helper: абсолютен base + URL-ENCODE (работи и локално, и на Vercel) */
+const ASSET_ROOT = (location.protocol === "file:")
+  ? "file:///E:/BBQ_SITE/"
+  : (location.pathname.includes("/novindex2/") ? "/novindex2/" : "/");
+
+function asset(p){
+  if (!p) return "";
+  if (/^(https?:|data:)/i.test(p)) return p;
+  const clean = String(p).replace(/^\/+/, "");
+  return ASSET_ROOT + encodeURI(clean);
+}
+
 /* Цени – конвертор */
 const BGN_PER_EUR = 1.95583;
 const fmtLv  = v => (Number(v)||0).toFixed(2).replace(".",",") + " лв.";
@@ -33,6 +45,7 @@ function recalcMobileOffsets(){
   ensureMobilePlusRight();
   ensurePlusRightUniversal();
 }
+
 
 /* ➜ На телефон мести бутона точно вдясно от цената */
 function ensureMobilePlusRight(){
@@ -137,7 +150,7 @@ function updateCartUI(){
          </div>` : "";
     return `
       <div class="cart-item">
-        <img src="${esc(it.img||"")}" alt="${esc(it.baseName || it.name)}">
+        <img src="${asset(it.img||"")}" alt="${esc(it.baseName || it.name)}">
         <div>
           <div class="name">${esc(it.baseName || it.name)}</div>
           ${addonsLine}
@@ -526,6 +539,8 @@ const CATALOG = {
 };
 
 
+// Копие на дефолтния каталог за авто-възстановяване
+const DEFAULT_CATALOG = JSON.parse(JSON.stringify(CATALOG));
 
 
 /* Подредба на категориите */
@@ -566,6 +581,20 @@ if (savedMainData) {
     console.warn("⚠️ Грешка при зареждане на BBQ_MAIN_CATALOG:", err);
   }
 }
+
+// 🔧 Авто-ремонт на категории, които изискват groups/view
+["palachinki","hell","voda","gazirana_voda"].forEach(k=>{
+  const def = DEFAULT_CATALOG[k];
+  const cur = CATALOG[k];
+  if (!cur || (!Array.isArray(cur.items) && !Array.isArray(cur.groups) && !cur.view)) {
+    // ако LS е изтрил структурата – върни дефолта
+    CATALOG[k] = JSON.parse(JSON.stringify(def));
+  } else {
+    // допълни липсващите части от дефолта
+    if (def?.groups && !Array.isArray(cur.groups)) CATALOG[k].groups = JSON.parse(JSON.stringify(def.groups));
+    if (def?.view && !cur.view) CATALOG[k].view = def.view;
+  }
+});
 
 
 // 🔁 Авто-рефреш на текущия таб, когато друг таб запише MAIN каталога
@@ -640,7 +669,7 @@ if (sidebar){
     const label = (key === "promocii") ? "ПРОМОЦИИ" : (CATALOG[key].title);
     const img   = CAT_THUMBS[key];
     return `<a class="cat" data-cat="${key}" role="link" tabindex="0" aria-label="${esc(label)}">
-              <div class="box" style="background-image:url('${img}')" data-label="${esc(label)}"></div>
+              <div class="box" style="background-image:url('${asset(img)}')" data-label="${esc(label)}"></div>
             </a>`;
   }).join("");
 }
@@ -813,7 +842,7 @@ function productCardHTML(it, i, withAddons = false) {
   return `
     <article class="product ${i % 2 ? "even" : ""}">
       <div class="leftcol">
-        <div class="photo" style="background-image:url('${it.img || DEFAULT_PRODUCT_IMG}')"></div>
+        <div class="photo" style="background-image:url('${asset(it.img || DEFAULT_PRODUCT_IMG)}')"></div>
       </div>
 
       <div class="pad">
@@ -1153,14 +1182,14 @@ if (new URLSearchParams(location.search).get("mode") === "moderator") {
             <div class="water-grid">
               ${g.pair.map(p=>`
                 <div class="water-card">
-                  <img src="${p.src}" alt="${esc(p.label)}">
+                  <img src="${asset(p.src)}" alt="${esc(p.label)}">
                   <div class="water-name">${esc(p.label)}</div>
                   ${typeof p.price === "number" ? `
                     <div class="price-badge">
                       <div class="lv">${fmtLv(p.price)}</div>
                       <div class="eur">${fmtEur(p.price)}</div>
                     </div>
-                    <button class="add-btn" data-name="${p.label.replace(/"/g,"&quot;")}" data-price="${p.price}" data-img="${p.src}">+</button>
+                    <button class="add-btn" data-name="${p.label.replace(/"/g,"&quot;")}" data-price="${p.price}" data-img="${asset(p.src)}">+</button>
                   ` : ``}
                 </div>
               `).join("")}
@@ -1183,12 +1212,12 @@ if (new URLSearchParams(location.search).get("mode") === "moderator") {
         return `
         <div>
           <div class="tile">
-            <img src="${src}" alt="${label}">
+            <img src="${asset(src)}" alt="${label}">
             <div class="price-badge">
               <div class="lv">${fmtLv(hellPrice)}</div>
               <div class="eur">${fmtEur(hellPrice)}</div>
             </div>
-            <button class="add-btn" data-name="${label.replace(/"/g,"&quot;")}" data-price="${hellPrice}" data-img="${src}">+</button>
+            <button class="add-btn" data-name="${label.replace(/"/g,"&quot;")}" data-price="${hellPrice}" data-img="${asset(src)}">+</button>
           </div>
           <div class="caption">${label}</div>
         </div>`;
