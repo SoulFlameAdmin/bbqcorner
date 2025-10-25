@@ -1985,27 +1985,23 @@ addBtn("➕ Добави добавка", 220, () => {
 
 
 
-/* =====================================================
-   🧠 ПЕРМАНЕНТНО ЗАПАЗВАНЕ В ОСНОВНИЯ КАТАЛОГ (index2)
-   ===================================================== */
 addBtn("💾 Запази всичко в основния сайт", 50, () => {
   try {
-    const draft = (JSON.parse(localStorage.getItem("bbq_mod_draft_v3") || "{}") || {});
-    const mainData = {
-      CATALOG,
-      ORDER,
-      ADDONS,                       // всички дефиниции на добавки
-      cat_thumbs: CAT_THUMBS,       // миниатюри за сайдбара
+    const draft = JSON.parse(localStorage.getItem("bbq_mod_draft_v3") || "{}") || {};
+    const snapshot = {
+      CATALOG: JSON.parse(JSON.stringify(CATALOG)),
+      ORDER:   [...ORDER],
+      ADDONS:  JSON.parse(JSON.stringify(ADDONS)),
+      cat_thumbs: { ...CAT_THUMBS, ...(draft.cat_thumbs || {}) },
       addons_labels: draft.addons_labels || {},
       savedAt: new Date().toISOString()
     };
-    localStorage.setItem("BBQ_MAIN_CATALOG", JSON.stringify(mainData));
-    toast("✅ Записано. Излез от MOD (Изход) за да видиш промените.");
+    localStorage.setItem("BBQ_MAIN_CATALOG", JSON.stringify(snapshot));
+    toast("✅ Записано. Излез от MOD (Изход), за да видиш промените.");
   } catch (e) {
     alert("❌ Проблем при запис: " + e.message);
   }
 });
-
 
 /* =====================================================
    🧠 Зареждане на добавките от паметта
