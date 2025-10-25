@@ -526,6 +526,9 @@ const CATALOG = {
 };
 
 
+const BASE_CATALOG = typeof structuredClone === "function"
+  ? structuredClone(CATALOG)
+  : JSON.parse(JSON.stringify(CATALOG));
 
 
 /* Подредба на категориите */
@@ -553,6 +556,20 @@ if (savedMainData) {
   }
 }
 
+function ensureShape(key, shape){
+  const c = CATALOG[key] || {};
+  if (shape === "water2") {
+    if (c.view !== "water2" || !Array.isArray(c.groups)) CATALOG[key] = BASE_CATALOG[key];
+  } else if (shape === "gallery") {
+    if (c.view !== "gallery" || !Array.isArray(c.groups)) CATALOG[key] = BASE_CATALOG[key];
+  } else if (shape === "groups") {
+    if (!Array.isArray(c.groups)) CATALOG[key] = BASE_CATALOG[key];
+  }
+}
+ensureShape("voda","water2");
+ensureShape("gazirana_voda","water2");
+ensureShape("hell","gallery");
+ensureShape("palachinki","groups");
 
 /* ===================================================== 🧠 Възстановяване на добавките ===================================================== */ try { const savedData = JSON.parse(localStorage.getItem("BBQ_MAIN_CATALOG") || "{}"); if (savedData && savedData.CATALOG) { Object.assign(CATALOG, savedData.CATALOG); } if (savedData.ADDONS) { Object.assign(ADDONS, savedData.ADDONS); } console.log("✅ Заредени добавки:", ADDONS); } catch (err) { console.warn("⚠️ Грешка при възстановяване на добавките:", err); }
 
