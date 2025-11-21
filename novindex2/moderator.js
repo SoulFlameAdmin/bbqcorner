@@ -233,12 +233,22 @@ document.addEventListener("DOMContentLoaded", () => {
     ORDER.forEach((key) => {
       const cat = CATALOG[key] || {};
 
-      const normalizeItem = (it = {}) => ({
-        name: it.name || "Продукт",
-        desc: it.desc || "",
-        price: Number(it.price) || 0,
-        img: it.img || ""
-      });
+const normalizeItem = (it = {}) => {
+  const base = {
+    name:  it.name  || "Продукт",
+    desc:  it.desc  || "",
+    price: Number(it.price) || 0,
+    img:   it.img   || ""
+  };
+
+  // 🧩 ВАЖНО: пазим и добавките
+  if (Array.isArray(it.addons) && it.addons.length) {
+    base.addons = it.addons.map(a => ({ ...a }));
+  }
+
+  return base;
+};
+
 
       snap.catalog[key] = {
         title: cat.title || key.toUpperCase(),
@@ -1056,27 +1066,40 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
    * (START)
    * =========================================================== */
 
-  const domProductsToArray = () => {
-    const list = [];
-    if (!grid) return list;
+const domProductsToArray = () => {
+  const list = [];
+  if (!grid) return list;
 
-    grid.querySelectorAll(".product").forEach((p) => {
-      const name =
-        p.querySelector(".title")?.textContent.trim() || "Продукт";
-      const desc = p.querySelector(".desc")?.textContent.trim() || "";
-      const lvEl = p.querySelector(".price-badge .lv");
-      const price = lvEl ? lvParse(lvEl.textContent) : 0;
+  const key      = currentCat();
+  const srcItems = (CATALOG[key]?.items) || [];
 
-      let img = "";
-      const bg = p.querySelector(".photo")?.style?.backgroundImage || "";
-      const m = bg.match(/url\(['"]?(.*?)['"]?\)/i);
-      if (m && m[1]) img = m[1];
+  grid.querySelectorAll(".product").forEach((p, idx) => {
+    const name =
+      p.querySelector(".title")?.textContent.trim() || "Продукт";
+    const desc = p.querySelector(".desc")?.textContent.trim() || "";
+    const lvEl = p.querySelector(".price-badge .lv");
+    const price = lvEl ? lvParse(lvEl.textContent) : 0;
 
-      list.push({ name, desc, price, img });
-    });
+    let img = "";
+    const bg = p.querySelector(".photo")?.style?.backgroundImage || "";
+    const m = bg.match(/url\(['"]?(.*?)['"]?\)/i);
+    if (m && m[1]) img = m[1];
 
-    return list;
-  };
+    const src = srcItems[idx];
+    let addons;
+    if (src && Array.isArray(src.addons) && src.addons.length) {
+      addons = src.addons.map(a => ({ ...a }));
+    }
+
+    const item = { name, desc, price, img };
+    if (addons) item.addons = addons;
+
+    list.push(item);
+  });
+
+  return list;
+};
+
 
   const enableProductDnd = () => {
     let dragged = null;
@@ -1606,9 +1629,11 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
     saveBtn.onclick = () => {
       const selectedAddons = item.addons.filter((a) => a.checked);
 
-      if (!CATALOG[key].items[index]) CATALOG[key].items[index] = item;
-      CATALOG[key].items[index].addons = item.addons;
-      localStorage.setItem("CATALOG", JSON.stringify(CATALOG));
+if (!CATALOG[key].items[index]) CATALOG[key].items[index] = item;
+CATALOG[key].items[index].addons = item.addons;
+
+// 🧩 записваме в черновата → после „💾 Запази всичко“ ще го прати към Firestore
+persistDraft();
 
       if (selectedAddons.length === 0) {
         toast("⚠️ Не си избрал добавки!");
@@ -1648,11 +1673,14 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
         del.onclick = () => {
           const pass = prompt("🔒 Въведи парола за изтриване:");
           if (pass === MOD_PASSWORD) {
-            item.addons = item.addons.filter((x) => x !== a);
-            toast(`🗑️ ${a.label} премахната`);
-            row.remove();
-            CATALOG[key].items[index].addons = item.addons;
-            localStorage.setItem("CATALOG", JSON.stringify(CATALOG));
+item.addons = item.addons.filter((x) => x !== a);
+toast(`🗑️ ${a.label} премахната`);
+row.remove();
+CATALOG[key].items[index].addons = item.addons;
+
+// 🧩 пак пазим в черновата
+persistDraft();
+
           } else {
             alert("❌ Грешна парола!");
           }
