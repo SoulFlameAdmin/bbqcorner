@@ -211,123 +211,135 @@ document.addEventListener("DOMContentLoaded", () => {
    * БЛОК 2 (END)
    * =========================================================== */
 
+/* ===========================================================
+ * БЛОК 3: SNAPSHOT НА ТЕКУЩОТО МЕНЮ (CATALOG/ORDER/THUMBS)
+ * (START)
+ * =========================================================== */
 
-  /* ===========================================================
-   * БЛОК 3: SNAPSHOT НА ТЕКУЩОТО МЕНЮ (CATALOG/ORDER/THUMBS)
-   * (START)
-   * =========================================================== */
+// Тук предполагаме, че глобално имаме:
+//   CATALOG, ORDER, CAT_THUMBS
+//   (дефинирани в novindex2.js)
 
-  // Тук предполагаме, че глобално имаме:
-  //   CATALOG, ORDER, CAT_THUMBS
-  //   (дефинирани в novindex2.js)
-
-  const snapshotRuntime = () => {
-    const mem = getMemory();
-    const snap = {
-      order: [...ORDER],
-      catalog: {},
-      cat_thumbs: {},
-      addons_labels: mem.addons_labels || {}
-    };
-
-    ORDER.forEach((key) => {
-      const cat = CATALOG[key] || {};
-
-const normalizeItem = (it = {}) => {
-  const base = {
-    name:  it.name  || "Продукт",
-    desc:  it.desc  || "",
-    price: Number(it.price) || 0,
-    img:   it.img   || ""
+const snapshotRuntime = () => {
+  const mem = getMemory();
+  const snap = {
+    order: [...ORDER],
+    catalog: {},
+    cat_thumbs: {},
+    addons_labels: mem.addons_labels || {}
   };
 
-  // 🧩 ВАЖНО: пазим и добавките
-  if (Array.isArray(it.addons) && it.addons.length) {
-    base.addons = it.addons.map(a => ({ ...a }));
-  }
+  ORDER.forEach((key) => {
+    const cat = CATALOG[key] || {};
 
-  return base;
+    const normalizeItem = (it = {}) => {
+      const base = {
+        name:  it.name  || "Продукт",
+        desc:  it.desc  || "",
+        price: Number(it.price) || 0,
+        img:   it.img   || ""
+      };
+
+      // 🧩 ВАЖНО: пазим и добавките
+      if (Array.isArray(it.addons) && it.addons.length) {
+        base.addons = it.addons.map(a => ({ ...a }));
+      }
+
+      return base;
+    };
+
+    snap.catalog[key] = {
+      title: cat.title || key.toUpperCase(),
+      view: cat.view ?? undefined,
+      hellPrice: cat.hellPrice ?? undefined,
+      items: Array.isArray(cat.items) ? cat.items.map(normalizeItem) : undefined,
+      groups: Array.isArray(cat.groups)
+        ? cat.groups.map((g) => ({
+            heading: g.heading || "",
+            items: Array.isArray(g.items) ? g.items.map(normalizeItem) : undefined,
+            images: Array.isArray(g.images) ? [...g.images] : undefined,
+            pair: Array.isArray(g.pair) ? g.pair.map((p) => ({ ...p })) : undefined
+          }))
+        : undefined
+    };
+
+    snap.cat_thumbs[key] = CAT_THUMBS[key] || DEFAULT_CAT_THUMB;
+  });
+
+  return snap;
 };
 
 
-      snap.catalog[key] = {
-        title: cat.title || key.toUpperCase(),
-        view: cat.view ?? undefined,
-        hellPrice: cat.hellPrice ?? undefined,
-        items: Array.isArray(cat.items) ? cat.items.map(normalizeItem) : undefined,
-        groups: Array.isArray(cat.groups)
-          ? cat.groups.map((g) => ({
-              heading: g.heading || "",
-              items: Array.isArray(g.items) ? g.items.map(normalizeItem) : undefined,
-              images: Array.isArray(g.images) ? [...g.images] : undefined,
-              pair: Array.isArray(g.pair) ? g.pair.map((p) => ({ ...p })) : undefined
-            }))
-          : undefined
-      };
 
-      snap.cat_thumbs[key] = CAT_THUMBS[key] || DEFAULT_CAT_THUMB;
+// ===========================================================
+// APPLY SAVED — КРИТИЧНИЯТ FIX ЗА ADDONS
+// ===========================================================
+
+const applySaved = (data) => {
+  if (!data || typeof data !== "object") return;
+
+  // 1) ORDER – подреждане на категориите
+  if (Array.isArray(data.order) && data.order.length) {
+    const known = new Set(ORDER);
+    data.order.forEach((k) => {
+      if (!known.has(k)) ORDER.push(k);
     });
+    const rest = ORDER.filter((k) => !data.order.includes(k));
 
-    return snap;
-  };
+    ORDER.length = 0;
+    data.order.forEach((k) => ORDER.push(k));
+    rest.forEach((k) => ORDER.push(k));
+  }
 
-  // Прилага snapshot обратно към живите структури
-  const applySaved = (data) => {
-    if (!data || typeof data !== "object") return;
+  // 2) CATALOG – заглавия, items, groups
+  if (data.catalog && typeof data.catalog === "object") {
+    Object.entries(data.catalog).forEach(([key, val]) => {
+      if (!CATALOG[key]) {
+        CATALOG[key] = { title: val.title || key.toUpperCase(), items: [] };
+      }
 
-    // 1) ORDER – подреждане на категориите
-    if (Array.isArray(data.order) && data.order.length) {
-      const known = new Set(ORDER);
-      data.order.forEach((k) => {
-        if (!known.has(k)) ORDER.push(k);
-      });
-      const rest = ORDER.filter((k) => !data.order.includes(k));
+      CATALOG[key].title = val.title || CATALOG[key].title;
+      CATALOG[key].view = val.view ?? CATALOG[key].view;
+      CATALOG[key].hellPrice = val.hellPrice ?? CATALOG[key].hellPrice;
 
-      ORDER.length = 0;
-      data.order.forEach((k) => ORDER.push(k));
-      rest.forEach((k) => ORDER.push(k));
-    }
+      // 🔥 ТУК Е ФИКСЪТ — ВРЪЩАМЕ ADDONS В PRODUKTA
+      if (Array.isArray(val.items)) {
+        CATALOG[key].items = val.items.map(it => ({
+          ...it,
+          addons: Array.isArray(it.addons) ? it.addons : []
+        }));
+      }
 
-    // 2) CATALOG – заглавия, items, groups
-    if (data.catalog && typeof data.catalog === "object") {
-      Object.entries(data.catalog).forEach(([key, val]) => {
-        if (!CATALOG[key]) {
-          CATALOG[key] = { title: val.title || key.toUpperCase(), items: [] };
-        }
-        CATALOG[key].title = val.title || CATALOG[key].title;
-        CATALOG[key].view = val.view ?? CATALOG[key].view;
-        CATALOG[key].hellPrice = val.hellPrice ?? CATALOG[key].hellPrice;
+      if (Array.isArray(val.groups)) CATALOG[key].groups = val.groups;
+    });
+  }
 
-        if (Array.isArray(val.items)) CATALOG[key].items = val.items;
-        if (Array.isArray(val.groups)) CATALOG[key].groups = val.groups;
-      });
-    }
+  // 3) THUMBS – миниатюри по категории
+  if (data.cat_thumbs) {
+    Object.assign(CAT_THUMBS, data.cat_thumbs || {});
+  }
 
-    // 3) THUMBS – миниатюри по категории
-    if (data.cat_thumbs) {
-      Object.assign(CAT_THUMBS, data.cat_thumbs || {});
-    }
-
-    // 4) ADDONS LABELS – записваме ги в черновата памет
-    if (data.addons_labels) {
-      const mem = getMemory();
-      mem.addons_labels = data.addons_labels;
-      setMemory(mem);
-    }
-  };
-
-  // Чернова – snapshot + addons_labels
-  const persistDraft = () => {
-    const snap = snapshotRuntime();
+  // 4) ADDONS LABELS – записваме ги в черновата памет
+  if (data.addons_labels) {
     const mem = getMemory();
-    snap.addons_labels = mem.addons_labels || {};
-    save(LS_MOD_DRAFT, snap);
-  };
+    mem.addons_labels = data.addons_labels;
+    setMemory(mem);
+  }
+};
 
-  // Перманентно (за по-сигурен save)
-  const savePermanent = () => {
-    save(LS_MOD_DATA, snapshotRuntime());
-  };
+
+// Чернова – snapshot + addons_labels
+const persistDraft = () => {
+  const snap = snapshotRuntime();
+  const mem = getMemory();
+  snap.addons_labels = mem.addons_labels || {};
+  save(LS_MOD_DRAFT, snap);
+};
+
+// Перманентно (за по-сигурен save)
+const savePermanent = () => {
+  save(LS_MOD_DATA, snapshotRuntime());
+};
 
   /* ===========================================================
    * БЛОК 3 (END)
