@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/novindex2/novindex2.html" }
+  ]
+}
