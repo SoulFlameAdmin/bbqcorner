@@ -1187,63 +1187,6 @@ const domProductsToArray = () => {
   /* ===========================================================
    * БЛОК 8 (END)
    * =========================================================== */
-function renderSavedAddonsPanels(catKeyOverride) {
-  const key = (catKeyOverride || currentCat()).toLowerCase();
-  const category = CATALOG[key];
-  if (!category || !Array.isArray(category.items)) return;
-
-  if (!grid) return;
-  const cards = [...grid.querySelectorAll(".product")];
-
-  cards.forEach((card, index) => {
-    const item = category.items[index];
-    if (!item || !Array.isArray(item.addons) || !item.addons.length) {
-      // ако няма добавки – махаме стар панел, ако има
-      const oldPanel = card.querySelector(".addons-side");
-      if (oldPanel) oldPanel.remove();
-      return;
-    }
-
-    // създаваме/изчистваме панела
-    let sidePanel = card.querySelector(".addons-side");
-    if (!sidePanel) {
-      sidePanel = document.createElement("div");
-      sidePanel.className = "addons-side";
-      card.style.position = "relative";
-      card.appendChild(sidePanel);
-    } else {
-      sidePanel.innerHTML = "";
-    }
-
-    const titleDiv = document.createElement("div");
-    titleDiv.className = "title";
-    titleDiv.textContent = "Добавки";
-    sidePanel.appendChild(titleDiv);
-
-    item.addons.forEach((a) => {
-      // показваме само избраните (checked = true)
-      if (a.checked === false) return;
-
-      const row = document.createElement("div");
-      row.className = "addon-row";
-
-      const lbl = document.createElement("span");
-      lbl.textContent = `+ ${a.label || ""}`;
-
-      const price = document.createElement("span");
-      const p = parseFloat(a.price || 0);
-      price.textContent = `${isFinite(p) ? p.toFixed(2) : "0.00"} лв`;
-
-      const right = document.createElement("div");
-      right.className = "addon-right";
-      right.append(price);
-
-      row.append(lbl, right);
-      sidePanel.appendChild(row);
-    });
-  });
-}
-
 
   /* ===========================================================
    * БЛОК 9: HOOK КЪМ activate() + КОНВЕРСИЯ BGN → EUR
@@ -1262,7 +1205,7 @@ activate = function (cat, opts) {
   injectDeleteButtons();
 
   // 🔥 НОВО: винаги рисува панелите за добавки от CATALOG
-  renderSavedAddonsPanels(key);
+
 
   if (typeof ensurePlusRightUniversal === "function")
     ensurePlusRightUniversal();
