@@ -551,25 +551,51 @@ const ORDER = [
 
 /* ==========================================================
    APPLY CATALOG STATE – задължително за Firestore зареждане
+   Стабилен FIX → запазва САМО addons, без да нарушава структурата
    ========================================================== */
 function applyCatalogState(data) {
   if (!data || typeof data !== "object") return;
 
-  // 1) CATALOG – ПЪЛЕН override
+  // 1) CATALOG – ПЪЛЕН override (но поправяме само items→addons)
   if (data.CATALOG && typeof data.CATALOG === "object") {
+
+    // изчистваме старото (както си било)
     Object.keys(CATALOG).forEach((k) => { delete CATALOG[k]; });
+
     for (const [key, value] of Object.entries(data.CATALOG)) {
-      CATALOG[key] = value;
+      // копираме цялата структура
+      CATALOG[key] = { ...value };
+
+      /* 🔥 FIX #1: ITEMS – винаги връщаме addons */
+      if (Array.isArray(value.items)) {
+        CATALOG[key].items = value.items.map(it => ({
+          ...it,
+          addons: Array.isArray(it.addons) ? it.addons : []
+        }));
+      }
+
+      /* 🔥 FIX #2: GROUPS → items вътре също пазим addons */
+      if (Array.isArray(value.groups)) {
+        CATALOG[key].groups = value.groups.map(g => ({
+          ...g,
+          items: Array.isArray(g.items)
+            ? g.items.map(it => ({
+                ...it,
+                addons: Array.isArray(it.addons) ? it.addons : []
+              }))
+            : g.items
+        }));
+      }
     }
   }
 
-  // 2) ORDER – подредба
+  // 2) ORDER
   if (Array.isArray(data.ORDER)) {
     ORDER.length = 0;
     ORDER.push(...data.ORDER);
   }
 
-  // 3) ADDONS
+  // 3) ADDONS – само merge (не трием нищо)
   if (data.ADDONS && typeof data.ADDONS === "object") {
     Object.assign(ADDONS, data.ADDONS);
   }
@@ -579,6 +605,117 @@ function applyCatalogState(data) {
     Object.assign(CAT_THUMBS, data.cat_thumbs);
   }
 }
+
+/* ==========================================================
+   🔥 ADDONS DEBUG MODE
+   Активира се с ?debugAddons=1
+   ========================================================== */
+(function addonsDebugMode() {
+  const params = new URLSearchParams(location.search);
+  if (!params.get("debugAddons")) return;
+
+  console.log("%c🔥 ADDONS DEBUG MODE ACTIVATED", "color:#ff7a00; font-size:16px; font-weight:900;");
+
+  // ===== VISUAL OVERLAY =====
+  const box = document.createElement("div");
+  box.style.position = "fixed";
+  box.style.bottom = "20px";
+  box.style.right = "20px";
+  box.style.background = "rgba(0,0,0,0.85)";
+  box.style.border = "2px solid #ff7a00";
+  box.style.color = "#fff";
+  box.style.padding = "14px 18px";
+  box.style.fontSize = "14px";
+  box.style.borderRadius = "12px";
+  box.style.zIndex = "999999";
+  box.style.maxWidth = "380px";
+  box.style.backdropFilter = "blur(4px)";
+  box.style.boxShadow = "0 0 18px rgba(255, 140, 0, 0.4)";
+  box.innerHTML = `
+    <div style="font-weight:900; color:#ffb347; margin-bottom:6px;">
+      🔥 Addons Debug
+    </div>
+    <button id="btnPrintAddons" style="
+      padding:6px 12px; border:none; background:#ff7a00;
+      border-radius:6px; color:#fff; cursor:pointer; margin-bottom:8px;">
+      Print Addons
+    </button>
+    <button id="btnPrintCatalog" style="
+      padding:6px 12px; border:none; background:#2aa2ff;
+      border-radius:6px; color:#fff; cursor:pointer;">
+      Print Full Catalog
+    </button>
+  `;
+  document.body.appendChild(box);
+
+  document.getElementById("btnPrintAddons").onclick = () => {
+    console.log("%c🔍 ADDONS CHECK", "color:#ffb347; font-size:14px; font-weight:700;");
+
+    ORDER.forEach(catKey => {
+      const cat = CATALOG[catKey];
+      if (!cat) return;
+
+      console.log(
+        `%c📂 Category: ${catKey}`,
+        "color:#ffdd99; font-size:13px; font-weight:700;"
+      );
+
+      if (!Array.isArray(cat.items)) {
+        console.log(`   ❌ cat.items missing`);
+        return;
+      }
+
+      cat.items.forEach((item, i) => {
+        if (!item) return;
+
+        if (!Array.isArray(item.addons) || item.addons.length === 0) {
+          console.log(`   ⚠️ [${i}] ${item.name} → No addons`);
+        } else {
+          console.log(`   ✅ [${i}] ${item.name} → ${item.addons.length} addons`, item.addons);
+        }
+      });
+    });
+  };
+
+  document.getElementById("btnPrintCatalog").onclick = () => {
+    console.log("%c📘 FULL CATALOG STATE", "color:#2aa2ff; font-size:14px; font-weight:700;");
+    console.log(JSON.parse(JSON.stringify(CATALOG))); // deep clone for clarity
+  };
+
+  // ===== MARK PRODUCTS WITH/WITHOUT ADDONS =====
+  window.addEventListener("activate", () => {
+    setTimeout(() => {
+      document.querySelectorAll(".product").forEach((card, index) => {
+        const catKey = params.get("cat") || ORDER[0];
+        const cat = CATALOG[catKey];
+        if (!cat || !cat.items || !cat.items[index]) return;
+
+        const item = cat.items[index];
+        const badge = document.createElement("div");
+        badge.style.position = "absolute";
+        badge.style.top = "6px";
+        badge.style.right = "6px";
+        badge.style.padding = "3px 6px";
+        badge.style.borderRadius = "6px";
+        badge.style.fontSize = "11px";
+        badge.style.fontWeight = "900";
+        badge.style.zIndex = "999";
+
+        if (!Array.isArray(item.addons) || item.addons.length === 0) {
+          badge.style.background = "#ff4747";
+          badge.textContent = "NO ADDONS";
+        } else {
+          badge.style.background = "#4CAF50";
+          badge.textContent = item.addons.length + " ADDONS";
+        }
+
+        card.appendChild(badge);
+      });
+    }, 350);
+  });
+
+})();
+
 
 /* =====================================================
    ☁️ Зареждане от облака (Firestore / API / localStorage)
