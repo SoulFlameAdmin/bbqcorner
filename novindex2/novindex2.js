@@ -549,21 +549,49 @@ const ORDER = [
 ];
 
 
+/* ==========================================================
+   APPLY CATALOG STATE – задължително за Firestore зареждане
+   ========================================================== */
+function applyCatalogState(data) {
+  if (!data || typeof data !== "object") return;
+
+  // 1) CATALOG – ПЪЛЕН override
+  if (data.CATALOG && typeof data.CATALOG === "object") {
+    Object.keys(CATALOG).forEach((k) => { delete CATALOG[k]; });
+    for (const [key, value] of Object.entries(data.CATALOG)) {
+      CATALOG[key] = value;
+    }
+  }
+
+  // 2) ORDER – подредба
+  if (Array.isArray(data.ORDER)) {
+    ORDER.length = 0;
+    ORDER.push(...data.ORDER);
+  }
+
+  // 3) ADDONS
+  if (data.ADDONS && typeof data.ADDONS === "object") {
+    Object.assign(ADDONS, data.ADDONS);
+  }
+
+  // 4) Миниатюри
+  if (data.cat_thumbs && typeof data.cat_thumbs === "object") {
+    Object.assign(CAT_THUMBS, data.cat_thumbs);
+  }
+}
+
 /* =====================================================
    ☁️ Зареждане от облака (Firestore / API / localStorage)
    ===================================================== */
 (async function loadFromCloud(){
   try {
+    // 1) Firestore през BBQ_STORE
     if (window.BBQ_STORE && typeof window.BBQ_STORE.load === "function") {
       const data = await window.BBQ_STORE.load();
       if (data && typeof data === "object") {
-        if (data.CATALOG)    Object.assign(CATALOG, data.CATALOG);
-        if (Array.isArray(data.ORDER)) { ORDER.length = 0; ORDER.push(...data.ORDER); }
-        if (data.ADDONS)     Object.assign(ADDONS, data.ADDONS);
-        if (data.cat_thumbs) Object.assign(CAT_THUMBS, data.cat_thumbs);
+        applyCatalogState(data);                 // ⬅️ ТУК ползваме helper-а
         console.log("✅ Данните са заредени през BBQ_STORE.");
 
-        // 🔁 кажи на UI-то, че каталогът е обновен
         if (typeof window.__bbqAfterCloud === "function") {
           window.__bbqAfterCloud("firestore");
         }
@@ -571,16 +599,13 @@ const ORDER = [
       }
     }
 
-    // ако по някаква причина няма BBQ_STORE → старото поведение
+    // 2) /api/catalog fallback
     const r = await fetch("/api/catalog", { cache: "no-store" });
     if (!r.ok) throw new Error("HTTP " + r.status);
     const data = await r.json();
 
     if (data && typeof data === "object") {
-      if (data.CATALOG)    Object.assign(CATALOG, data.CATALOG);
-      if (Array.isArray(data.ORDER)) { ORDER.length = 0; ORDER.push(...data.ORDER); }
-      if (data.ADDONS)     Object.assign(ADDONS, data.ADDONS);
-      if (data.cat_thumbs) Object.assign(CAT_THUMBS, data.cat_thumbs);
+      applyCatalogState(data);                  // ⬅️ пак helper
       console.log("✅ Данните са заредени от облака (/api/catalog).");
     }
 
@@ -593,10 +618,7 @@ const ORDER = [
       const raw = localStorage.getItem("BBQ_MAIN_CATALOG");
       if (raw) {
         const data = JSON.parse(raw);
-        if (data.CATALOG)    Object.assign(CATALOG, data.CATALOG);
-        if (Array.isArray(data.ORDER)) { ORDER.length = 0; ORDER.push(...data.ORDER); }
-        if (data.ADDONS)     Object.assign(ADDONS, data.ADDONS);
-        if (data.cat_thumbs) Object.assign(CAT_THUMBS, data.cat_thumbs);
+        applyCatalogState(data);                // ⬅️ и тук
         console.log("✅ Заредено локално копие (offline fallback).");
       }
     } catch (e2) {
