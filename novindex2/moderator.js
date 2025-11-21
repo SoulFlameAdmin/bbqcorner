@@ -1204,8 +1204,8 @@ activate = function (cat, opts) {
   enableProductDnd();
   injectDeleteButtons();
 
-  // 🔥 НОВО: винаги рисува панелите за добавки от CATALOG
-
+  // 🔥 ТУК ДОБАВЯМЕ
+  renderAddonsSidePanels(key);
 
   if (typeof ensurePlusRightUniversal === "function")
     ensurePlusRightUniversal();
@@ -1214,6 +1214,7 @@ activate = function (cat, opts) {
 
   applyEuroConversion();
 };
+
 
 
   // Динамичен курс BGN → EUR
@@ -1463,6 +1464,11 @@ activate = function (cat, opts) {
     popThenActivate(null, key);
   });
 
+
+
+
+
+
   // 💾 – Запази ВСИЧКО в основния сайт (Firestore + кеш)
   addBtn("💾 Запази всичко в основния сайт", 50, () => {
     saveToCloud();
@@ -1472,6 +1478,64 @@ activate = function (cat, opts) {
    * БЛОК 10 (END)
    * =========================================================== */
 
+/* ===========================================================
+ * БЛОК 11А: РЕНДЕР НА ЗАПИСАНИТЕ ДОБАВКИ ОТ CATALOG
+ * (ПАНЕЛЧЕТА ВДЯСНО НА КАРТИТЕ)
+ * =========================================================== */
+
+function renderAddonsSidePanels(catKey) {
+  const key = (catKey || currentCat()).toLowerCase();
+  const category = CATALOG[key];
+  if (!category || !Array.isArray(category.items)) return;
+  if (!grid) return;
+
+  const cards = [...grid.querySelectorAll(".product")];
+
+  category.items.forEach((item, idx) => {
+    const cardEl = cards[idx];
+    if (!cardEl) return;
+
+    // махаме стар панел, ако има
+    const oldPanel = cardEl.querySelector(".addons-side");
+    if (oldPanel) oldPanel.remove();
+
+    if (!item || !Array.isArray(item.addons)) return;
+
+    const selected = item.addons.filter(a => a && a.checked);
+    if (!selected.length) return;
+
+    // създаваме нов панел
+    const sidePanel = document.createElement("div");
+    sidePanel.className = "addons-side";
+
+    const titleDiv = document.createElement("div");
+    titleDiv.className = "title";
+    titleDiv.textContent = "Добавки";
+    sidePanel.appendChild(titleDiv);
+
+    selected.forEach((a) => {
+      const row = document.createElement("div");
+      row.className = "addon-row";
+
+      const lbl = document.createElement("span");
+      lbl.textContent = `+ ${a.label}`;
+
+      const price = document.createElement("span");
+      const priceNum = parseFloat(a.price || 0);
+      price.textContent = `${priceNum.toFixed(2)} лв`;
+
+      const right = document.createElement("div");
+      right.className = "addon-right";
+      right.append(price);
+
+      row.append(lbl, right);
+      sidePanel.appendChild(row);
+    });
+
+    cardEl.style.position = "relative";
+    cardEl.appendChild(sidePanel);
+  });
+}
 
 
 
