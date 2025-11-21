@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Corner BBQ — Hub (index5)</title>
+<meta name="theme-color" content="#ff7a00" />
+<style>
+:root{ --bg:#0e0f0f; --card:#15171a; --soft:#ffffff14; --text:#eaeaea; --muted:#a7a7a7; --accent:#ff7a00; --radius:18px; --gap:14px; }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif; color:var(--text);
+  background:linear-gradient(120deg,#0b0c0d,#111317 55%,#0b0c0e);
+}
+.wrap{max-width:1100px; margin:0 auto; padding:24px}
+.top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+.brand{display:flex; align-items:center; gap:12px}
+.brand img{width:40px; height:40px; border-radius:10px; object-fit:cover}
+.brand h1{font-size:20px; margin:0}
+.hint{color:var(--muted); font-size:13px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+.pill{ display:inline-flex; gap:8px; align-items:center; font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--soft); color:#ddd; background:#ffffff08; }
+.pill b{color:#fff}
+
+/* grid за карти */
+.grid{ display:grid; gap:var(--gap); grid-template-columns: repeat(4, minmax(0,1fr)); }
+@media (max-width:1200px){ .grid{grid-template-columns: repeat(3, minmax(0,1fr));} }
+@media (max-width:820px){ .grid{grid-template-columns: repeat(2, minmax(0,1fr));} }
+@media (max-width:520px){ .grid{grid-template-columns: 1fr;} }
+.card{
+  position:relative; background:var(--card); border:1px solid var(--soft); border-radius:var(--radius); padding:16px;
+  box-shadow:0 8px 24px #00000055; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; min-height:132px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.card:hover{ transform:translateY(-2px); border-color:#ffffff2a; box-shadow:0 16px 36px #00000066; }
+.card .kicker{ position:absolute; top:10px; right:12px; color:#ffffffaa; font-size:12px }
+.title{ font-weight:700; font-size:16px; padding-right:58px }
+.desc{ color:var(--muted); font-size:13px; line-height:1.35 }
+.actions{ margin-top:auto; display:flex; gap:10px; flex-wrap:wrap }
+.btn{ appearance:none; border:1px solid var(--soft); background:#ffffff10; color:#fff; padding:9px 12px; border-radius:12px; font-size:14px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+.btn.primary{ background:var(--accent); border-color:transparent; font-weight:700 }
+.btn:active{ transform:translateY(1px) }
+
+/* viewer */
+.viewer{ margin-top:22px; background:#0b0c0e; border:1px solid var(--soft); border-radius:var(--radius); overflow:hidden; }
+.viewer .bar{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:#101214; border-bottom:1px solid var(--soft); gap:10px; flex-wrap:wrap; }
+.viewer .bar .url{ color:#b9b9b9; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px }
+iframe{ width:100%; height:70vh; border:0; display:block; background:#fff }
+@media (max-width:600px){ iframe{ height:78vh } }
+
+/* === Admin Logs Panel === */
+.logsWrap{ margin-top:22px; display:grid; gap:14px; grid-template-columns: 260px 1fr; }
+@media (max-width:900px){ .logsWrap{ grid-template-columns: 1fr; } }
+.box{ background:#0f1114; border:1px solid var(--soft); border-radius:16px; padding:14px; }
+.box h3{ margin:0 0 8px 0; color:#fff; font-size:16px }
+.list{ display:flex; flex-direction:column; gap:8px; max-height:360px; overflow:auto }
+.badge{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border:1px solid var(--soft); border-radius:12px; background:#121316; cursor:pointer; }
+.badge:hover{ border-color:#ffffff28 }
+.badge .name{ font-weight:700 }
+.tools{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap }
+.toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+.toolbar input[type="search"]{ background:#121317; border:1px solid var(--soft); color:#fff; border-radius:10px; padding:8px 10px; font-size:13px; min-width:200px }
+.count{ color:#bdbdbd; font-size:12px; margin-left:auto }
+.loglines{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; color:#d9d9d9; line-height:1.35; white-space:pre-wrap; background:#0e1013; border:1px solid var(--soft); border-radius:12px; padding:10px; min-height:220px; }
+.small{font-size:12px; color:#a9a9a9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <img src="./bbqsaitlogo.jpg" alt="Corner BBQ" onerror="this.style.display='none'">
+      <h1>Corner BBQ — Централен хъб</h1>
+    </div>
+    <div class="hint">
+      <span class="pill" id="devInfo">Устройство: …</span>
+      <span class="pill" id="whoAmI">Admin: <b>(не е влизал)</b></span>
+    </div>
+  </div>
+
+  <p class="hint">
+    Тук събираме всички версии (<b>index.html</b>, <b>index2.html</b>, <b>index3.html</b>, <b>index4.html</b>)
+    и показваме „Админ активност“ от локалните журнали. <span class="small">Записите идват от <code>logAction(...)</code> в други страници.</span>
+  </p>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="viewer" id="viewer" hidden>
+    <div class="bar">
+      <div class="url" id="viewerUrl">about:blank</div>
+      <div class="actions">
+        <a class="btn" id="openNew" target="_blank" rel="noopener">Отвори в нов таб</a>
+        <button class="btn" id="closeViewer">Затвори преглед</button>
+      </div>
+    </div>
+    <iframe id="frame" title="Preview"></iframe>
+  </div>
+
+  <!-- === Admin Logs Panel === -->
+  <div class="logsWrap">
+    <div class="box">
+      <h3>Админи</h3>
+      <div id="admins" class="list"></div>
+      <div class="tools">
+        <button id="refreshAdmins" class="btn">Обнови</button>
+        <button id="showAll" class="btn">Покажи комбиниран журнал (всички)</button>
+      </div>
+    </div>
+    <div class="box">
+      <div style="display:flex; align-items:flex-end; gap:10px; justify-content:space-between;">
+        <h3 id="whoTitle">Журнал</h3>
+        <span class="count" id="linesCount">0 реда</span>
+      </div>
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Търси в журнала (напр. изтри, смени статус, влезе)…">
+        <label class="pill" style="cursor:pointer">
+          <input id="live" type="checkbox" style="margin-right:6px"> Live обновяване
+        </label>
+        <button id="exportCsv" class="btn">Експорт CSV</button>
+      </div>
+      <div id="logs" class="loglines">Избери админ отляво.</div>
+      <div class="tools">
+        <button id="clearForUser" class="btn">Изчисти журнала на този админ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---- конфигурация на страниците ---- */
+const PAGES = [
+  {file:'index.html',  title:'Index (основна)', desc:'Главна версия / прототип.'},
+  {file:'index2.html', title:'Index 2',         desc:'Категории/меню – алтернативен layout.'},
+  {file:'index3.html', title:'Index 3',         desc:'Количка/checkout (mobile friendly).'},
+  {file:'index4.html', title:'Index 4',         desc:'Админ панел (реално време).'}
+];
+
+/* ---- устройство + текущ админ ---- */
+const isMobile = () => Math.max(screen.width, window.innerWidth) <= 640;
+const devInfo = document.getElementById('devInfo');
+const whoAmI = document.getElementById('whoAmI');
+
+function refreshDeviceInfo(){
+  devInfo.textContent = `Устройство: ${isMobile() ? 'Мобилен' : 'Десктоп/Таблет'} • ${window.innerWidth}×${window.innerHeight}`;
+}
+function refreshWho(){
+  const name = (localStorage.getItem('adminName') || '').trim();
+  whoAmI.innerHTML = `Admin: <b>${name || '(не е влизал)'}</b>`;
+}
+refreshDeviceInfo(); refreshWho();
+addEventListener('resize', refreshDeviceInfo);
+
+/* ---- helper за HEAD проверка ---- */
+async function exists(path){
+  try{ const r = await fetch(path, {method:'HEAD', cache:'no-store'}); return r.ok; }
+  catch{ return false; }
+}
+
+/* ---- рендер на картите ---- */
+async function renderPages(){
+  const holder = document.getElementById('grid');
+  holder.innerHTML = '';
+  const available = [];
+  for(const p of PAGES){
+    if(await exists(p.file)) available.push(p);
+  }
+  if(available.length === 0){
+    holder.innerHTML = `<div class="hint">Няма намерени страници (index.html/index2.html/index3.html/index4.html) в тази директория.</div>`;
+    return;
+  }
+  for(const p of available){
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = `
+      <div class="kicker">${p.file}</div>
+      <div class="title">${p.title}</div>
+      <div class="desc">${p.desc}</div>
+      <div class="actions">
+        <a class="btn primary" href="./${p.file}">Отвори</a>
+        <button class="btn preview" data-file="${p.file}">Преглед</button>
+      </div>
+    `;
+    holder.appendChild(el);
+  }
+  holder.querySelectorAll('.preview').forEach(btn=>{
+    btn.addEventListener('click', ()=> openPreview(btn.dataset.file));
+  });
+}
+function openPreview(file){
+  const viewer = document.getElementById('viewer');
+  const frame = document.getElementById('frame');
+  const urlBar = document.getElementById('viewerUrl');
+  const openNew= document.getElementById('openNew');
+  frame.src = './' + file;
+  urlBar.textContent = new URL('./' + file, location.href).href;
+  openNew.href = './' + file;
+  viewer.hidden = false;
+}
+document.getElementById('closeViewer').addEventListener('click', ()=>{
+  document.getElementById('viewer').hidden = true;
+  document.getElementById('frame').src = 'about:blank';
+});
+
+/* === Admin Logs Panel === */
+const adminsEl = document.getElementById('admins');
+const logsEl = document.getElementById('logs');
+const whoTitleEl = document.getElementById('whoTitle');
+const clearBtn = document.getElementById('clearForUser');
+const refreshAdminsBtn = document.getElementById('refreshAdmins');
+const showAllBtn = document.getElementById('showAll');
+const searchBox = document.getElementById('search');
+const linesCount = document.getElementById('linesCount');
+const exportCsvBtn = document.getElementById('exportCsv');
+const liveChk = document.getElementById('live');
+
+let CURRENT_USER = null;
+let LIVE_TIMER = null;
+
+function getAdmins(){
+  const arr = JSON.parse(localStorage.getItem('logs__admins') || '[]');
+  return [...new Set(arr.filter(x => String(x||'').trim() !== ''))].sort();
+}
+
+function renderAdmins(){
+  const list = getAdmins();
+  adminsEl.innerHTML = '';
+  if(list.length === 0){
+    adminsEl.innerHTML = `<div class="hint">Няма записани админи (още).</div>`;
+    return;
+  }
+  list.forEach(name=>{
+    const row = document.createElement('div');
+    row.className = 'badge';
+    row.innerHTML = `<span class="name">${name}</span><span class="pill">виж</span>`;
+    row.addEventListener('click', ()=> showLogs(name));
+    adminsEl.appendChild(row);
+  });
+}
+
+function readLogArrayFor(name){
+  return JSON.parse(localStorage.getItem(`logs_${name}`) || '[]');
+}
+
+function setCount(n){ linesCount.textContent = `${n} реда`; }
+
+function showLogs(name){
+  CURRENT_USER = name;
+  whoTitleEl.textContent = `Журнал — ${name}`;
+  const lines = readLogArrayFor(name);
+  applyFilterAndRender(lines);
+}
+
+function showAllLogs(){
+  CURRENT_USER = '__ALL__';
+  whoTitleEl.textContent = 'Журнал — всички админи';
+  const users = getAdmins();
+  // комбинирай: [ "2025-01-01 12:00 — ivan ...", "..." ]
+  let merged = [];
+  users.forEach(u=>{
+    const arr = readLogArrayFor(u).map(s => s); // вече съдържа името в записа от logAction
+    merged = merged.concat(arr);
+  });
+  // по-новите първи (записваш .unshift, така че вече са така)
+  applyFilterAndRender(merged);
+}
+
+function applyFilterAndRender(lines){
+  const q = (searchBox.value || '').toLowerCase().trim();
+  let filtered = lines;
+  if(q){
+    filtered = lines.filter(x => x.toLowerCase().includes(q));
+  }
+  setCount(filtered.length);
+  logsEl.textContent = filtered.length ? filtered.join('\n') : 'Няма записи.';
+}
+
+searchBox.addEventListener('input', ()=>{
+  if(!CURRENT_USER){ return; }
+  if(CURRENT_USER === '__ALL__') showAllLogs();
+  else showLogs(CURRENT_USER);
+});
+
+clearBtn.addEventListener('click', ()=>{
+  if(!CURRENT_USER || CURRENT_USER === '__ALL__') return;
+  if(confirm(`Да изчистя журнала на „${CURRENT_USER}“?`)){
+    localStorage.removeItem(`logs_${CURRENT_USER}`);
+    showLogs(CURRENT_USER);
+  }
+});
+refreshAdminsBtn.addEventListener('click', ()=>{
+  renderAdmins();
+  if(CURRENT_USER){
+    if(CURRENT_USER === '__ALL__') showAllLogs();
+    else showLogs(CURRENT_USER);
+  }
+});
+showAllBtn.addEventListener('click', showAllLogs);
+
+exportCsvBtn.addEventListener('click', ()=>{
+  if(!CURRENT_USER){ return; }
+  let lines = [];
+  if(CURRENT_USER === '__ALL__'){
+    getAdmins().forEach(u => lines = lines.concat(readLogArrayFor(u)));
+  }else{
+    lines = readLogArrayFor(CURRENT_USER);
+  }
+  if(!lines.length){ alert('Няма данни за експорт.'); return; }
+  const csv = 'data:text/csv;charset=utf-8,' + lines.map(l => `"${l.replace(/"/g,'""')}"`).join('\n');
+  const a = document.createElement('a');
+  a.href = encodeURI(csv);
+  a.download = `logs_${CURRENT_USER === '__ALL__' ? 'all' : CURRENT_USER}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+/* Live обновяване: storage събитие + опционален таймер (за еднотабов режим) */
+window.addEventListener('storage', (e)=>{
+  if(!e.key) return;
+  // интересуват ни logs__admins и logs_<user>
+  if(e.key === 'logs__admins' || e.key.startsWith('logs_') || e.key === 'adminName'){
+    refreshWho();
+    renderAdmins();
+    if(CURRENT_USER){
+      if(CURRENT_USER === '__ALL__') showAllLogs();
+      else showLogs(CURRENT_USER);
+    }
+  }
+});
+
+liveChk.addEventListener('change', ()=>{
+  if(liveChk.checked){
+    LIVE_TIMER = setInterval(()=>{
+      renderAdmins();
+      if(CURRENT_USER){
+        if(CURRENT_USER === '__ALL__') showAllLogs();
+        else showLogs(CURRENT_USER);
+      }
+    }, 1500);
+  }else{
+    clearInterval(LIVE_TIMER);
+    LIVE_TIMER = null;
+  }
+});
+
+/* init */
+renderPages();
+renderAdmins();
+</script>
+</body>
+</html>

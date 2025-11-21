@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corner BBQ — Поръчка</title>
+<style>
+:root {
+  --electric-border-color: #ff7a00;
+  --electric-light-color: oklch(from var(--electric-border-color) l c h);
+  --gradient-color: oklch(from var(--electric-border-color) 0.3 calc(c / 2) h / 0.4);
+  --color-neutral-900: oklch(0.185 0 0);
+}
+* {margin: 0; padding: 0; box-sizing: border-box;}
+body {
+  font-family: Inter, system-ui, sans-serif;
+  background-color: oklch(0.145 0 0);
+  color: #fff;
+  height: 100vh;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.main-container {display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.card-container {
+  position: relative;
+  padding: 2px;
+  border-radius: 24px;
+  background: linear-gradient(-30deg, var(--gradient-color), transparent, var(--gradient-color)),
+              linear-gradient(to bottom, var(--color-neutral-900), var(--color-neutral-900));
+}
+.inner-container {position: relative;}
+.canvas-container {position: relative;width: 475px;height: 625px;}
+.electric-border-canvas {
+  position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+  width: 475px;height: 625px;
+}
+
+/* Glow effects */
+.glow-layer-1, .glow-layer-2, .overlay-1, .overlay-2, .background-glow {
+  position: absolute;inset: 0;border-radius: 24px;
+}
+.glow-layer-1 {border: 2px solid rgba(255,122,0,.6);filter: blur(1px);}
+.glow-layer-2 {border: 2px solid var(--electric-light-color);filter: blur(4px);}
+.overlay-1, .overlay-2 {
+  mix-blend-mode: overlay;transform: scale(1.1);filter: blur(16px);
+  background: linear-gradient(-30deg, white, transparent 30%, transparent 70%, white);
+}
+.overlay-1{opacity:1;} .overlay-2{opacity:.5;}
+.background-glow {
+  filter: blur(32px);transform: scale(1.1);opacity: .3;z-index:-1;
+  background: linear-gradient(-30deg,var(--electric-light-color),transparent,var(--electric-border-color));
+}
+
+/* Content */
+.content-container {
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;padding:40px;
+}
+.title {
+  font-size:34px;font-weight:900;margin-bottom:10px;color:#ff7a00;text-shadow:0 0 12px #ff7a00;
+}
+form {
+  width:80%;max-width:380px;display:flex;flex-direction:column;gap:16px;
+}
+label { font-size:15px;font-weight:600;opacity:.8;margin-bottom:4px; }
+input {
+  width:100%;padding:10px 14px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);color:#fff;font-size:15px;
+  outline:none;transition:border .2s,background .2s;
+}
+input:focus{border-color:#ff7a00;background:rgba(255,255,255,.12);}
+button {
+  margin-top:10px;padding:14px 18px;font-size:18px;
+  font-weight:900;border:none;border-radius:14px;
+  background:#ff7a00;color:#fff;cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,0,0,.3);
+  transition:transform .15s,box-shadow .15s;
+}
+button:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,0,0,.45);}
+button:disabled{opacity:.6;cursor:not-allowed}
+.success {
+  position:absolute;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);
+  display:none;align-items:center;justify-content:center;flex-direction:column;
+  color:#fff;text-align:center;font-size:22px;font-weight:800;
+}
+.success.visible{display:flex;animation:fadeIn .4s ease;}
+.note{opacity:.85;font-size:14px;margin-top:6px;text-align:center}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+</style>
+</head>
+<body>
+<main class="main-container">
+  <div class="card-container">
+    <div class="inner-container">
+      <div class="canvas-container">
+        <canvas id="electric-border-canvas" class="electric-border-canvas" width="475" height="625"></canvas>
+      </div>
+      <div class="glow-layer-1"></div>
+      <div class="glow-layer-2"></div>
+    </div>
+    <div class="overlay-1"></div>
+    <div class="overlay-2"></div>
+    <div class="background-glow"></div>
+
+    <div class="content-container">
+      <p class="title">Данни за доставка</p>
+      <form id="orderForm" autocomplete="on">
+        <div>
+          <label for="names">Две имена</label>
+          <input type="text" id="names" placeholder="Въведи имена" required>
+        </div>
+        <div>
+          <label for="phone">Телефонен номер</label>
+          <input type="tel" id="phone" placeholder="08XXXXXXXX" pattern="^0[87][0-9]{8}$" required>
+          <div class="note">Формат: напр. 0899123456</div>
+        </div>
+        <div>
+          <label for="address">Адрес за доставка</label>
+          <input type="text" id="address" placeholder="гр. Хасково, ул..." required>
+        </div>
+        <button id="submitBtn" type="submit">ПОРЪЧАЙ</button>
+        <div class="note" id="cartNote"></div>
+      </form>
+    </div>
+
+    <div class="success" id="successMsg">
+      ✅ Поръчката е изпратена успешно!<br><br>
+      Благодарим Ви!
+    </div>
+  </div>
+</main>
+
+<!-- Firebase + логика за изпращане -->
+<script type="module">
+/* ====== 1) Canvas анимация (без промени) ====== */
+class ElectricBorder {
+  constructor(canvasId, options = {}) {
+    this.canvas = document.getElementById(canvasId);
+    this.ctx = this.canvas.getContext("2d");
+    this.width = options.width || 475;
+    this.height = options.height || 625;
+    this.octaves = options.octaves || 10;
+    this.lacunarity = options.lacunarity || 1.6;
+    this.gain = options.gain || 0.6;
+    this.amplitude = options.amplitude || 0.2;
+    this.frequency = options.frequency || 5;
+    this.baseFlatness = options.baseFlatness || 0.2;
+    this.displacement = options.displacement || 60;
+    this.speed = options.speed || 1;
+    this.borderOffset = options.borderOffset || 60;
+    this.borderRadius = options.borderRadius || 40;
+    this.lineWidth = options.lineWidth || 1;
+    this.color = options.color || "#ff7a00";
+    this.time = 0;
+    this.lastFrameTime = 0;
+    this.canvas.width = this.width;
+    this.canvas.height = this.height;
+    this.start();
+  }
+  random(x){return (Math.sin(x*12.9898)*43758.5453)%1;}
+  noise2D(x,y){const i=Math.floor(x),j=Math.floor(y),fx=x-i,fy=y-j;
+    const a=this.random(i+j*57),b=this.random(i+1+j*57),c=this.random(i+(j+1)*57),d=this.random(i+1+(j+1)*57);
+    const ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy);
+    return a*(1-ux)*(1-uy)+b*ux*(1-uy)+c*(1-ux)*uy+d*ux*uy;}
+  octavedNoise(x,o,l,g,a,f,t=0,s=0,b=1){let y=0,A=a,F=f;for(let i=0;i<o;i++){let oa=A;if(i===0)oa*=b;y+=oa*this.noise2D(F*x+s*100,t*F*.3);F*=l;A*=g;}return y;}
+  getRoundedRectPoint(t,L,T,W,H,R){
+    const SW=W-2*R,SH=H-2*R,CA=Math.PI*R/2,TP=2*SW+2*SH+4*CA;
+    let d=t*TP,a=0;
+    if(d<=a+SW)return{x:L+R+(d-a),y:T};a+=SW;
+    if(d<=a+CA)return this.corner(L+W-R,T+R,R,-Math.PI/2,Math.PI/2,(d-a)/CA);a+=CA;
+    if(d<=a+SH)return{x:L+W,y:T+R+(d-a)};a+=SH;
+    if(d<=a+CA)return this.corner(L+W-R,T+H-R,R,0,Math.PI/2,(d-a)/CA);a+=CA;
+    if(d<=a+SW)return{x:L+W-R-(d-a),y:T+H};a+=SW;
+    if(d<=a+CA)return this.corner(L+R,T+H-R,R,Math.PI/2,Math.PI/2,(d-a)/CA);a+=CA;
+    if(d<=a+SH)return{x:L,y:T+H-R-(d-a)};a+=SH;
+    return this.corner(L+R,T+R,R,Math.PI,Math.PI/2,(d-a)/CA);}
+  corner(cx,cy,r,s,a,p){const ang=s+p*a;return{x:cx+r*Math.cos(ang),y:cy+r*Math.sin(ang)};}
+  draw(t=0){
+    const dt=(t-this.lastFrameTime)/1000;this.time+=dt*this.speed;this.lastFrameTime=t;
+    const ctx=this.ctx;ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+    ctx.strokeStyle=this.color;ctx.lineWidth=this.lineWidth;ctx.beginPath();
+    const L=this.borderOffset,T=this.borderOffset,W=this.canvas.width-2*this.borderOffset,H=this.canvas.height-2*this.borderOffset,R=this.borderRadius;
+    const N=Math.floor(2*(W+H)+2*Math.PI*R)/2;
+    for(let i=0;i<=N;i++){const p=i/N,P=this.getRoundedRectPoint(p,L,T,W,H,R);
+      const xn=this.octavedNoise(p*8,this.octaves,this.lacunarity,this.gain,this.amplitude,this.frequency,this.time,0,this.baseFlatness);
+      const yn=this.octavedNoise(p*8,this.octaves,this.lacunarity,this.gain,this.amplitude,this.frequency,this.time,1,this.baseFlatness);
+      const x=P.x+xn*this.displacement,y=P.y+yn*this.displacement;
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+    ctx.closePath();ctx.stroke();
+    requestAnimationFrame(time=>this.draw(time));
+  }
+  start(){requestAnimationFrame(time=>this.draw(time));}
+}
+new ElectricBorder("electric-border-canvas",{color:"#ff7a00",speed:1.5,displacement:50});
+
+/* ====== 2) Ключове за количката от index2 ====== */
+const LS_CART_ITEMS = 'bbq_cart_items';
+const LS_CART_TOTAL = 'bbq_cart_total';
+const LS_NOTE_CODES = 'bbq_note_codes'; // локален регистър на вече ползвани 4-цифрени кодове
+
+
+/* Помощни */
+const $ = sel => document.querySelector(sel);
+const form = $('#orderForm');
+const successMsg = $('#successMsg');
+const cartNote = $('#cartNote');
+const submitBtn = $('#submitBtn');
+
+// ===== Генериране и регистър на 4-цифрени кодове за бележки =====
+function loadUsedCodes(){
+  try { return new Set(JSON.parse(localStorage.getItem(LS_NOTE_CODES) || '[]')); }
+  catch(_) { return new Set(); }
+}
+function saveUsedCodes(set){
+  localStorage.setItem(LS_NOTE_CODES, JSON.stringify([...set]));
+}
+function gen4DigitCode(){
+  const used = loadUsedCodes();
+  let tries = 0;
+  while(true){
+    // 0000 до 9999, винаги 4 цифри
+    const code = String(Math.floor(Math.random()*10000)).padStart(4,'0');
+    if (!used.has(code)) { used.add(code); saveUsedCodes(used); return code; }
+    if (++tries > 200) { // почти невъзможно да стигне тук, но все пак…
+      const fallback = (Date.now()%10000).toString().padStart(4,'0');
+      used.add(fallback); saveUsedCodes(used); return fallback;
+    }
+  }
+}
+
+
+/* Зареди количката от localStorage; ако няма — върни към менюто */
+function readCart(){
+  try{
+    const items = JSON.parse(localStorage.getItem(LS_CART_ITEMS) || '[]');
+    const total = Number(localStorage.getItem(LS_CART_TOTAL) || '0');
+    return {items:Array.isArray(items)?items:[], total:isFinite(total)?total:0};
+  }catch(_){ return {items:[], total:0}; }
+}
+const {items:cartItems, total:cartTotal} = readCart();
+if (!cartItems.length){
+  cartNote.textContent = 'Количката е празна. Върнете се към менюто.';
+}
+
+/* Покажи кратко инфо за общата сума */
+cartNote.textContent = cartItems.length ? `Артикули: ${cartItems.length} • Общо: ${cartTotal.toFixed(2)} лв.` : '';
+
+/* ====== 3) Firebase и Firestore ====== */
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
+  authDomain: "corner-bbq.firebaseapp.com",
+  projectId: "corner-bbq",
+  storageBucket: "corner-bbq.firebasestorage.app",
+  messagingSenderId: "878314744141",
+  appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
+  measurementId: "G-FWBDL96GN0"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+/* ====== 4) Изпращане на поръчка ====== */
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if (!cartItems.length){
+    alert('Количката е празна. Моля, изберете продукти.');
+    redirectHome();
+    return;
+  }
+
+  const names = $('#names').value.trim();
+  const phone = $('#phone').value.trim();
+  const address = $('#address').value.trim();
+
+  if (names.length < 3){ return alert('Моля, въведете валидни имена.'); }
+  if (!/^0[87][0-9]{8}$/.test(phone)){ return alert('Моля, въведете валиден телефон (напр. 0899123456).'); }
+  if (address.length < 6){ return alert('Моля, въведете валиден адрес.'); }
+
+  submitBtn.disabled = true;
+
+  const items = cartItems.map(it => ({
+    name: it.name,
+    price: Number(it.price)||0,
+    img: it.img || null
+  }));
+  const total = Number(cartTotal) || items.reduce((s,x)=>s+x.price,0);
+const orderNote = (localStorage.getItem('bbq_order_note') || localStorage.getItem('bbq_orderNote') || '').trim();
+const noteCode = gen4DigitCode(); // ← 4-цифрен уникален код за бележката
+
+// гарантиране на уникален noteCode и в Firestore
+let safeCode = noteCode;
+for (let i = 0; i < 5; i++) {
+  const existsSnap = await getDoc(doc(db, 'orders', safeCode));
+  if (!existsSnap.exists()) break;
+  // ако има колизия — генерирай нов и пробвай пак
+  safeCode = gen4DigitCode();
+}
+// ако сме сменили кода, обнови и локалните променливи
+const finalCode = safeCode;
+
+
+const order = {
+  items,
+  total,
+  customer: { names, phone, address },
+  note: orderNote,              // оригинален текст на бележката (ако има)
+noteCode: finalCode,
+noteDisplay: orderNote ? `#${finalCode} — ${orderNote}` : `#${finalCode}`,
+  status: 'ПРЕГЛЕД',
+  createdAt: serverTimestamp(),
+  source: (location.protocol === 'file:' ? 'desktop-file' : 'web')
+};
+
+
+  try{
+    await setDoc(doc(db, 'orders', finalCode), order);
+
+
+
+    // почисти количката (за клиента)
+// почисти количката (за клиента)
+localStorage.removeItem(LS_CART_ITEMS);
+localStorage.removeItem(LS_CART_TOTAL);
+
+// запази последния код и за тракера на index6
+localStorage.setItem('bbq_last_order_id', finalCode);
+localStorage.setItem('bbq_track_code', finalCode);
+
+localStorage.removeItem('bbq_order_note');
+localStorage.removeItem('bbq_orderNote');
+
+    // покажи успех + пренасочи
+let left = 5;
+successMsg.innerHTML =
+  `✅ Поръчката е изпратена успешно!<br><br>` +
+  `Вашият 4-цифрен код се генерира: <b>#${finalCode}</b><br>` +
+  `Ще бъдете пренасочени за проследяване на пратката.<br>` +
+  `<small>Моля, изчакайте… <span id="countdown">${left}</span> сек.</small>`;
+successMsg.classList.add('visible');
+submitBtn.disabled = true; // остава заключен докато пренасочи
+
+
+// прост countdown
+const t = setInterval(()=>{
+  left -= 1;
+  const el = document.getElementById('countdown');
+  if (el) el.textContent = left;
+  if (left <= 0) { clearInterval(t); goTrack(); }
+}, 1000);
+
+// след 5 секунди – пренасочване към index6 с кода в URL (и вече в localStorage)
+function goTrack(){
+  const isFile = (location.protocol === 'file:');
+  const base   = isFile ? 'file:///E:/BBQ_SITE/index6.html' : 'index6.html';
+const target = `${base}?code=${encodeURIComponent(finalCode)}`;
+  window.location.href = target;
+}
+
+
+  }catch(err){
+    console.error(err);
+    alert('Възникна грешка при изпращане. Проверете интернет връзката и опитайте пак.');
+    submitBtn.disabled = false;
+  }
+});
+
+/* ====== 5) Пренасочване към началото ====== */
+function redirectHome(){
+  const target = (location.protocol === 'file:')
+    ? 'file:///E:/BBQ_SITE/index.html'
+    : 'index.html';
+  window.location.href = target;
+}
+</script>
+<script>
+// === ГЛОБАЛЕН ТРАКЕР НА КЛИКОВЕ ЗА АДМИНИ ===
+(function(){
+  const who = (localStorage.getItem('adminName') || '').trim();
+  if(!who) return; // не е логнат админ => не следим
+
+  function logAction(text){
+    const k = `logs_${who}`;
+    const now = new Date();
+    const entry = `${now.toLocaleString()} — ${who} ${text}`;
+    const arr = JSON.parse(localStorage.getItem(k) || '[]');
+    arr.unshift(entry);
+    localStorage.setItem(k, JSON.stringify(arr));
+
+    // регистрирай името, ако още не е в списъка
+    const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
+    known.add(who);
+    localStorage.setItem('logs__admins', JSON.stringify([...known]));
+  }
+
+  // следи всички кликове по документа
+  document.addEventListener('click', e=>{
+    let desc = '';
+    if(e.target.closest('button, a, input, select')){
+      const el = e.target.closest('button, a, input, select');
+      const tag = el.tagName.toLowerCase();
+      const label = el.innerText || el.value || el.id || '(без текст)';
+      desc = `кликна върху ${tag} → "${label.trim().slice(0,60)}"`;
+    } else {
+      desc = `кликна на произволно място (${e.clientX}x${e.clientY})`;
+    }
+
+    // запис на страницата
+    const page = location.pathname.split('/').pop() || 'непозната страница';
+    logAction(`${desc} [${page}]`);
+  });
+
+  // запис при вход
+  logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
+})();
+</script>
+
+</body>
+</html>

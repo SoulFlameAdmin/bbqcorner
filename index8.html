@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Corner BBQ — Промоции</title>
+<link rel="icon" type="image/png" href="/bbqsaitlogo.jpg">
+<link rel="apple-touch-icon" href="/bbqsaitlogo.jpg">
+<meta name="theme-color" content="#ff7a00" />
+<style>
+  :root{ --bg:#0e0f10; --panel:#15161a; --soft:#ffffff14; --text:#fff; --muted:#a5adb7; --accent:#ff7a00;
+         --radius:18px; --border:#ffffff22; }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+
+  header{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+         padding:14px 16px;background:linear-gradient(180deg,#0009,transparent);backdrop-filter:blur(6px)}
+  .title{font-weight:900;letter-spacing:.3px;color:#ff7a00}
+  .btn{border:1px solid var(--border);background:#ffffff14;color:#fff;border-radius:12px;padding:8px 12px;cursor:pointer}
+
+  .wrap{max-width:1300px;margin:0 auto;padding:16px}
+
+  /* публични карти */
+  .promo-grid{display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:900px){ .promo-grid{grid-template-columns:1fr 1fr} }
+  .promo-card{
+    position:relative;display:grid;grid-template-columns:1fr 1fr;min-height:260px;gap:0;
+    background:linear-gradient(180deg,#111,#0c0d10);border:1px solid #ffffff18;border-radius:var(--radius);overflow:hidden;
+    box-shadow:0 16px 50px rgba(0,0,0,.35)
+  }
+  .promo-img{position:relative}
+  .promo-img img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.05) contrast(1.02)}
+  .promo-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%, rgba(0,0,0,.55))}
+  .promo-tag{position:absolute;top:10px;left:10px;background:#ffffff16;border:1px solid #ffffff2a;padding:6px 10px;border-radius:999px;font-size:12px;backdrop-filter:blur(4px)}
+  .promo-info{position:absolute;left:10px;right:10px;bottom:10px;display:flex;flex-direction:column;gap:2px}
+  .promo-name{font-weight:800;text-shadow:0 2px 14px #000}
+  .promo-desc{font-size:12px;color:#e3e6ebcc;text-shadow:0 2px 8px #000}
+  .promo-price{
+    position:absolute;top:12px;right:12px;background:linear-gradient(180deg,#ff8a2a,#ff7a00);
+    border:0;color:#111;font-weight:900;border-radius:14px;padding:10px 12px;box-shadow:0 10px 26px rgba(255,122,0,.45)
+  }
+  .promo-plus{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    background:#000d;border:1px solid #ffffff2a;color:#fff;font-weight:900;border-radius:12px;padding:6px 9px;
+    box-shadow:0 10px 26px rgba(0,0,0,.5)
+  }
+  /* X за изтриване (само в Admin) */
+  .promo-del{
+    position:absolute;top:12px;left:12px;display:none;
+    border:1px solid #ffffff3a;background:#2a1212;color:#fff;border-radius:12px;padding:6px 9px;cursor:pointer;
+    font-weight:900;box-shadow:0 8px 20px rgba(0,0,0,.35)
+  }
+
+  /* Builder */
+  .builder{margin-top:18px;background:#13151a;border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:none}
+  .builder-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .rows{display:grid;gap:12px}
+  .row{
+    display:grid;
+    grid-template-columns:1fr 54px 1fr 140px 38px;
+    gap:12px;align-items:stretch
+  }
+  .drop{
+    min-height:86px;border:2px dashed #ffffff2f;border-radius:14px;background:#0c0e12;padding:8px;display:flex;gap:8px;flex-wrap:wrap;align-content:flex-start
+  }
+  .chip{display:flex;gap:8px;align-items:center;background:#20232b;border:1px solid var(--border);border-radius:12px;padding:6px 8px}
+  .chip img{width:36px;height:36px;border-radius:10px;object-fit:cover}
+  .chip .meta{display:flex;flex-direction:column;line-height:1.05}
+  .chip .nm{font-weight:700}
+  .chip .ds{font-size:12px;color:#cbd3ddaa}
+  .chip .x{cursor:pointer;opacity:.75;margin-left:4px}
+  .pluscell{display:flex;align-items:center;justify-content:center;font-weight:900;opacity:.8}
+  .price-input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#0c0e12;color:#fff;font-weight:800}
+  .row-del{display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:#2a1212;color:#fff;border-radius:12px;cursor:pointer;font-weight:900}
+  .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+  .hint{font-size:12px;color:#cbd3dd99}
+
+  /* десен slide каталог */
+  .slide{position:fixed;top:0;right:0;height:100dvh;width:360px;max-width:92vw;background:#14171d;border-left:1px solid var(--border);
+         transform:translateX(100%);transition:transform .28s ease;z-index:40;display:flex;flex-direction:column}
+  .slide.open{transform:translateX(0)}
+  .slide-head{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:12px;border-bottom:1px solid #ffffff1e}
+  .slide-search{padding:10px 12px;border:1px solid var(--border);background:#0c0e12;color:#fff;border-radius:12px;margin:10px}
+  .catalog{flex:1;overflow:auto;padding:10px;display:grid;gap:10px}
+
+  /* плитки продуктови карти (вътре в slide) */
+  .s-title{grid-column:1/-1;margin:6px 2px 8px;color:#cbd3dd99;font-weight:900;opacity:.85}
+  .s-cat{display:flex;gap:10px;align-items:center;background:#0f1116;border:1px solid #ffffff1a;border-radius:14px;padding:10px;cursor:pointer;}
+  .s-cat img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:#0b0c10}
+  .s-cat .meta{display:flex;flex-direction:column;gap:2px}
+  .s-cat .nm{font-weight:900}
+  .s-cat .ds{font-size:12px;color:#cbd3ddaa}
+
+  .s-card{display:grid;grid-template-columns:70px 1fr auto;gap:8px;align-items:center;
+    background:#0f1116;border:1px solid #ffffff1a;border-radius:14px;padding:8px;cursor:grab}
+  .s-card img{width:70px;height:56px;object-fit:cover;border-radius:10px;background:#0b0c10}
+  .s-card .nm{font-weight:800}
+  .s-card .pr{font-weight:900}
+
+  /* HELL gallery вътре в slide */
+  .s-gallery{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .s-tile{background:#0f1116;border:1px solid #ffffff1a;border-radius:14px;padding:8px;cursor:grab;text-align:center}
+  .s-tile img{width:100%;height:150px;object-fit:contain;border-radius:10px;background:#0b0c10}
+  .s-cap{margin-top:6px;font-size:12px;font-weight:800;opacity:.9}
+  .s-price{font-weight:900;margin-top:6px}
+
+  /* Water 2-колони */
+  .s-water{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .s-water .s-wcard{background:#0f1116;border:1px solid #ffffff1a;border-radius:14px;padding:8px;text-align:center;cursor:grab}
+  .s-water img{width:100%;height:150px;object-fit:contain;border-radius:10px;background:#0b0c10}
+  .s-wname{margin-top:6px;font-weight:800}
+  .s-wprice{font-weight:900;margin-top:6px}
+
+  .toast{position:fixed;bottom:16px;right:16px;background:#111;border:1px solid var(--border);color:#fff;border-radius:12px;padding:10px 12px;display:none;z-index:50}
+</style>
+</head>
+<body>
+  <header>
+    <div class="title">🔥 Corner BBQ — Промоции</div>
+    <div style="display:flex;gap:8px">
+      <button id="adminBtn" class="btn">Admin</button>
+      <button id="catalogBtn" class="btn" title="Каталог">Каталог</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <h2 style="margin:0 0 8px 0">Текущи промоции</h2>
+    <div class="promo-grid" id="promoGrid"></div>
+
+    <!-- Builder -->
+    <section id="builder" class="builder" aria-hidden="true">
+      <div class="builder-head">
+        <strong>Създай промо пакет</strong>
+        <span class="hint">Поле A + Поле B → напиши цена → „Запази“.</span>
+      </div>
+      <div class="rows" id="rows"></div>
+      <div class="actions">
+        <button class="btn" id="addRow">+ Ред</button>
+        <button class="btn" id="save">Запази</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- десен slide-in каталог -->
+  <aside id="slide" class="slide" aria-hidden="true">
+    <div class="slide-head">
+      <button class="btn" id="backBtn" title="Назад" style="display:none">← Назад</button>
+      <strong id="slideTitle" style="margin-left:6px">Каталог продукти</strong>
+      <button class="btn" id="closeSlide">✕</button>
+    </div>
+    <input id="search" class="slide-search" placeholder="Търси… (име/описание)">
+    <div id="catalog" class="catalog"></div>
+  </aside>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <script>
+/* ===================== Firebase ===================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
+  authDomain: "corner-bbq.firebaseapp.com",
+  databaseURL: "https://corner-bbq-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "corner-bbq",
+  storageBucket: "corner-bbq.firebasestorage.app",
+  messagingSenderId: "878314744141",
+  appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
+  measurementId: "G-FWBDL96GN0"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* ===================== DOM refs ===================== */
+const adminBtn   = document.getElementById('adminBtn');
+const builder    = document.getElementById('builder');
+const promoGrid  = document.getElementById('promoGrid');
+const rowsWrap   = document.getElementById('rows');
+const addRowBtn  = document.getElementById('addRow');
+const saveBtn    = document.getElementById('save');
+
+const slide      = document.getElementById('slide');
+const catalogEl  = document.getElementById('catalog');
+const searchEl   = document.getElementById('search');
+const catalogBtn = document.getElementById('catalogBtn');
+const closeSlide = document.getElementById('closeSlide');
+const backBtn    = document.getElementById('backBtn');
+const slideTitle = document.getElementById('slideTitle');
+
+/* ===================== State ===================== */
+const ADMIN_PASS = "bbqcornera123";
+let isAdmin = false;
+let catalog = []; // от Firebase /products (за търсене по всички)
+let rows = [];    // builder редове [{A,B,price}]
+let view = 'cats';               // cats | cat | all
+let currentKey = null;           // ключ от CATALOG (index2)
+
+/* ===================== Категории/миниатюри от index2 (НЕ ПИПАМЕ КАТАЛОГА) ===================== */
+const CAT_ORDER = [
+  'burgeri','palachinki','strandzhanki','kartofi','salati','portsii','dobavki',
+  'hell','voda','gazirana_voda','fanta','studen_chai','kola','sok','xixo','airqn'
+];
+const CAT_TITLES = {
+  burgeri:'БУРГЕРИ', palachinki:'ПАЛАЧИНКИ', strandzhanki:'СТРАНДЖАНКИ',
+  kartofi:'КАРТОФИ', salati:'САЛАТИ', portsii:'ПОРЦИИ', dobavki:'ДОБАВКИ',
+  hell:'HELL', voda:'ВОДА', gazirana_voda:'ГАЗИРАНА ВОДА', fanta:'ФАНТА',
+  studen_chai:'СТУДЕН ЧАЙ', kola:'КОЛА', sok:'СОК', xixo:'XIXO', airqn:'АЙРЯН'
+};
+const TITLE_TO_KEY = Object.fromEntries(Object.entries(CAT_TITLES).map(([k,v])=>[v,k]));
+const CAT_THUMBS = {
+  burgeri:'snimki/produkti/1menu/burger.jpg',
+  palachinki:'snimki/produkti/1menu/palachinki.jpg',
+  strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',
+  kartofi:'snimki/produkti/1menu/kartofi.jpg',
+  salati:'snimki/produkti/1menu/salata.jpg',
+  portsii:'snimki/produkti/1menu/porciq.jpg',
+  sosove:'snimki/produkti/1menu/sosove.jpg',
+  dobavki:'snimki/produkti/1menu/dobavki.jpg',
+  deserti:'snimki/produkti/1menu/desert.jpg',
+  bezalkoholni:'snimki/produkti/1menu/bezalkoholno.jpg',
+  bira:'snimki/produkti/1menu/bira.jpg',
+  hell:'snimki/produkti/1menu/hell.jpg',
+  voda:'snimki/produkti/ВОДА/voda_snimka.jpg',
+  gazirana_voda:'snimki/produkti/ГАЗИРАНА_ВОДА/gaziranavoda_snimka.jpg',
+  fanta:'snimki/produkti/ФАНТА/fanta_logo.jpg',
+  studen_chai:'snimki/produkti/СТУДЕН_ЧАЙ/studen_chai_logo.jpg',
+  kola:'snimki/produkti/КОЛА/kola_logo.jpg',
+  sok:'snimki/produkti/СОК/cappy_logo.jpg',
+  airqn:'snimki/produkti/АЙРАН/vereq_logo.jpg',
+  xixo:'snimki/produkti/ХИХО/xixo_logo.jpg'
+};
+
+/* ===================== CATALOG (НЕ ПИПАМЕ КАТАЛОГА – ОСТАВА ТОЧНО КАКТО Е) ===================== */
+const CATALOG = {
+  burgeri:{title:'БУРГЕРИ',items:[
+    {name:'КОНСКА ПЛЕСКАВИЦА',price:9.00,img:'snimki/produkti/2menu/konski.jpg'},
+    {name:'ТЕЛЕШКА ПЛЕСКАВИЦА',price:9.00,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'ШАРСКА ПЛЕСКАВИЦА',price:9.50,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'СВИНСКА ВЕШАЛИЦА',price:9.00,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'ПИЛЕШКИ СТЕК',price:9.00,img:'snimki/produkti/2menu/pileshkistek.jpg'},
+    {name:'ВЕГЕТАРИЯНСКИ',price:5.00,img:'snimki/produkti/2menu/vegan.jpg'},
+    {name:'ДВОЙНА ШАРСКА ПЛЕСКАВИЦА',price:12.50,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'ДВОЙНА КОНСКА ПЛЕСКАВИЦА',price:12.00,img:'snimki/produkti/2menu/konski.jpg'},
+    {name:'ДВОЙНА СВИНСКА ВЕШАЛИЦА',price:12.00,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'ДВОЕН ПИЛЕШКИ СТЕК',price:12.00,img:'snimki/produkti/2menu/pileshkistek.jpg'},
+    {name:'ДВОЙНА ТЕЛЕШКА ПЛЕСКАВИЦА',price:12.00,img:'snimki/produkti/2menu/sharska.jpg'},
+    {name:'БУРГЕР С ДЪРПАНО ТЕЛЕШКО',price:12.50,img:'snimki/produkti/2menu/durpano.jpg'},
+  ]},
+  palachinki:{
+    title:'ПАЛАЧИНКИ',
+    groups:[
+      { heading:'СЛАДКИ', items:[
+        {name:'ПАЛАЧИНКА СЪС NUCREMA ШОКОЛАД',price:5.00,img:'snimki/produkti/ПАЛАЧИНКИ/shokolad.jpg'},
+        {name:'ПАЛАЧИНКА СЪС NUCREMA ШОКОЛАД И БАНАН',price:6.00,img:'snimki/produkti/ПАЛАЧИНКИ/shokoladibanan.png'},
+        {name:'ПАЛАЧИНКА С МЕД И ОРЕХИ',price:5.50,img:'snimki/produkti/ПАЛАЧИНКИ/mediorehi.png'},
+        {name:'ПАЛАЧИНКА СЪС СЛАДКО ОТ БОРОВИНКИ',price:5.00,img:'snimki/produkti/ПАЛАЧИНКИ/borovinki.png'},
+        {name:'ПАЛАЧИНКА СЪС СЛАДКО ОТ ПРАСКОВА',price:5.00,img:'snimki/produkti/ПАЛАЧИНКИ/praskovi.png'},
+        {name:'ПАЛАЧИНКА СЪС СЛАДКО ОТ ЯГОДИ',price:5.00,img:'snimki/produkti/ПАЛАЧИНКИ/qgodi.png'},
+      ]},
+      { heading:'СОЛЕНИ', items:[
+        {name:'СИРЕНЕ И СЛАДКО',price:5.50,img:'snimki/produkti/ПАЛАЧИНКИ/sirene.png'},
+        {name:'ПАЛАЧИНКА СЪС СИРЕНЕ',price:5.00,img:'snimki/produkti/ПАЛАЧИНКИ/sirene.png'},
+        {name:'ПАЛАЧИНКА СЪС КАШКАВАЛ',price:5.50,img:'snimki/produkti/ПАЛАЧИНКИ/kashkaval.png'},
+        {name:'ПАЛАЧИНКА СЪС СИРЕНЕ И КАШКАВАЛ',price:6.00,img:'snimki/produkti/ПАЛАЧИНКИ/kashkavalisirene.png'},
+        {name:'ПАЛАЧИНКА С МАСЛО',price:4.50,img:'snimki/produkti/ПАЛАЧИНКИ/maslo.png'},
+      ]}
+    ]
+  },
+  strandzhanki:{ title:'СТРАНДЖАНКИ', items:[
+    {name:'ТЕЛЕШКА СТРАНДЖАНКА',price:5.00,img:CAT_THUMBS.strandzhanki},
+    {name:'СВИНСКА СТРАНДЖАНКА',price:5.00,img:CAT_THUMBS.strandzhanki},
+  ]},
+  kartofi:{ title:'КАРТОФИ', items:[
+    {name:'ПЪРЖЕНИ КАРТОФИ 200 ГРАМА',price:4.00,img:'snimki/produkti/КАРТОФИ/kartofi.jpg'},
+    {name:'КАРТОФИ С ЧЕДЪР И БЕКОН',price:6.50,img:'snimki/produkti/КАРТОФИ/kartofisbekonichedur.jpg'},
+    {name:'КАРТОФИ С ЧЕДЪР',price:5.00,img:'snimki/produkti/КАРТОФИ/kartofischedur.jpg'},
+  ]},
+  salati:{ title:'САЛАТИ', items:[ {name:'САЛАТА ЦЕЗАР', price:8.50, img:CAT_THUMBS.salati} ]},
+  portsii:{ title:'ПОРЦИИ', items:[
+    {name:'РАЗЯДКА 100 ГРАМА',price:1.50,img:CAT_THUMBS.portsii},
+    {name:'ПИТКА 1 БРОЙ',price:1.50,img:'snimki/produkti/ПОРЦИИ/pitka.jpg'},
+    {name:'ТЕЛЕШКА ПЛЕСКАВИЦА ПОРЦИЯ',price:11.50,img:'snimki/produkti/ПОРЦИИ/sharsko.jpg'},
+    {name:'ПИЛЕШКО ФИЛЕ ПОРЦИЯ',price:11.00,img:'snimki/produkti/ПОРЦИИ/pileshko.jpg'},
+    {name:'СВИНСКО ФИЛЕ ПОРЦИЯ',price:11.00,img:'snimki/produkti/ПОРЦИИ/svinsko.jpg'},
+    {name:'ТЕЛЕШКИ КЕБАПЧЕТА ПОРЦИЯ',price:9.50,img:'snimki/produkti/ПОРЦИИ/kebapche.jpg'},
+    {name:'ШАРСКА ПЛЕСКАВИЦА ПОРЦИЯ',price:12.50,img:'snimki/produkti/ПОРЦИИ/sharsko.jpg'},
+  ]},
+  dobavki:{ title:'ДОБАВКИ', items:[
+    {name:'СИРЕНЕ 100 ГРАМА',price:1.50},
+    {name:'КАШКАВАЛ 100 ГРАМА',price:1.50},
+    {name:'ДРЕСИНГ ДОБАВКА',price:1.00},
+    {name:'МЕСО ДОБАВКА',price:4.00},
+    {name:'ПИТКА',price:1.50},
+  ]},
+  sosove:{ title:'СОСОВЕ', items:[
+    {name:'ДОМАШНА РАЗЯДКА 100ГР', price:1.50, img:CAT_THUMBS.sosove},
+    {name:'ДОМАШНА МАЙОНЕЗА',     price:1.50, img:CAT_THUMBS.sosove},
+    {name:'ЛЮТЕНИЦА',             price:1.50, img:CAT_THUMBS.sosove},
+    {name:'КЕТЧУП',               price:1.00, img:CAT_THUMBS.sosove},
+    {name:'ГОРЧИЦА',              price:1.00, img:CAT_THUMBS.sosove},
+    {name:'СОС ЦЕЗАР',            price:1.50, img:CAT_THUMBS.sosove},
+  ]},
+  deserti:{ title:'ДЕСЕРТИ', items:[
+    {name:'ЛЕК ДЕСЕРТ С ЧИЯ, МЮСЛИ И СУШЕНИ ПЛОДОВЕ',price:4.50,img:CAT_THUMBS.deserti},
+    {name:'ЛЕК ДЕСЕРТ С ЧИЯ, МЮСЛИ И СЛАДКО ОТ БОРОВИНКИ',price:4.50,img:CAT_THUMBS.deserti},
+  ]},
+  bezalkoholni:{ title:'БЕЗАЛКОХОЛНИ', items:[
+    {name:'КОЛА КЕН',price:2.00,img:CAT_THUMBS.bezalkoholni},
+    {name:'ФАНТА ПОРТОКАЛ КЕН',price:2.00,img:CAT_THUMBS.bezalkoholni},
+    {name:'КОКА КОЛА БУТИЛКА',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'ФАНТА ПОРТОКАЛ БУТИЛКА',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'СПРАЙТ БУТИЛКА',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'СТУДЕН ЧАЙ',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'КАПИ ПЪЛПИ',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'КАПИ КУТИЯ',price:1.70,img:CAT_THUMBS.bezalkoholni},
+    {name:'СОДА БУТИЛКА',price:1.90,img:CAT_THUMBS.bezalkoholni},
+    {name:'МАЛКА МИНЕРАЛНА ВОДА',price:1.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'ГОЛЯМА МИНЕРАЛНА ВОДА',price:2.00,img:CAT_THUMBS.bezalkoholni},
+    {name:'КАПИ ЛИМОНАДА',price:2.50,img:CAT_THUMBS.bezalkoholni},
+    {name:'ТОНИК БУТИЛКА',price:1.90,img:CAT_THUMBS.bezalkoholni},
+  ]},
+  bira:{ title:'БИРА', items:[
+    {name:'БИРА КОРОНА',price:3.50,img:CAT_THUMBS.bira},
+    {name:'ХАЙНИКЕН',price:4.00,img:CAT_THUMBS.bira},
+    {name:'СТЕЛА АРТОА',price:4.50,img:CAT_THUMBS.bira},
+  ]},
+  hell:{
+    title:'HELL', view:'gallery', hellPrice:2.00,
+    groups:[
+      { heading:'HELL', images:[
+        'snimki/hell_sminki/normal/hell_apple.jpg',
+        'snimki/hell_sminki/normal/hell_clasic.jpg',
+        'snimki/hell_sminki/normal/hell_classic.jpg',
+        'snimki/hell_sminki/normal/hell_redgrape.jpg',
+        'snimki/hell_sminki/normal/hell_watermelon.jpg'
+      ]},
+      { heading:'ICE COFFE HELL', images:[
+        'snimki/hell_sminki/ice_coffe/ice_coffe_capochino.png',
+        'snimki/hell_sminki/ice_coffe/ice_coffe_caramel.png',
+        'snimki/hell_sminki/ice_coffe/ice_coffe_coconut.png',
+        'snimki/hell_sminki/ice_coffe/ice_coffe_doubleespresso.png',
+        'snimki/hell_sminki/ice_coffe/ice_coffe_late.png',
+        'snimki/hell_sminki/ice_coffe/ice_coffe_pinklatte.png',
+        'snimki/hell_sminki/ice_coffe/ice_coffe_vanilia.png',
+        'snimki/hell_sminki/ice_hell_distachio.png'
+      ]}
+    ]
+  },
+  voda:{
+    title:'ВОДА', view:'water2',
+    groups:[
+      { heading:'Devin', pair:[
+        {src:'snimki/produkti/ВОДА/golqma_devin.jpg', label:'Голяма Девин', price:2.00},
+        {src:'snimki/produkti/ВОДА/malka_devin.jpg', label:'Малка Девин',  price:1.50}
+      ]},
+      { heading:'Банкя', pair:[
+        {src:'snimki/produkti/ВОДА/golqma_bankq.jpg', label:'Голяма Банкя', price:2.00},
+        {src:'snimki/produkti/ВОДА/malka_bankq.jpg', label:'Малка Банкя',  price:1.50}
+      ]}
+    ]
+  },
+  gazirana_voda:{
+    title:'ГАЗИРАНА ВОДА', view:'water2',
+    groups:[
+      { heading:'Марки', pair:[
+        {src:'snimki/produkti/ГАЗИРАНА_ВОДА/shveps.jpg',  label:'Schweppes', price:1.90},
+        {src:'snimki/produkti/ГАЗИРАНА_ВОДА/sprait.jpg',  label:'Sprite',    price:1.90}
+      ]}
+    ]
+  },
+  fanta:{ title:'ФАНТА', items:[
+    {name:'Фанта Портокал', price:2.00, img:'snimki/produkti/ФАНТА/fanta_portokal.jpg'},
+    {name:'Фанта Лимон',    price:2.00, img:'snimki/produkti/ФАНТА/fanta_lemon.jpg'},
+    {name:'Фанта Лайчи',    price:2.00, img:'snimki/produkti/ФАНТА/fanta_laici.jpg'},
+    {name:'Фанта Tutti Frutti', price:2.00, img:'snimki/produkti/ФАНТА/fanta_tutti.jpg'},
+    {name:'Фанта Зелена ябълка', price:2.00, img:'snimki/produkti/ФАНТА/fanta_greenapple.jpg'},
+    {name:'Фанта Боровинка',     price:2.00, img:'snimki/produkti/ФАНТА/sinq_blueberry.jpg'}
+  ]},
+  studen_chai:{ title:'СТУДЕН ЧАЙ', items:[
+    { name:'Fuze Tea Горски плод', price:2.50, img:'snimki/produkti/СТУДЕН_ЧАЙ/fuze_tea_forest_frut.jpg' },
+    { name:'Fuze Tea Праскова',    price:2.50, img:'snimki/produkti/СТУДЕН_ЧАЙ/fuze_tea_praskova.jpg' }
+  ]},
+  kola:{ title:'КОЛА', items:[
+    {name:'Кола Кен',        price:2.00, img:'snimki/produkti/КОЛА/kolaken.jpg'},
+    {name:'Кола Кен Zero',   price:2.00, img:'snimki/produkti/КОЛА/kolakenzero.jpg'},
+    {name:'Кола Бутилка',    price:2.50, img:'snimki/produkti/КОЛА/kolapvc.jpg'},
+    {name:'Кола Бутилка Zero',price:2.50, img:'snimki/produkti/КОЛА/kolapvczero.jpg'}
+  ]},
+  sok:{ title:'СОК', items:[
+    {name:'Cappy Портокал', price:2.50, img:'snimki/produkti/СОК/cappy_orange.jpg'},
+    {name:'Cappy Лимон',    price:2.50, img:'snimki/produkti/СОК/cappy_lemon.jpg'}
+  ]},
+  airqn:{ title:'АЙРЯН', groups:[
+    { heading:'Верея', items:[
+      {name:'Айрян Верея Голям', price:2.00, img:'snimki/produkti/АЙРАН/airan_vereq_golqm.jpg'},
+      {name:'Айрян Верея Малък', price:1.50, img:'snimki/produkti/АЙРАН/airan_vereq_maluk.jpg'}
+    ]},
+    { heading:'Meggle', items:[
+      {name:'Айрян Meggle Бутилка', price:2.00, img:'snimki/produkti/АЙРАН/megle_airan_butilka.jpg'},
+      {name:'Айрян Meggle Кофа',    price:2.50, img:'snimki/produkti/АЙРАН/megle_airan_kofa.jpg'},
+      {name:'Айрян Meggle Плодов',  price:2.20, img:'snimki/produkti/АЙРАН/mwgle_airan_plodov.jpg'}
+    ]}
+  ]},
+  xixo:{ title:'XIXO', items:[
+    {name:'XIXO Cola', price:1.10, img:'snimki/produkti/ХИХО/xixo_cola.jpg'},
+    {name:'XIXO Cherry Cola', price:1.10, img:'snimki/produkti/ХИХО/xixo_cherry_cola.jpg'},
+    {name:'XIXO Диня', price:1.10, img:'snimki/produkti/ХИХО/xixo_dinq.jpg'},
+    {name:'XIXO Горски плод', price:1.10, img:'snimki/produkti/ХИХО/xixo_gorski_plod.jpg'},
+    {name:'XIXO Green Fusion', price:1.10, img:'snimki/produkti/ХИХО/xixo_green_fusion.jpg'},
+    {name:'XIXO Круша', price:1.10, img:'snimki/produkti/ХИХО/xixo_krusha.jpg'},
+    {name:'XIXO Лимон', price:1.10, img:'snimki/produkti/ХИХО/xixo_limon.jpg'},
+    {name:'XIXO Манго и ананас', price:1.10, img:'snimki/produkti/ХИХО/xixo_mango_and_pineapple.jpg'},
+    {name:'XIXO Розова лимонада', price:1.10, img:'snimki/produkti/ХИХО/xixo_pink_lemonade.jpg'},
+    {name:'XIXO Праскова', price:1.10, img:'snimki/produkti/ХИХО/xixo_praskova.jpg'},
+    {name:'XIXO Ягода', price:1.10, img:'snimki/produkti/ХИХО/xixo_qgoda.jpg'},
+    {name:'XIXO Tutti Frutti', price:1.10, img:'snimki/produkti/ХИХО/xixo_tuti_fruity.jpg'}
+  ]}
+};
+
+/* ===================== Helpers ===================== */
+const toast = (msg)=>{ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',1600); };
+const money = (n)=> (Number(n||0).toFixed(2)+' лв');
+const el = (tag, props={}, ...children)=>{
+  const x=document.createElement(tag); Object.assign(x, props);
+  for(const c of children){ if(typeof c==='string') x.appendChild(document.createTextNode(c)); else if(c) x.appendChild(c); }
+  return x;
+};
+const normalizeProduct = (p)=>({
+  name:  p.name || p.title || 'Продукт',
+  desc:  p.desc || '',
+  price: Number(p.price||0),
+  image: p.image || p.img || '/bbqsaitlogo.jpg',
+  category: p.category || p.cat || p.type || 'Други'
+});
+const genId = ()=> 'p_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
+
+/* ===================== Публичен рендер на промоции ===================== */
+db.ref('/promotions').on('value', snap=>{
+  promoGrid.innerHTML='';
+  const val = snap.val() || {};
+
+  // Поддържа масив или обект; нормализира в масив без да презаписва
+  let items = Array.isArray(val.items) ? val.items.filter(Boolean)
+            : val.items ? Object.values(val.items)
+            : [];
+
+  if(items.length===0){
+    promoGrid.appendChild(el('div', {style:'opacity:.7'}, 'Няма активни промоции.'));
+    return;
+  }
+
+  // Рендерираме по реда на добавяне (новите отиват най-отдолу при append)
+  items.forEach(p=>{
+    const A = p.parts?.[0] || {};
+    const B = p.parts?.[1] || {};
+    const card = el('div',{className:'promo-card','data-id':p.id||''},
+      el('button',{className:'promo-del',title:'Изтрий тази промоция',onclick:()=> tryDeletePromo(p.id)},'✕'),
+      el('div',{className:'promo-img'},
+        el('img',{src:A.image || '/bbqsaitlogo.jpg', alt:A.name || 'Продукт A', loading:'lazy'}),
+        el('div',{className:'promo-overlay'}),
+        el('span',{className:'promo-tag'}, 'ПРОМО — A'),
+        el('div',{className:'promo-info'},
+          el('div',{className:'promo-name'}, A.name || '—'),
+          el('div',{className:'promo-desc'}, A.desc || '')
+        )
+      ),
+      el('div',{className:'promo-img'},
+        el('img',{src:B.image || '/bbqsaitlogo.jpg', alt:B.name || 'Продукт B', loading:'lazy'}),
+        el('div',{className:'promo-overlay'}),
+        el('span',{className:'promo-tag'}, 'ПРОМО — B'),
+        el('div',{className:'promo-info'},
+          el('div',{className:'promo-name'}, B.name || '—'),
+          el('div',{className:'promo-desc'}, B.desc || '')
+        )
+      )
+    );
+    card.appendChild(el('div',{className:'promo-price'}, money(p.price||0)));
+    card.appendChild(el('div',{className:'promo-plus'}, '+'));
+    promoGrid.appendChild(card);
+  });
+
+  // показвай X само в Admin режим
+  toggleDeleteButtons();
+});
+
+/* ===================== Admin unlock ===================== */
+adminBtn.addEventListener('click', ()=>{
+  if(isAdmin){
+    isAdmin=false;
+    builder.style.display='none';
+    slide.classList.remove('open');
+    toggleDeleteButtons();
+    toast('Admin изключен');
+    return;
+  }
+  const pass = prompt('Въведи парола (admin):');
+  if(pass===ADMIN_PASS){
+    isAdmin=true;
+    builder.style.display='block';
+    slide.classList.add('open');
+    if(rows.length===0) addRow();
+    renderCategories();
+    toggleDeleteButtons();
+    toast('Admin активен');
+  }else{
+    toast('Грешна парола.');
+  }
+});
+function toggleDeleteButtons(){
+  document.querySelectorAll('.promo-del').forEach(b=>{ b.style.display = isAdmin ? 'inline-block' : 'none'; });
+}
+
+/* ===================== Каталог от Firebase (за търсене по всички) ===================== */
+db.ref('/products').on('value',(snap)=>{
+  const val = snap.val() || {};
+  catalog = Object.values(val).map(normalizeProduct);
+});
+
+/* ===================== Каталог UI (НЕ ПИПАМЕ ЛОГИКАТА) ===================== */
+const openSlide = ()=>{ slide.classList.add('open'); renderCategories(); };
+const closeSlideFn = ()=> slide.classList.remove('open');
+catalogBtn.addEventListener('click', openSlide);
+closeSlide.addEventListener('click', closeSlideFn);
+backBtn.addEventListener('click', ()=> renderCategories());
+
+function renderCategories(){
+  view = 'cats'; currentKey=null;
+  slideTitle.textContent = 'Каталог · категории';
+  backBtn.style.display = 'none';
+  catalogEl.innerHTML = '';
+  catalogEl.appendChild(el('div',{className:'s-title'}, 'Категории'));
+  CAT_ORDER.forEach(key=>{
+    const label = CAT_TITLES[key];
+    const img = CAT_THUMBS[key] || '/bbqsaitlogo.jpg';
+    const card = el('div',{className:'s-cat'},
+      el('img',{src:img, alt:label, loading:'lazy'}),
+      el('div',{className:'meta'},
+        el('div',{className:'nm'}, label),
+        el('div',{className:'ds'}, 'Отвори продукти')
+      )
+    );
+    card.addEventListener('click', ()=> renderCategory(key));
+    catalogEl.appendChild(card);
+  });
+}
+function prettyLabel(src){
+  let f = src.split('/').pop().split('.')[0].toLowerCase();
+  f = f.replace(/^hell_/,'').replace(/^ice_coffe_/,'').replace(/^ice_hell_/,'' );
+  const map = {apple:'Apple', clasic:'Classic', classic:'Black Cherry', redgrape:'Red Grape',
+               watermelon:'Watermelon', capochino:'Cappuccino', cappuccino:'Cappuccino',
+               caramel:'Salted Caramel', coconut:'Coconut', doubleespresso:'Double Espresso',
+               doublespresso:'Double Espresso', late:'Latte', latte:'Latte',
+               pinklatte:'Pink Latte', vanilia:'Vanilla', vanilla:'Vanilla',
+               distachio:'Pistachio', pistachio:'Pistachio', slimvanilla:'Vanilla'};
+  if(map[f]) return map[f];
+  return f.replace(/[_-]+/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
+}
+function makeDragPayload(p, category){
+  return JSON.stringify({
+    name: p.name || p.label || prettyLabel(p.src||''),
+    desc: p.desc || '',
+    price: Number(p.price||0),
+    image: p.img || p.image || p.src || '/bbqsaitlogo.jpg',
+    category: category || ''
+  });
+}
+function renderCategory(key){
+  const data = CATALOG[key];
+  currentKey = key;
+  view = 'cat';
+  slideTitle.textContent = 'Каталог · ' + (data?.title || CAT_TITLES[key] || key.toUpperCase());
+  backBtn.style.display = '';
+  catalogEl.innerHTML = '';
+
+  if(data?.view === 'water2'){
+    data.groups.forEach(g=>{
+      catalogEl.appendChild(el('div',{className:'s-title'}, g.heading));
+      const wrap = el('div',{className:'s-water'});
+      g.pair.forEach(p=>{
+        const card = el('div',{className:'s-wcard', draggable:true},
+          el('img',{src:p.src, alt:p.label}),
+          el('div',{className:'s-wname'}, p.label),
+          el('div',{className:'s-wprice'}, money(p.price))
+        );
+        card.addEventListener('dragstart', e=> e.dataTransfer.setData('application/json', makeDragPayload({name:p.label, price:p.price, img:p.src}, data.title)));
+        wrap.appendChild(card);
+      });
+      catalogEl.appendChild(wrap);
+    });
+    return;
+  }
+  if(data?.view === 'gallery'){
+    data.groups.forEach(g=>{
+      catalogEl.appendChild(el('div',{className:'s-title'}, g.heading));
+      const grid = el('div',{className:'s-gallery'});
+      const price = data.hellPrice ?? 2.00;
+      g.images.forEach(src=>{
+        const label = prettyLabel(src);
+        const tile = el('div',{className:'s-tile', draggable:true, title:label},
+          el('img',{src, alt:label}),
+          el('div',{className:'s-price'}, money(price)),
+          el('div',{className:'s-cap'}, label)
+        );
+        tile.addEventListener('dragstart', e=> e.dataTransfer.setData('application/json', makeDragPayload({name:label, price, img:src}, data.title)));
+        grid.appendChild(tile);
+      });
+      catalogEl.appendChild(grid);
+    });
+    return;
+  }
+  if(Array.isArray(data?.groups)){
+    data.groups.forEach(g=>{
+      catalogEl.appendChild(el('div',{className:'s-title'}, g.heading));
+      g.items.forEach(p=>{
+        const card = el('div',{className:'s-card', draggable:true},
+          el('img',{src:p.img || '/bbqsaitlogo.jpg', alt:p.name}),
+          el('div',{className:'nm'}, p.name),
+          el('div',{className:'pr'}, money(p.price||0))
+        );
+        card.addEventListener('dragstart', e=> e.dataTransfer.setData('application/json', makeDragPayload(p, data.title)));
+        catalogEl.appendChild(card);
+      });
+    });
+    return;
+  }
+  const items = data?.items || [];
+  items.forEach(p=>{
+    const card = el('div',{className:'s-card', draggable:true},
+      el('img',{src:p.img || '/bbqsaitlogo.jpg', alt:p.name}),
+      el('div',{className:'nm'}, p.name),
+      el('div',{className:'pr'}, money(p.price||0))
+    );
+    card.addEventListener('dragstart', e=> e.dataTransfer.setData('application/json', makeDragPayload(p, data.title)));
+    catalogEl.appendChild(card);
+  });
+  if(items.length===0){
+    catalogEl.appendChild(el('div',{style:'opacity:.7'}, 'Няма продукти.'));
+  }
+}
+searchEl.addEventListener('input', ()=>{
+  const q = searchEl.value.trim().toLowerCase();
+  if(view!=='cat' || !currentKey){
+    if(!q){ renderCategories(); return; }
+    const filtered = (catalog||[]).filter(p =>
+      (p.name+' '+(p.desc||'')+' '+(p.category||'')).toLowerCase().includes(q)
+    );
+    slideTitle.textContent = 'Търсене';
+    backBtn.style.display = '';
+    catalogEl.innerHTML = '';
+    filtered.forEach(p=>{
+      const card = el('div',{className:'s-card', draggable:true},
+        el('img',{src:p.image || '/bbqsaitlogo.jpg', alt:p.name}),
+        el('div',{className:'nm'}, p.name),
+        el('div',{className:'pr'}, money(p.price||0))
+      );
+      card.addEventListener('dragstart', e=> e.dataTransfer.setData('application/json', JSON.stringify({
+        name:p.name, desc:p.desc||'', price:Number(p.price||0), image:p.image||'/bbqsaitlogo.jpg', category:p.category||''
+      })));
+      catalogEl.appendChild(card);
+    });
+    if(filtered.length===0) catalogEl.appendChild(el('div',{style:'opacity:.7'}, 'Няма резултати.'));
+    return;
+  }
+
+  const data = CATALOG[currentKey];
+  if(!q){ renderCategory(currentKey); return; }
+
+  catalogEl.innerHTML = '';
+  slideTitle.textContent = 'Каталог · ' + (data?.title || CAT_TITLES[currentKey]);
+
+  const collectItems = [];
+  if(data.view==='gallery'){
+    const price = data.hellPrice ?? 2.00;
+    data.groups.forEach(g=>{
+      g.images.forEach(src=>{
+        const label = prettyLabel(src);
+        if(label.toLowerCase().includes(q)){
+          collectItems.push({name:label, price, img:src});
+        }
+      });
+    });
+  } else if(data.view==='water2'){
+    data.groups.forEach(g=>{
+      g.pair.forEach(p=>{
+        const name = p.label;
+        if(name.toLowerCase().includes(q)){
+          collectItems.push({name, price:p.price, img:p.src});
+        }
+      });
+    });
+  } else if(Array.isArray(data.groups)){
+    data.groups.forEach(g=>{
+      g.items.forEach(p=>{
+        if((p.name||'').toLowerCase().includes(q)) collectItems.push(p);
+      });
+    });
+  } else {
+    (data.items||[]).forEach(p=>{
+      if((p.name||'').toLowerCase().includes(q)) collectItems.push(p);
+    });
+  }
+
+  if(collectItems.length){
+    collectItems.forEach(p=>{
+      const card = el('div',{className:'s-card', draggable:true},
+        el('img',{src:p.img || '/bbqsaitlogo.jpg', alt:p.name}),
+        el('div',{className:'nm'}, p.name),
+        el('div',{className:'pr'}, money(p.price||0))
+      );
+      card.addEventListener('dragstart', e=> e.dataTransfer.setData('application/json', makeDragPayload(p, data.title)));
+      catalogEl.appendChild(card);
+    });
+  }else{
+    catalogEl.appendChild(el('div',{style:'opacity:.7'}, 'Няма резултати.'));
+  }
+});
+
+/* ===================== Builder: A + B + цена ===================== */
+function productChip(p, onRemove){
+  const c = el('div',{className:'chip'},
+    el('img',{src:p.image, alt:p.name}),
+    el('div',{className:'meta'},
+      el('span',{className:'nm'}, p.name),
+      el('span',{className:'ds'}, (p.desc||'') + (p.desc?' · ':'') + money(p.price))
+    ),
+    el('span',{className:'x', title:'Премахни', onclick:()=>{ c.remove(); onRemove && onRemove(); }}, '✕')
+  );
+  c._data = p;
+  return c;
+}
+function makeDropCell(onSet){
+  const dz = el('div',{className:'drop'});
+  dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.style.borderColor='#ffffff66'; });
+  dz.addEventListener('dragleave', ()=>{ dz.style.borderColor='#ffffff2f'; });
+  dz.addEventListener('drop', e=>{
+    e.preventDefault(); dz.style.borderColor='#ffffff2f';
+    const raw = e.dataTransfer.getData('application/json');
+    if(!raw) return;
+    try{
+      const p = JSON.parse(raw);
+      dz.innerHTML='';
+      dz.appendChild(productChip(p, ()=>{ dz.innerHTML=''; onSet(null); }));
+      onSet(p);
+    }catch(_){}
+  });
+  return dz;
+}
+function renderRows(){
+  rowsWrap.innerHTML='';
+  rows.forEach((r, idx)=>{
+    let A = r.A || null, B = r.B || null;
+    const dzA = makeDropCell((p)=>{ rows[idx].A = p; });
+    const dzB = makeDropCell((p)=>{ rows[idx].B = p; });
+    if(A) dzA.appendChild(productChip(A, ()=>{ rows[idx].A=null; }));
+    if(B) dzB.appendChild(productChip(B, ()=>{ rows[idx].B=null; }));
+    const price = el('input',{className:'price-input', type:'number', step:'0.01', min:'0', value: r.price ?? ''});
+    price.addEventListener('input', ()=> rows[idx].price = Number(price.value||0));
+
+    const row = el('div',{className:'row'},
+      dzA,
+      el('div',{className:'pluscell'}, '+'),
+      dzB,
+      price,
+      el('button',{className:'row-del', title:'Изтрий ред', onclick:()=>{ rows.splice(idx,1); renderRows(); }}, '✕')
+    );
+    rowsWrap.appendChild(row);
+  });
+}
+function addRow(){ rows.push({A:null,B:null,price:null}); renderRows(); }
+addRowBtn.addEventListener('click', addRow);
+
+/* ===================== Запис на промоции (APPEND чрез TRANSACTION) ===================== */
+saveBtn.addEventListener('click', async ()=>{
+  if(!isAdmin){ toast('Първо отключи Admin.'); return; }
+
+  const toAppend = [];
+  for(const r of rows){
+    if(!r.A || !r.B || !(r.price>0)) continue;
+    toAppend.push({
+      id: genId(),
+      parts: [
+        { name:r.A.name, desc:r.A.desc||'', price:Number(r.A.price||0), image:r.A.image||'/bbqsaitlogo.jpg' },
+        { name:r.B.name, desc:r.B.desc||'', price:Number(r.B.price||0), image:r.B.image||'/bbqsaitlogo.jpg' }
+      ],
+      price: Number(r.price||0),
+      createdAt: Date.now(),
+      active: true
+    });
+  }
+  if(toAppend.length===0){ toast('Добави поне един ред с A, B и цена.'); return; }
+
+  try{
+    await db.ref('/promotions').transaction(current=>{
+      let items = Array.isArray(current?.items) ? current.items.filter(Boolean)
+               : current?.items ? Object.values(current.items)
+               : [];
+      // добавяме в КРАЯ (надолу)
+      toAppend.forEach(x=> items.push(x));
+      return { items };
+    });
+    toast(`Добавени: ${toAppend.length} промоции.`);
+    rows = []; addRow(); renderRows();
+  }catch(e){
+    console.error('DB write error:', e);
+    toast(`Грешка при запис: ${e.code || e.message || e}`);
+  }
+});
+
+/* ===================== Изтриване по id чрез TRANSACTION ===================== */
+async function tryDeletePromo(id){
+  if(!isAdmin) return;
+  if(!id){ toast('Липсва ID на промоция.'); return; }
+  const ok = confirm('Сигурни ли сте, че искате да изтриете тази промоция?');
+  if(!ok) return;
+  try{
+    await db.ref('/promotions').transaction(current=>{
+      let items = Array.isArray(current?.items) ? current.items.filter(Boolean)
+               : current?.items ? Object.values(current.items)
+               : [];
+      items = items.filter(x=> x && x.id !== id);
+      return { items };
+    });
+    toast('Промоцията е изтрита.');
+  }catch(e){
+    console.error('DB delete error:', e);
+    toast(`Грешка при изтриване: ${e.code || e.message || e}`);
+  }
+}
+
+  </script>
+</body>
+</html>

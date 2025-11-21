@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Corner BBQ — Menu</title>
+
+<link rel="icon" type="image/png" href="/logo.png">
+<link rel="apple-touch-icon" href="/logo.png">
+<meta name="theme-color" content="#ff7a00">
+<meta property="og:title" content="Corner BBQ sandwiches — сандвичи на жар 🔥">
+<meta property="og:description" content="Поръчай вкусна храна онлайн от Corner BBQ — сандвичи, палачинки, странджанки и още!">
+<meta property="og:image" content="https://bbqcorner.vercel.app/logo.png">
+<meta property="og:url" content="https://bbqcorner.vercel.app/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://bbqcorner.vercel.app/logo.png">
+<meta name="twitter:title" content="Corner BBQ — Онлайн поръчки">
+<meta name="twitter:description" content="Corner BBQ — вкусът на истинския грил.">
+<meta name="format-detection" content="telephone=no" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Corner BBQ","url":"https://bbqcorner.vercel.app","logo":"https://bbqcorner.vercel.app/logo.png"}
+
+
+</script>
+
+<style>
+:root{
+  --gap:22px; --cardRadius:18px; --shadow:0 12px 36px rgba(0,0,0,.18);
+  --softBorder:#00000012; --popShadow:0 22px 60px rgba(0,0,0,.28);
+  --accent:#ff7a00; --bg:#fff; --text:#111;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+html,body{height:100%}
+body{
+  margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);background:var(--bg);
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)
+}
+img,picture,video,canvas,svg{max-width:100%;height:auto;display:block}
+a,button{touch-action:manipulation}
+.wrap{min-height:100dvh;display:flex;flex-direction:column}
+
+/* ===== HERO ===== */
+.hero{
+  position:relative; height:90vh; margin:0; padding:28px 60px;
+  background:url("snimki/korica/korica2.jpg") center/cover no-repeat; overflow:hidden;
+  filter:contrast(1.20) saturate(1.0) brightness(1.30); animation:zoomOut 3s ease-out forwards
+}
+.hero::before{
+  content:""; position:absolute; inset:0; backdrop-filter:blur(0px);
+  background:linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.55) 80%, transparent)
+}
+.hero-inner{position:relative;z-index:1;max-width:1250px;margin:0 auto}
+@keyframes zoomOut{from{background-size:110%}to{background-size:100%}}
+
+/* GRID / WEB MENU */
+.tab-wrap{display:flex;justify-content:center;position:relative;z-index:2;margin:0}
+.tab-title{background:#fff;border-radius:16px;padding:10px 22px;font-weight:800;letter-spacing:.6px;color:var(--accent);border:1px solid var(--softBorder);box-shadow:var(--shadow)}
+.stage{background:#fff}
+.grid{max-width:1250px;margin:12px auto 36px;padding:0 16px;display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap)}
+@media (max-width:1100px){ .grid{grid-template-columns:repeat(8,1fr)} }
+@media (max-width:700px){ .grid{grid-template-columns:repeat(4,1fr); --gap:16px} }
+.card{
+  position:relative;border-radius:var(--cardRadius);background:#fff;border:1px solid var(--softBorder);
+  box-shadow:0 2px 0 #ffffff, var(--shadow);overflow:hidden;height:240px;display:flex;align-items:flex-end;text-decoration:none;
+  transform-style:preserve-3d;transition:transform .28s cubic-bezier(.22,.8,.36,1), box-shadow .28s ease, filter .28s ease
+}
+.card .img{position:absolute;inset:10px;border-radius:14px;background:#e9ecef;background-size:cover;background-position:center}
+.card::after{content:"";position:absolute;inset:10px;border-radius:14px;background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%);pointer-events:none}
+.card span{position:relative;z-index:1;margin:0 0 18px 22px;font-size:28px;font-weight:900;color:#fff;letter-spacing:.6px;text-shadow:0 2px 6px rgba(0,0,0,.9)}
+.w-4{grid-column:span 4}.w-6{grid-column:span 6}
+@media (hover:hover){ .card:hover{ transform:perspective(800px) translateY(-6px) scale(1.035) rotateX(2deg); box-shadow:var(--popShadow); filter:saturate(1.04) contrast(1.02) } }
+.card.is-pressed{ transform:perspective(900px) translateY(-2px) scale(0.985) rotateX(0.5deg) }
+.card.is-popping{ transform:perspective(900px) translateY(-10px) scale(1.06) rotateX(3deg); box-shadow:var(--popShadow) }
+
+/* FOOTER */
+.footer{border-top:1px solid var(--softBorder);background:#fafafa;padding:26px 0 36px}
+.footer-inner{max-width:1250px;margin:0 auto;padding:0 16px;display:grid;gap:28px;grid-template-columns:1.3fr 1fr 1fr}
+.ft h4{margin:0 0 10px;font-size:18px}.ft p,.ft a{color:#333;margin:6px 0;text-decoration:none}
+.power{text-align:center;color:#ff8a00;margin-top:16px}
+.to-top{position:fixed;right:22px;bottom:22px;width:46px;height:46px;border-radius:999px;background:#111;color:#fff;border:1px solid #ffffff22;display:grid;place-items:center;font-size:20px;cursor:pointer;box-shadow:var(--shadow)}
+@media (prefers-reduced-motion: reduce){ .hero{animation:none} .card{transition:none} }
+
+/* ================= HAMBURGER FAB (menu–3) ================= */
+.fab{ /* по подразбиране fixed за десктоп */
+  position:fixed; right:14px; top:calc(env(safe-area-inset-top, 0px) + 12px); z-index:1200;
+}
+#menuChk{display:none}
+
+/* иконката (демо menu–3) */
+.menu{
+  width:46px; height:46px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,.25); background:#00aef6;
+}
+.menu svg{ width:36px; height:36px; }
+.menu path{
+  fill:none; stroke:#fff; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;
+  --length:24; --offset:-38;
+  stroke-dasharray:var(--length) var(--total-length);
+  stroke-dashoffset:var(--offset);
+  transition:all .8s cubic-bezier(.645,.045,.355,1);
+}
+.menu circle{ fill:#fff3; opacity:0; } .menu:hover circle{ opacity:1; }
+.menu--3 .line--1, .menu--3 .line--3{ --total-length:126.38166809082031; }
+.menu--3 .line--2{ --total-length:80; }
+#menuChk:checked + label.menu svg .line--1,
+#menuChk:checked + label.menu svg .line--3{ --offset:-109.1770175568; }
+#menuChk:checked + label.menu.back svg .line--1,
+#menuChk:checked + label.menu.back svg .line--3{ --length:8.602325267; }
+
+/* панелът с бутоните */
+.fab-items{
+  position:absolute; right:0; top:54px;
+  display:flex; flex-direction:column; gap:10px;
+  width:max(220px, 58vw); max-width:320px;
+  padding:10px; border-radius:14px;
+  background:#111; border:1px solid #ffffff22;
+  box-shadow:0 18px 40px rgba(0,0,0,.35);
+  transform:translateY(-8px); opacity:0; pointer-events:none;
+  transition:transform .22s ease, opacity .22s ease;
+}
+#menuChk:checked ~ .fab-items{ transform:translateY(0); opacity:1; pointer-events:auto; }
+
+/* бутони вътре */
+.fab .btn-fab, .fab .admin-btn, .fab .track-btn{
+  position:static !important; width:100%; margin:0; border-radius:12px;
+  box-shadow:0 6px 16px rgba(0,0,0,.22); font-weight:900; padding:10px 14px;
+}
+.fab .btn-fab{ background:var(--accent); color:#fff; border:none; }
+.fab .admin-btn, .fab .track-btn{ background:#fff; color:#111; border:1px solid #00000014; }
+
+/* ================= REVIEWS PANEL ================= */
+#reviewsPanel{ position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; z-index:1300; }
+#reviewsPanel.show{display:flex}
+#reviewsBox{
+  background:#111418;border-radius:18px;padding:20px;
+  max-width:700px;width:94%;color:#fff;font-family:Inter,system-ui;
+  box-shadow:0 18px 60px rgba(0,0,0,.7);overflow:auto;max-height:85vh;
+}
+#reviewsBox h2{margin-top:0;color:var(--accent);display:flex;align-items:center;gap:12px;justify-content:space-between}
+#reviewsList{margin-top:10px}
+.reviewItem{background:#1a1c1f;border:1px solid #ffffff12;border-radius:14px;padding:12px;margin-bottom:10px;position:relative}
+.stars{color:#ffb300;font-size:18px;letter-spacing:1px;margin-bottom:6px}
+.reviewHead{display:flex;justify-content:space-between;align-items:center}
+.reviewName{font-weight:800;color:#ffdca8}
+.reviewText{font-size:14px;margin-top:6px;color:#e6e6e6}
+.reviewMeta{font-size:12px;color:#9aa0a6;margin-top:8px}
+#addReview textarea{width:100%;background:#0f1115;border:1px solid #ffffff12;border-radius:10px;padding:8px;color:#fff;resize:none;height:70px}
+#addReview input{width:100%;margin-top:8px;padding:8px;border-radius:10px;border:1px solid #ffffff12;background:#0f1115;color:#fff}
+.starSelect span{font-size:22px;cursor:pointer;color:#777;margin-right:4px}
+.starSelect span.active{color:#ffb300;text-shadow:0 0 6px #ffb300}
+#closeReviews{margin-top:12px;background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+.delBtn{background:transparent;border:none;color:#ff6767;cursor:pointer;font-size:16px;position:absolute;right:12px;top:12px}
+
+/* ================= AUTH overlay ================= */
+:root{ --soft:#ffffff1a; }
+.auth{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:9999}
+.auth.show{display:flex}
+.auth .box{width:min(92vw,420px);background:#121316;border:1px solid var(--soft);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);color:#fff}
+.auth h2{margin-bottom:10px;color:var(--accent)}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.field input[type="password"], .field input[type="text"]{background:#0f1115;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:10px 12px;outline:none}
+.rowc{display:flex;align-items:center;gap:8px;margin-top:8px}
+.actions{display:flex;gap:10px;margin-top:14px}
+.btn{background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:transparent}
+.err{color:#ff9a9a;font-size:12px;margin-top:8px;display:none}
+.ok{color:#22cc88;font-weight:900;margin-top:8px}
+
+/* ===== МОБИЛЕН изглед: бутон върху снимката, корица най-горе, без празнини ===== */
+@media (max-width: 768px) {
+  body{ padding:0 !important; }
+  .wrap{ padding-top:0 !important; }
+
+  .hero{
+    margin:0 !important;
+    height:25vh !important;
+    padding:0 !important;                /* маха вътрешния top padding */
+    background-position:top center !important; /* снимката започва най-горе */
+    filter: brightness(1.20) contrast(1.20) saturate(1.0) !important;
+    position:relative;                   /* за абсолютния FAB вътре */
+  }
+
+  /* FAB да е върху снимката вдясно */
+  .hero .fab{
+    position:absolute !important;
+    top:max(8px, env(safe-area-inset-top)) !important;
+    right:12px !important;
+  }
+
+  /* „WEB МЕНЮ“ прилепено под корицата – без празнина */
+  .tab-wrap{ margin:0 !important; }
+  .stage{ margin:0 !important; padding-top:0 !important; }
+
+  .fab-items{ width:calc(100vw - 28px); }
+}
+
+
+/* 🧩 Стилове за падащото меню на бутона АДМИН */
+.admin-dropdown{position:relative}
+.admin-menu{
+  position:absolute;
+  top:110%;
+  right:0;
+  background:#fff;
+  border:1px solid #ccc;
+  border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.2);
+  padding:6px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  z-index:999;
+}
+
+
+/* ↓ Падащото меню е скрито по подразбиране */
+.admin-menu{ display:none; }
+
+/* ↓ Показва се само когато контейнерът има .open */
+.admin-dropdown.open .admin-menu{
+  display:flex;
+}
+
+/* (ако запазиш hidden в HTML, гарантираме, че остава скрито) */
+.admin-menu[hidden]{ display:none !important; }
+
+
+.btn-sub{
+  background:#f9f9f9;
+  color:#111;
+  border:none;
+  border-radius:10px;
+  padding:8px 12px;
+  text-align:left;
+  font-weight:600;
+  cursor:pointer;
+  transition:background .2s;
+}
+.btn-sub:hover{background:#eee}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO (FAB е вътре, за да стои върху снимката) -->
+  <header class="hero">
+    <!-- ========= FAB MENU ========= -->
+    <div id="fabMenu" class="fab">
+      <input type="checkbox" id="menuChk">
+      <label class="menu back menu--3" for="menuChk" aria-label="Меню">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="30" />
+          <path class="line--1" d="M0 40h62c18 0 18-20-17 5L31 55" />
+          <path class="line--2" d="M0 50h80" />
+          <path class="line--3" d="M0 60h62c18 0 18 20-17-5L31 45" />
+        </svg>
+      </label>
+
+    <div class="fab-items">
+  <!-- 🧩 Отзиви -->
+  <button id="reviewsBtn" class="btn-fab">Отзиви и препоръки</button>
+
+  <!-- 🧩 Нов бутон АДМИН с подменю -->
+<div class="admin-dropdown">
+  <button id="adminBtn" class="admin-btn">АДМИН ▾</button>
+  <div id="adminMenu" class="admin-menu">
+    <button class="btn-sub" id="adminPanelBtn">Admin Panel</button>
+    <button class="btn-sub" id="moderatorBtn">Moderator</button>
+  </div>
+</div>
+
+
+
+
+  <!-- 🧩 Проследи -->
+  <button id="trackBtn" class="track-btn" aria-label="Проследи поръчката">ПРОСЛЕДИ ПОРЪЧКАТА</button>
+</div>
+</div>
+
+
+    <!-- ========= /FAB MENU ========= -->
+
+    <div class="hero-inner"></div>
+  </header>
+
+  <!-- WEB МЕНЮ – плътно под корицата -->
+  <div class="tab-wrap"><div class="tab-title">WEB МЕНЮ</div></div>
+
+  <section class="stage">
+    <main class="grid" id="menuGrid">
+      <a class="card w-4" data-key="burgeri"><div class="img"></div><span>САНДВИЧИ</span></a>
+      <a class="card w-4" data-key="palachinki"><div class="img"></div><span>ПАЛАЧИНКИ</span></a>
+      <a class="card w-4" data-key="strandzhanki"><div class="img"></div><span>СТРАНДЖАНКИ</span></a>
+      <a class="card w-4" data-key="kartofi"><div class="img"></div><span>КАРТОФИ</span></a>
+      <a class="card w-4" data-key="salati"><div class="img"></div><span>САЛАТИ</span></a>
+      <a class="card w-4" data-key="portsii"><div class="img"></div><span>ПОРЦИЙ</span></a>
+      <a class="card w-4" data-key="dobavki"><div class="img"></div><span>ДОБАВКИ</span></a>
+      <a class="card w-4" data-key="hell"><div class="img"></div><span>HELL</span></a>
+      <a class="card w-4" data-key="voda"><div class="img"></div><span>ВОДА</span></a>
+      <a class="card w-4" data-key="gazirana_voda"><div class="img"></div><span>ГАЗИРАНА ВОДА</span></a>
+      <a class="card w-4" data-key="fanta"><div class="img"></div><span>ФАНТА</span></a>
+      <a class="card w-4" data-key="studen_chai"><div class="img"></div><span>СТУДЕН ЧАЙ</span></a>
+      <a class="card w-4" data-key="kola"><div class="img"></div><span>КОЛА</span></a>
+      
+      <a class="card w-4" data-key="xixo"><div class="img"></div><span>XIXO</span></a>
+      <a class="card w-4" data-key="airqn"><div class="img"></div><span>АЙРЯН</span></a>
+    </main>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="ft"><h4>За контакт</h4><p>гр. Хасково, Център, пл. „Свобода“ 26</p><p>10:00ч. – 20:00ч.</p><p><b>Поръчки: 0886 505 861</b></p></div>
+      <div class="ft"><h4>Информация</h4><a href="#">Общи условия</a><br><a href="#">Политика за поверителност</a></div>
+      <div class="ft"><h4>За нас</h4><p>Corner BBQ • Сандвичи на жар</p></div>
+    </div>
+    <div class="power">Powered by Dimitar Lambov. © 2026</div>
+  </footer>
+</div>
+
+<button id="toTop" class="to-top" title="Към началото">↑</button>
+
+<!-- ===== AUTH OVERLAY ===== -->
+<div id="auth" class="auth" aria-hidden="true">
+  <div class="box">
+    <h2>Админ достъп</h2>
+    <div class="field"><label for="adminName">Име</label><input id="adminName" type="text" placeholder="Въведи име (напр. Иван)"></div>
+    <div class="field"><label for="pwd">Парола</label><input id="pwd" type="password" placeholder="Въведи админ парола" autocomplete="current-password"></div>
+    <div class="rowc"><input id="remember" type="checkbox"><label for="remember">Запомни ме на това устройство</label></div>
+    <div class="actions"><button id="loginBtn" class="btn primary">Вход</button></div>
+    <div id="msg" class="ok" style="display:none">✅ Успешен вход като админ !</div>
+    <div id="err" class="err">❌ Грешна парола или липсва име.</div>
+  </div>
+</div>
+
+<!-- ===== REVIEWS PANEL ===== -->
+<div id="reviewsPanel" aria-hidden="true">
+  <div id="reviewsBox" role="dialog" aria-modal="true" aria-labelledby="reviewsTitle">
+    <h2 id="reviewsTitle">⭐ Отзиви и препоръки <small style="font-size:14px;color:#cfd6d6"> — виждат се от всички</small></h2>
+    <div id="reviewsList" aria-live="polite"></div>
+    <div id="addReview" style="margin-top:12px">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        <div class="starSelect" id="starSelect" aria-label="Оцени със звезди" role="radiогroup"></div>
+        <div style="font-size:13px;color:#bfc7c7">Може да изпратиш само звезда, само текст или и двете</div>
+      </div>
+      <input id="revName" type="text" placeholder="Вашето име (по желание)">
+      <textarea id="revText" placeholder="Вашият коментар..."></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button id="sendReview" class="btn primary">Изпрати</button>
+        <button id="clearReview" class="btn">Изчисти</button>
+        <button id="closeReviews" class="btn" style="background:transparent;border:1px solid #ffffff12;color:#fff">Затвори</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== КАРТИНКИ ЗА КАТЕГОРИИ ========== */
+const FILE_MAP={burgeri:'snimki/produkti/1menu/burger.jpg',palachinki:'snimki/produkti/1menu/palachinki.jpg',strandzhanki:'snimki/produkti/1menu/strandjanka.jpg',kartofi:'snimki/produkti/1menu/kartofi.jpg',salati:'snimki/produkti/1menu/salata.jpg',portsii:'snimki/produkti/1menu/porciq.jpg',dobavki:'snimki/produkti/1menu/dobavki.jpg',hell:'snimki/produkti/1menu/hell.jpg',voda:'snimki/produkti/ВОДА/voda_snimka.jpg',gazirana_voda:'snimki/produkti/ГАЗИРАНА_ВОДА/gaziranavoda_snimka.jpg',fanta:'snimki/produkti/ФАНТА/fanta_logo.jpg',studen_chai:'snimki/produkti/СТУДЕН_ЧАЙ/studen_chai_logo.jpg',kola:'snimki/produkti/КОЛА/kola_logo.jpg',sok:'snimki/produkti/СОК/cappy_logo.jpg',xixo:'snimki/produkti/ХИХО/xixo_logo.jpg',airqn:'snimki/produkti/АЙРАН/vereq_logo.jpg'};
+// Къде да отваряме категориите
+const CATEGORY_PAGE_LOCAL = 'file:///E:/BBQ_SITE/novindex2/novindex2.html';
+const CATEGORY_PAGE_WEB   = 'novindex2/novindex2.html';
+const CATEGORY_PAGE       = (location.protocol === 'file:') ? CATEGORY_PAGE_LOCAL : CATEGORY_PAGE_WEB;
+
+document.querySelectorAll('[data-key]').forEach(el=>{
+  const key  = el.getAttribute('data-key');
+  const path = FILE_MAP[key];
+  if (path) el.querySelector('.img').style.backgroundImage = `url("${path}")`;
+
+  // -> вече към novindex2/novindex2.html
+  el.setAttribute('href', `${CATEGORY_PAGE}?cat=${encodeURIComponent(key)}`);
+});
+
+
+/* ========== CARD POP ANIM ========== */
+const POP_DELAY=1000;
+function goWithPop(el,url){ el.classList.remove('is-pressed'); el.classList.add('is-popping'); el.dataset.locked='1'; setTimeout(()=>{ location.href=url; },POP_DELAY); }
+function shouldBypassDelay(e){ return e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button===1; }
+document.querySelectorAll('.card').forEach(card=>{
+  card.addEventListener('mousedown',()=>card.classList.add('is-pressed'));
+  card.addEventListener('mouseleave',()=>card.classList.remove('is-pressed'));
+  card.addEventListener('touchstart',()=>{card.classList.add('is-pressed'); setTimeout(()=>card.classList.remove('is-pressed'),120)},{passive:true});
+  card.addEventListener('click',e=>{ if(shouldBypassDelay(e)) return; e.preventDefault(); if(card.dataset.locked==='1') return; goWithPop(card, card.getAttribute('href')); });
+  card.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); if(card.dataset.locked==='1') return; goWithPop(card, card.getAttribute('href')); }});
+  window.addEventListener('pageshow',()=>{ card.classList.remove('is-pressed','is-popping'); delete card.dataset.locked; });
+});
+
+/* ========== SCROLL TO TOP ========== */
+const toTop = document.getElementById('toTop');
+const toggle = () => toTop.style.display = scrollY > 300 ? 'grid' : 'none';
+toggle(); addEventListener('scroll', toggle);
+toTop.addEventListener('click', () => scrollTo({ top:0, behavior:'smooth' }));
+
+/* ========== FAB MENU: затваряне при клик извън/ESC ========== */
+(function(){
+  const fab = document.getElementById('fabMenu');
+  const chk = document.getElementById('menuChk');
+  document.addEventListener('click',(e)=>{ if(!fab.contains(e.target)) chk.checked=false; });
+  document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') chk.checked=false; });
+})();
+
+/* ========== ADMIN LOGIN + DROPDOWN (clean) ========== */
+const ADMIN_PASSWORD = 'bbqcornera123';
+
+/* ================= ADMIN DROPDOWN (toggle .open) ================= */
+const adminBtn       = document.getElementById('adminBtn');
+const adminMenu      = document.getElementById('adminMenu');
+const adminPanelBtn  = document.getElementById('adminPanelBtn');
+const moderatorBtn   = document.getElementById('moderatorBtn');
+const menuChk        = document.getElementById('menuChk');
+const adminDD        = document.querySelector('.admin-dropdown'); // контейнерът
+
+/* login overlay refs */
+const authEl     = document.getElementById('auth');
+const nameEl     = document.getElementById('adminName');
+const pwdEl      = document.getElementById('pwd');
+const rememberEl = document.getElementById('remember');
+const loginBtn   = document.getElementById('loginBtn');
+const errEl      = document.getElementById('err');
+const msgEl      = document.getElementById('msg');
+
+function openPanel(){ window.location.href='index4.html'; }
+
+/* 1) Клик на АДМИН → показва/скрива подменюто */
+adminBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  adminDD.classList.toggle('open');
+});
+
+/* 2) Клик извън → затваря подменюто */
+document.addEventListener('click', (e) => {
+  if (!adminDD.contains(e.target)) adminDD.classList.remove('open');
+});
+
+/* 3) Затваряне на FAB → затваря подменюто */
+menuChk.addEventListener('change', () => {
+  if (!menuChk.checked) adminDD.classList.remove('open');
+});
+
+/* ✅ 4) MODERATOR LOGIN – само парола + пренасочване към novindex2 */
+const moderatorPassword = 'bbqcornera123';
+const MODERATOR_URL = (location.protocol === 'file:')
+  ? 'file:///E:/BBQ_SITE/novindex2/novindex2.html?mode=moderator'
+  : 'novindex2/novindex2.html?mode=moderator';
+
+if (moderatorBtn) {
+  moderatorBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    adminDD.classList.remove('open');
+
+    const entered = prompt('🔐 Въведи парола за модератор:');
+    if (entered === null) return;
+
+    if (entered.trim() === moderatorPassword) {
+      alert('✅ Достъп разрешен — отварям Moderator Mode.');
+      window.location.href = MODERATOR_URL;
+    } else {
+      alert('❌ Грешна парола.');
+    }
+  });
+}
+
+
+/* 4) Admin Panel → директен вход ако е „запомнен“, иначе login overlay */
+adminPanelBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  adminDD.classList.remove('open');
+
+  const remembered = localStorage.getItem('adminRemembered')==='1';
+  const savedName  = (localStorage.getItem('adminName')||'').trim();
+
+  if (remembered && savedName){
+    localStorage.setItem('adminVerified','1');
+    openPanel();
+    return;
+  }
+
+  errEl.style.display='none';
+  msgEl.style.display='none';
+  nameEl.value='';
+  pwdEl.value='';
+  rememberEl.checked=false;
+  authEl.classList.add('show');
+  setTimeout(()=>nameEl.focus(),0);
+});
+
+
+
+
+/* 6) Login (само ЕДИН блок) */
+function doLogin(){
+  const name=(nameEl.value||'').trim();
+  const pwd=(pwdEl.value||'').trim();
+  const remember = rememberEl.checked;
+  if(!name || pwd!==ADMIN_PASSWORD){
+    msgEl.style.display='none';
+    errEl.textContent = !name ? '❌ Въведи име.' : '❌ Грешна парола.';
+    errEl.style.display='block'; return;
+  }
+  errEl.style.display='none'; msgEl.style.display='block';
+  localStorage.setItem('adminVerified','1');
+  localStorage.setItem('adminName', name);
+  if(remember){ localStorage.setItem('adminRemembered','1'); }
+  else{ localStorage.removeItem('adminRemembered'); }
+  setTimeout(()=>{ authEl.classList.remove('show'); openPanel(); }, 900);
+}
+loginBtn.addEventListener('click', doLogin);
+nameEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); pwdEl.focus(); }});
+pwdEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doLogin(); }});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') authEl.classList.remove('show'); });
+authEl.addEventListener('click', e=>{ if(e.target===authEl) authEl.classList.remove('show'); });
+
+
+/* ========== TRACK ORDER BUTTON logic ========== */
+const trackBtn = document.getElementById('trackBtn');
+if (trackBtn) {
+  trackBtn.addEventListener('click', () => {
+    const panel = document.getElementById('trackPanel');
+    if (panel) {
+      panel.classList.add('show');
+      const codeInput = document.getElementById('trackCode');
+      if (codeInput) {
+        const last = (localStorage.getItem('trackCode') || '').trim();
+        if (last) codeInput.value = last;
+        setTimeout(() => codeInput.focus(), 0);
+      }
+      return;
+    }
+    window.location.href = 'index6.html?tab=tracking';
+  });
+}
+
+/* ========== GLOBAL ADMIN CLICK LOGGER ========== */
+(function(){
+  const who = (localStorage.getItem('adminName') || '').trim();
+  if(!who) return;
+  function logAction(text){
+    const k = `logs_${who}`;
+    const now = new Date();
+    const entry = `${now.toLocaleString()} — ${who} ${text}`;
+    const arr = JSON.parse(localStorage.getItem(k) || '[]');
+    arr.unshift(entry); localStorage.setItem(k, JSON.stringify(arr));
+    const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]')); known.add(who);
+    localStorage.setItem('logs__admins', JSON.stringify([...known]));
+  }
+  document.addEventListener('click', e=>{
+    let desc = '';
+    if(e.target.closest('button, a, input, select')){
+      const el = e.target.closest('button, a, input, select');
+      const tag = el.tagName.toLowerCase();
+      const label = el.innerText || el.value || el.id || '(без текст)';
+      desc = `кликна върху ${tag} → "${label.trim().slice(0,60)}"`;
+    } else {
+      desc = `кликна на произволно място (${e.clientX}x${e.clientY})`;
+    }
+    const page = location.pathname.split('/').pop() || 'непозната страница';
+    logAction(`${desc} [${page}]`);
+  });
+  logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
+})();
+
+
+
+
+
+
+
+</script>
+
+<!-- ========== REVIEWS (Firebase) ========== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+  import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
+    authDomain: "corner-bbq.firebaseapp.com",
+    projectId: "corner-bbq",
+    storageBucket: "corner-bbq.firebasestorage.app",
+    messagingSenderId: "878314744141",
+    appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
+    measurementId: "G-FWBDL96GN0"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
+
+  const panel     = document.getElementById('reviewsPanel');
+  const btnOpen   = document.getElementById('reviewsBtn');
+  const btnClose  = document.getElementById('closeReviews');
+  const list      = document.getElementById('reviewsList');
+  const starBox   = document.getElementById('starSelect');
+  const nameInp   = document.getElementById('revName');
+  const textInp   = document.getElementById('revText');
+  const btnSend   = document.getElementById('sendReview');
+  const btnClear  = document.getElementById('clearReview');
+
+  let stars = 0;
+  function drawStars(){
+    starBox.innerHTML = '';
+    for (let i=1;i<=6;i++){
+      const s = document.createElement('span');
+      s.textContent = '★';
+      s.className = i<=stars ? 'active' : '';
+      s.onclick = () => { stars = i; drawStars(); };
+      starBox.appendChild(s);
+    }
+  }
+  drawStars();
+
+  let sending = false;
+  async function publishReview(){
+    if (sending) return;
+    const name = (nameInp.value||'').trim() || 'Анонимен';
+    const text = (textInp.value||'').trim();
+    if (!text && stars===0){ alert('Моля, звезди или текст.'); return; }
+    sending = true; btnSend.disabled = true;
+    try{
+      await addDoc(collection(db,'reviews'), { name, text, stars, date: new Date().toLocaleString(), createdAt: serverTimestamp() });
+      alert('✅ Благодарим! Отзивът е публикуван.');
+      nameInp.value=''; textInp.value=''; stars=0; drawStars();
+    }catch(e){ console.error(e); alert('❌ Грешка при публикуване.'); }
+    finally{ sending = false; btnSend.disabled = false; }
+  }
+
+  function renderList(snap) {
+    list.innerHTML = '';
+    if (snap.empty){ list.innerHTML = '<div class="smallMuted">Все още няма отзиви. Бъди първи!</div>'; return; }
+    snap.forEach(d=>{
+      const r = d.data();
+      const safeText = (r.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const item = document.createElement('div');
+      item.className = 'reviewItem';
+      item.innerHTML = `
+        <div class="reviewHead">
+          <div>
+            <div class="reviewName">${r.name || 'Анонимен'}</div>
+            <div class="smallMuted">${r.date || ''}</div>
+          </div>
+          <button class="delBtn" data-id="${d.id}" title="Изтрий отзива">✖</button>
+        </div>
+        <div class="stars">${r.stars ? '★'.repeat(r.stars)+'☆'.repeat(6-r.stars) : 'Няма оценка'}</div>
+        <div class="reviewText">${safeText || '<i style="color:#9aa0a6">(без текст)</i>'}</div>
+        <div class="reviewMeta">Оценка: ${r.stars?`${r.stars}/6`:'—'}</div>`;
+      list.appendChild(item);
+    });
+
+    list.querySelectorAll('.delBtn').forEach(b=>{
+      b.onclick = async () => {
+        const pass = prompt('🔐 Въведи админ паролата за изтриване:');
+        if (pass !== 'bbqcornera123') { alert('❌ Грешна парола!'); return; }
+        if (!confirm('Сигурен ли си, че искаш да изтриеш този отзив?')) return;
+        try { await deleteDoc(doc(db, 'reviews', b.dataset.id)); alert('✅ Отзивът е изтрит успешно.'); }
+        catch (e) { console.error(e); alert('❌ Грешка при изтриване.'); }
+      };
+    });
+  }
+
+  const qRef = query(collection(db,'reviews'), orderBy('createdAt','desc'));
+  let unsub = null;
+  onAuthStateChanged(auth, user=>{
+    if (unsub) { unsub(); unsub=null; }
+    unsub = onSnapshot(qRef, snap => renderList(snap));
+  });
+
+  if (btnOpen)  btnOpen.onclick  = ()=> panel.classList.add('show');
+  if (btnClose) btnClose.onclick = ()=> panel.classList.remove('show');
+  panel.onclick = e=>{ if(e.target===panel) panel.classList.remove('show'); };
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') panel.classList.remove('show'); });
+  btnSend.onclick  = publishReview;
+  btnClear.onclick = ()=>{ nameInp.value=''; textInp.value=''; stars=0; drawStars(); };
+</script>
+</body>
+</html>

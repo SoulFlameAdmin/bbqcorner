@@ -1,0 +1,15 @@
+v cmd
+
+cd E:\BBQ_SITE
+
+E:\BBQ_SITE>python -m http.server 8000
+
+👉 После рефреш на:
+
+нормален: 
+
+  http://localhost:8000/novindex2/novindex2.html?cat=burgeri
+
+модератор:
+
+  http://localhost:8000/novindex2/novindex2.html?cat=burgeri&mode=moderator

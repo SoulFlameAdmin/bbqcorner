@@ -1,0 +1,516 @@
+:root{
+  --gap:16px;
+  --soft:#00000014;
+  --shadow:0 10px 28px rgba(0,0,0,.16);
+  --accent:#ff7a00;
+  --radius:20px;
+  --home-closed:110px;
+  --home-open:150px;
+  --popShadow:0 22px 60px rgba(0,0,0,.28);
+  --mobile-cart-h:54px;
+  --mobile-sidebar-h:100px;
+}
+
+/* =========================
+   БАЗА / ЛЕЙАУТ
+   ========================= */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#111;background:#fff}
+.app{min-height:100dvh;display:grid;grid-template-columns:260px 1fr}
+@media (max-width:1100px){.app{grid-template-columns:220px 1fr}}
+@media (max-width:900px){.app{grid-template-columns:1fr}}
+
+.content{position:relative;min-width:0;padding:80px 22px 28px}
+.h1{font-size:28px;font-weight:900;color:var(--accent);letter-spacing:.6px;margin:0 0 18px}
+.sec-title{margin:14px 0 10px;font-weight:900;font-size:28px;color:var(--accent);letter-spacing:.6px}
+.grid-products{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.grid-products{grid-template-columns:1fr}}
+
+/* desktop: скрий мобилните двойници */
+.mobile-title,.mobile-veg,.mobile-sauces,.mobile-addons,.mobile-add-btn{display:none!important}
+
+/* =========================
+   SIDEBAR
+   ========================= */
+.sidebar{
+  position:sticky;top:0;height:100dvh;background:#fff;border-right:1px solid var(--soft);
+  padding:20px 10px 16px 16px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
+  box-shadow:inset -10px 0 30px rgba(0,0,0,.05)
+}
+.sidebar::-webkit-scrollbar{display:none}
+.sidebar-inner{display:flex;flex-direction:column;gap:14px}
+.cat{
+  display:block;text-decoration:none;background:#fff;border:1px solid var(--soft);
+  border-radius:24px;padding:10px;box-shadow:var(--shadow);cursor:pointer;
+  transform-style:preserve-3d;will-change:transform,box-shadow,filter;
+  transition:transform .24s cubic-bezier(.22,.8,.36,1),box-shadow .24s ease,filter .24s ease;
+  outline-offset:3px;
+  position:relative; /* за бутоните горе вдясно */
+}
+.cat .box{position:relative;height:118px;border-radius:14px;overflow:hidden;background:#e9ecef center/cover no-repeat}
+.cat .box::after{
+  content:attr(data-label);position:absolute;left:0;right:0;bottom:0;padding:10px 14px;
+  font-weight:900;letter-spacing:.6px;color:#fff;text-shadow:0 2px 3px rgba(0,0,0,.6);
+  background:linear-gradient(180deg,transparent 0,rgba(0,0,0,.62) 100%)
+}
+.cat.active{outline:3px solid var(--accent)}
+@media (hover:hover){
+  .cat:hover{transform:perspective(800px) translateY(-6px) scale(1.03) rotateX(1.5deg);box-shadow:var(--popShadow);filter:saturate(1.03) contrast(1.02)}
+}
+.cat.is-pressed{transform:perspective(900px) translateY(-2px) scale(.985) rotateX(.5deg)}
+.cat.is-popping{transform:perspective(900px) translateY(-10px) scale(1.06) rotateX(3deg);box-shadow:var(--popShadow)}
+.cat[data-cat="kola"] .box,
+.cat[data-cat="xixo"] .box{
+  background-size:contain;background-position:center;background-repeat:no-repeat;background-color:#fff
+}
+
+
+/* MOD бутони 📁 🖊 🗑 върху категориите */
+.cat-hover-tools{
+  position:absolute;
+  top:6px;
+  right:8px;
+  display:inline-flex;
+  gap:6px;
+  z-index:50;
+}
+
+/* Стил на бутоните */
+.cat-hover-tools button{
+  background:rgba(0,0,0,.65);
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  padding:4px 6px;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.35);
+}
+
+/* -----------------------------------------
+   🔥 MODERATOR MODE → бутоните винаги видими
+   ----------------------------------------- */
+body.is-mod .cat-hover-tools{
+  display:inline-flex !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  pointer-events:auto !important;
+  transition:none !important;  /* спира мигането */
+}
+
+/* премахва hover логиката, ако някъде съществува */
+body.is-mod .cat:hover .cat-hover-tools{
+  display:inline-flex !important;
+  opacity:1 !important;
+}
+
+
+/* =========================
+   HOME PILL
+   ========================= */
+.home-pill{
+  position:fixed!important;top:16px;left:20px;z-index:1500;will-change:transform;height:48px;width:var(--home-closed);
+  display:flex;align-items:center;justify-content:center;gap:10px;padding:0 12px;background:var(--accent);color:#fff;border-radius:14px;
+  box-shadow:var(--shadow);text-decoration:none;overflow:hidden;white-space:nowrap;transition:width .25s ease,padding .25s ease
+}
+.home-pill .bi{font-size:20px;line-height:1}
+.home-pill span{font-weight:700;font-size:18px;letter-spacing:.3px;opacity:0;transform:translateX(8px);transition:opacity .2s ease,transform .2s ease}
+.home-pill:hover{width:var(--home-open);justify-content:flex-start;padding:0 16px}
+.home-pill:hover span{opacity:1;transform:translateX(0)}
+
+/* =========================
+   CART BTN
+   ========================= */
+.cart-btn{
+  position:fixed;top:12px;right:12px;z-index:2000;display:flex;align-items:center;gap:10px;background:#111;color:#fff;
+  border-radius:14px;padding:10px 14px;text-decoration:none;box-shadow:var(--shadow);cursor:pointer;user-select:none
+}
+.cart-btn .bi{font-size:20px}
+.cart-count{min-width:22px;height:22px;border-radius:999px;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;padding:0 6px}
+
+/* =========================
+   ПРОДУКТИ (карти)
+   ========================= */
+.product{
+  display:flex;align-items:stretch;gap:0;background:#fff;border:1px solid var(--soft);border-radius:22px;box-shadow:var(--shadow);overflow:hidden
+}
+.leftcol{display:block}
+.product .photo{
+  width:280px;height:200px;margin:16px;border-radius:18px;background:#e9ecef center/cover no-repeat;flex-shrink:0;transition:all .3s ease-in-out;cursor:zoom-in
+}
+.product .pad{display:flex;flex-direction:column;justify-content:space-between;padding:12px 16px;margin-left:-6px;width:100%}
+.product .title{font-weight:900;font-size:18px;margin:0 0 6px}
+.desc{margin:4px 0 0;font-size:14px;line-height:1.35;opacity:.9}
+
+.price-badge{
+  align-self:flex-start;margin:8px 0 0 0;background:var(--accent);color:#fff;border-radius:12px;padding:10px 14px;
+  font-weight:900;font-size:20px;box-shadow:var(--popShadow);line-height:1
+}
+.price-badge .lv{font-weight:900;font-size:20px}
+.price-badge .eur{font-size:13px;font-weight:600;opacity:.85}
+
+.add-btn{
+  display:inline-flex;align-items:center;justify-content:center;background:#000;color:#fff;border:none;border-radius:12px;
+  padding:8px 12px;font-size:22px;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.2);transition:.2s
+}
+.add-btn:hover{background:var(--accent)}
+.add-btn:active{transform:translateY(1px)}
+
+.actions-row{display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:flex-start;gap:10px 14px;width:100%;margin:8px 0 0 0}
+.addons{display:flex;flex-direction:column;gap:6px;align-items:flex-start;flex:1 1 auto;min-width:240px;max-width:520px}
+.addons-underimg{width:100%;margin:8px 16px 10px 16px}
+.addons label{display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;user-select:none}
+.addons input{accent-color:var(--accent)}
+.actions-row .hdr{font-weight:700;margin-bottom:6px}
+.actions-row .add-btn{margin-left:auto;align-self:flex-start}
+
+.btn-all{display:inline-block;margin-left:8px;padding:2px 8px;font-weight:800;font-size:12px;border:1px solid var(--soft);border-radius:8px;background:#f6f6f6;cursor:pointer}
+.btn-all:hover{background:#fff;box-shadow:var(--shadow)}
+
+/* =========================
+   ГАЛЕРИЯ
+   ========================= */
+.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media (max-width:1200px){.gallery{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:900px){.gallery{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:600px){.gallery{grid-template-columns:1fr}}
+.tile{background:#fff;border:1px solid var(--soft);border-radius:16px;box-shadow:var(--shadow);padding:12px;text-align:center}
+.tile img{width:100%;height:220px;object-fit:contain;display:block;border-radius:12px}
+.caption{margin-top:6px;font-weight:800;font-size:14px;text-align:center}
+.tile .price-badge{margin:10px auto 4px;display:block;text-align:center;border-radius:12px}
+.tile .add-btn{margin:10px auto 0;display:block}
+
+/* =========================
+   ВОДА / ГАЗИРАНА ВОДА
+   ========================= */
+.water-wrapper{display:flex;flex-direction:column;gap:26px;max-width:720px}
+.water-block h2{margin:0 0 8px;font-size:24px;font-weight:900;color:var(--accent)}
+.water-grid{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:16px;align-items:start}
+.water-card{background:#fff;border:1px solid var(--soft);border-radius:16px;box-shadow:var(--shadow);padding:12px;text-align:center}
+.water-card img{width:100%;height:220px;object-fit:contain;display:block;border-radius:12px}
+.water-name{margin-top:8px;font-weight:800}
+.water-card .price-badge{margin:10px auto 4px;display:block;text-align:center;border-radius:12px}
+.water-card .add-btn{margin:8px auto 0;display:block}
+@media (max-width:520px){.water-grid{grid-template-columns:1fr}}
+
+/* =========================
+   CART
+   ========================= */
+.cart-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.2);backdrop-filter:blur(20px);
+  display:none;align-items:flex-start;justify-content:flex-end;z-index:3000
+}
+.cart-panel{
+  width:min(560px,100%);max-height:100dvh;overflow:auto;background:#fff;
+  border-left:1px solid var(--soft);box-shadow:var(--popShadow);padding:18px 16px 20px;
+  border-radius:16px 0 0 16px
+}
+.cart-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.cart-head .title{font-size:22px;font-weight:900;color:#ff7a00}
+.cart-close{margin-left:auto;background:transparent;border:none;font-size:22px;cursor:pointer}
+.cart-items{display:flex;flex-direction:column;gap:12px}
+.cart-item{
+  display:grid;grid-template-columns:88px 1fr auto;gap:12px;align-items:center;background:#fff;
+  border:1px solid var(--soft);border-radius:12px;padding:8px;box-shadow:var(--shadow)
+}
+.cart-item img{width:88px;height:66px;object-fit:cover;border-radius:10px;background:#e9ecef}
+.cart-item .name{font-weight:800}
+.cart-item .price{font-weight:900}
+.cart-empty{padding:12px;font-weight:700;opacity:.7}
+.cart-total{
+  margin-top:14px;padding-top:12px;border-top:2px dashed var(--soft);
+  display:flex;align-items:center;justify-content:space-between;font-weight:900;font-size:18px
+}
+.cart-actions{margin-top:12px;display:flex;justify-content:flex-end}
+.order-btn{
+  background:var(--accent);color:#fff;border:none;border-radius:12px;
+  padding:12px 16px;font-weight:900;box-shadow:var(--shadow);cursor:pointer
+}
+.order-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* =========================
+   ЗУУМ (lightbox за снимки)
+   ========================= */
+.photo.zoomed{
+  position:fixed!important;top:50%;left:50%;width:90vw!important;height:90vh!important;
+  background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important;
+  z-index:9999!important;border-radius:20px;box-shadow:0 0 60px rgba(0,0,0,.6);
+  transform:translate(-50%,-50%) scale(1);transition:all .4s ease-in-out;cursor:zoom-out
+}
+
+/* достъпност */
+@media (prefers-reduced-motion:reduce){
+  .cat{transition:none}
+  .photo{transition:none}
+}
+
+/* =========================================================
+   PROMO · BUILDER + SLIDE КАТАЛОГ + ВГРАДЕНИ КАРТИ
+   ========================================================= */
+
+/* ===== PROMO BUILDER ===== */
+.builder{
+  background:#111;border:1px solid var(--soft);border-radius:14px;padding:12px;
+  color:#fff;margin-top:12px;box-shadow:var(--shadow)
+}
+.builder-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.builder-head .hint{opacity:.8;font-size:12px}
+.rows{display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:1fr 44px 1fr 140px 38px;gap:10px;align-items:center}
+.drop{
+  border:2px dashed #ffffff2f;border-radius:12px;min-height:72px;padding:8px;
+  display:flex;align-items:center;justify-content:center;background:#0f0f0f
+}
+.pluscell{font-weight:900;text-align:center;opacity:.8}
+.price-input{
+  width:100%;border:1px solid var(--soft);border-radius:10px;padding:10px;
+  background:#0e0f10;color:#fff
+}
+.row-del{background:#222;color:#fff;border:none;border-radius:10px;padding:10px;cursor:pointer}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.actions .btn{
+  background:var(--accent);border:0;color:#fff;font-weight:900;border-radius:10px;
+  padding:10px 14px;cursor:pointer;box-shadow:var(--shadow)
+}
+.chip{
+  display:flex;gap:8px;align-items:center;background:#1a1a1a;border:1px solid #ffffff1a;
+  border-radius:10px;padding:6px 8px;min-width:0
+}
+.chip img{width:42px;height:42px;object-fit:cover;border-radius:8px;background:#e9ecef}
+.chip .meta{display:flex;flex-direction:column}
+.chip .nm{font-weight:800;font-size:13px}
+.chip .ds{font-size:12px;opacity:.8}
+.chip .x{margin-left:auto;cursor:pointer;opacity:.9}
+
+/* ===== ДЕСЕН SLIDE КАТАЛОГ ===== */
+.slide{
+  position:fixed;top:0;right:-420px;width:min(420px,100%);height:100dvh;background:#111;color:#fff;
+  border-left:1px solid var(--soft);box-shadow:var(--popShadow);z-index:3200;transition:right .28s ease
+}
+.slide.open{right:0}
+.slide-head{display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid #ffffff14}
+.slide .btn{background:#222;border:0;color:#fff;border-radius:10px;padding:8px 10px;cursor:pointer}
+.slide-search{
+  width:calc(100% - 20px);margin:10px;border:1px solid var(--soft);border-radius:10px;
+  padding:10px;background:#0e0f10;color:#fff
+}
+.catalog{
+  padding:10px;display:grid;grid-template-columns:1fr;gap:10px;overflow:auto;
+  max-height:calc(100dvh - 108px)
+}
+.s-title{font-weight:900;color:var(--accent);margin:6px 0}
+.s-cat{
+  display:grid;grid-template-columns:72px 1fr;gap:10px;align-items:center;background:#0f0f0f;
+  border:1px solid #ffffff14;border-radius:12px;padding:8px;cursor:pointer
+}
+.s-cat img{width:72px;height:56px;object-fit:cover;border-radius:10px;background:#e9ecef}
+.s-card{
+  display:grid;grid-template-columns:66px 1fr auto;gap:8px;align-items:center;background:#0f0f0f;
+  border:1px solid #ffffff14;border-radius:12px;padding:8px
+}
+.s-card img{width:66px;height:52px;object-fit:cover;border-radius:10px;background:#e9ecef}
+.s-card .nm{font-weight:800}
+.s-card .pr{font-weight:900;opacity:.9}
+.s-gallery{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.s-tile{
+  background:#0f0f0f;border:1px solid #ffffff14;border-radius:12px;padding:8px;
+  display:flex;flex-direction:column;align-items:center
+}
+.s-tile img{width:100%;height:140px;object-fit:contain;background:#e9ecef;border-radius:10px}
+.s-price{font-weight:900;margin-top:6px}
+.s-cap{font-weight:700;opacity:.9}
+.s-water{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.s-wcard{
+  background:#0f0f0f;border:1px solid #ffffff14;border-radius:12px;padding:8px;
+  text-align:center
+}
+.s-wcard img{width:100%;height:140px;object-fit:contain;background:#e9ecef;border-radius:10px}
+.s-wname{font-weight:800;margin-top:6px}
+.s-wprice{font-weight:900;opacity:.9}
+@media (max-width:520px){
+  .row{grid-template-columns:1fr 30px 1fr 120px 38px}
+  .catalog{grid-template-columns:1fr}
+  .s-gallery,.s-water{grid-template-columns:1fr}
+}
+
+/* ===== ПРОМО (embedded в страницата) ===== */
+.promo-wrap{
+  background:#0e0f10;border-radius:16px;box-shadow:var(--shadow);
+  padding:16px;color:#fff
+}
+.promo-head{
+  display:flex;align-items:center;gap:10px;margin:0 0 12px;
+  font-weight:900;color:#ff7a00
+}
+.promo-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.promo-card{
+  position:relative;background:#111;border:1px solid #00000014;
+  border-radius:16px;overflow:hidden
+}
+.promo-sides{display:grid;grid-template-columns:1fr 1fr}
+.promo-img{height:220px;background:#e9ecef center/cover no-repeat}
+.promo-name{padding:8px 12px;font-weight:900}
+.promo-price{
+  position:absolute;right:10px;top:10px;background:var(--accent);color:#fff;border-radius:12px;
+  padding:8px 10px;font-weight:900;z-index:3
+}
+.promo-del{
+  position:absolute;left:10px;top:10px;border:0;background:#000a;color:#fff;border-radius:10px;
+  padding:6px 10px;font-weight:900;cursor:pointer;z-index:4
+}
+.promo-card .promo-add{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:46px;height:46px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:900;background:#000;color:#fff;border:0;cursor:pointer;
+  box-shadow:0 10px 24px rgba(0,0,0,.25);z-index:2
+}
+.promo-card .promo-add:hover{background:var(--accent)}
+@media (max-width:900px){
+  .promo-grid{grid-template-columns:1fr}
+  .promo-sides .promo-img{height:180px}
+}
+
+/* =========================
+   EMBED (съвместимост)
+   ========================= */
+.embed-wrap{width:100%;min-height:70vh}
+.embed-wrap iframe{
+  width:100%;height:calc(100dvh - 140px);border:0;border-radius:16px;
+  background:#fff;box-shadow:var(--shadow)
+}
+
+/* =========================================================
+   UNIVERSAL „+ ДО ЦЕНАТА“ ЗА ОБИКНОВЕНИ КАРТИ
+   (product, tile, water-card) – кръгъл бутон долу вдясно
+   ========================================================= */
+.product,.tile,.water-card{position:relative}
+.product .price-badge,
+.tile .price-badge,
+.water-card .price-badge{
+  display:inline-flex!important;margin:0 56px 0 0!important;
+  padding:10px 14px!important;border-radius:12px!important
+}
+.product .add-btn,
+.tile .add-btn,
+.water-card .add-btn{
+  position:absolute!important;right:12px;bottom:12px;width:36px;height:36px;
+  display:flex!important;align-items:center;justify-content:center;
+  padding:0!important;border-radius:50%!important;background:#000!important;color:#fff!important;
+  font-size:20px!important;font-weight:900!important;
+  box-shadow:0 6px 16px rgba(0,0,0,.25);z-index:2
+}
+.product .add-btn:hover,
+.tile .add-btn:hover,
+.water-card .add-btn:hover{background:var(--accent)!important}
+@media (max-width:900px){
+  .product .add-btn,
+  .tile .add-btn,
+  .water-card .add-btn{
+    width:42px;height:42px;font-size:22px!important;right:10px;bottom:10px
+  }
+  .product .price-badge,
+  .tile .price-badge,
+  .water-card .price-badge{margin-right:62px!important}
+}
+
+/* =========================
+   FULLSCREEN LIGHTBOX
+   ========================= */
+.bbq-lightbox{
+  position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.9);
+  display:none;align-items:center;justify-content:center
+}
+.bbq-lightbox.show{display:flex}
+.bbq-lightbox img{
+  max-width:96vw;max-height:96vh;object-fit:contain;border-radius:16px;
+  box-shadow:0 0 40px rgba(0,0,0,.6)
+}
+.bbq-lightbox .close{
+  position:absolute;top:14px;right:14px;font-size:26px;color:#fff;
+  background:transparent;border:0;cursor:pointer
+}
+
+/* =========================
+   МОБИЛЕН ≤ 900px
+   ========================= */
+@media (max-width:900px){
+
+  .cart-btn{top:8px;right:10px}
+
+  .sidebar{
+    position:fixed;top:var(--mobile-cart-h);left:0;right:0;height:auto;width:100%;
+    border-right:none;border-bottom:1px solid var(--soft);padding:10px 8px 10px 12px;background:#fff;
+    overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;z-index:1200;box-shadow:none;
+    transition:transform .35s ease,opacity .35s ease,filter .35s ease
+  }
+  .sidebar::-webkit-scrollbar{height:6px}
+  .sidebar-inner{flex-direction:row;gap:10px;align-items:stretch;min-width:max-content}
+  .cat{min-width:140px;padding:8px;border-radius:16px;scroll-snap-align:start}
+  .cat .box{height:94px;border-radius:12px}
+  .cat .box::after{padding:8px 10px;font-size:13px}
+  .sidebar::before,
+  .sidebar::after{
+    content:"";position:sticky;top:0;height:100%;width:22px;z-index:2;pointer-events:none
+  }
+  .sidebar::before{
+    left:0;background:linear-gradient(90deg,#fff,rgba(255,255,255,0));margin-left:-12px
+  }
+  .sidebar::after{
+    right:0;background:linear-gradient(270deg,#fff,rgba(255,255,255,0));margin-right:-10px
+  }
+  .sidebar.hide-on-scroll{transform:translateY(-100%);opacity:0;filter:blur(3px)}
+
+  .content{
+    padding:calc(var(--mobile-cart-h) + var(--mobile-sidebar-h) + 16px) 14px 20px!important
+  }
+  .home-pill{
+    top:calc(var(--mobile-cart-h) + 12px)!important;left:12px!important
+  }
+
+  .h1,.sec-title{font-size:22px;margin:10px 0 12px}
+  .price-badge .lv{font-size:24px}
+  .price-badge .eur{font-size:16px}
+
+  /* вертикална карта */
+  .product{
+    display:block!important;border-radius:16px!important;
+    overflow:hidden!important;margin-bottom:16px!important
+  }
+  .product .photo{
+    width:100%!important;height:220px!important;margin:0!important;
+    border-radius:0!important;background-size:cover!important;background-position:center!important
+  }
+
+  /* мобилно заглавие */
+  .product .pad .title{display:none!important}
+  .mobile-title{
+    display:block!important;margin:8px 14px 2px 14px;
+    font-weight:900;font-size:18px
+  }
+
+  .product .pad{
+    display:flex!important;flex-direction:column!important;gap:8px!important;
+    padding:12px 14px!important;margin-left:0!important
+  }
+  .product .pad .desc{margin:4px 0 6px!important;line-height:1.32!important}
+
+  /* скрий desktop добавки; покажи мобилни списъци */
+  .addons-underimg,.actions-row{display:none!important}
+  .mobile-veg,.mobile-sauces,.mobile-addons{
+    display:block!important;width:100%!important;margin:6px 0 0 0!important
+  }
+  .mobile-veg .hdr,.mobile-sauces .hdr,.mobile-addons .hdr{
+    font-weight:700;margin:0 0 4px 0
+  }
+  .mobile-veg label,.mobile-sauces label,.mobile-addons label{
+    display:block;margin:2px 0
+  }
+
+  /* вградени промо карти – по-високи снимки */
+  .promo-sides .promo-img{height:240px}
+}
+
+/* _________________________________________ */

@@ -1,0 +1,17 @@
+
+name: Instant Deploy to Vercel
+
+on:
+  push:
+    branches: [ main ]       # всеки push -> мигновен deploy
+  workflow_dispatch:         # ръчно пускане от Actions
+  repository_dispatch:       # външен тригер (по избор)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Deploy Hook immediately
+        run: |
+          set -e
+          curl -s -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}" -o /dev/null -w "%{http_code}\n"

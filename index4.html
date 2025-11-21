@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corner BBQ — Админ панел</title>
+<style>
+:root{
+  --bg:#0e0f10; --soft:#ffffff1a; --accent:#ff7a00; --text:#fff;
+  --ok:#86ff86; --warn:#ffcf7a; --bad:#ff8686;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:1200px;margin:0 auto;padding:18px}
+
+/* Header */
+.header{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap}
+.title{font-weight:900;font-size:22px;color:var(--accent);letter-spacing:.4px}
+.header-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stat{padding:6px 10px;border-radius:10px;background:#121316;border:1px solid var(--soft);font-weight:800}
+.filter{display:flex;gap:6px;align-items:center}
+.filter select,.filter input{
+  background:#121316;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;outline:none;min-height:38px
+}
+.filter input{min-width:240px}
+
+/* Inbox: Нова поръчка */
+.inbox{
+  background:#14161b;border:1px solid var(--soft);border-radius:14px;padding:12px;margin-bottom:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,.28)
+}
+.inboxHead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.inboxHead .dot{width:10px;height:10px;border-radius:999px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
+.inboxHead .ttl{font-weight:900;letter-spacing:.4px}
+.inboxList{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:1100px){.inboxList{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:700px){.inboxList{grid-template-columns:1fr}}
+.inboxCard{
+  background:#121316;border:1px solid var(--soft);border-radius:12px;padding:10px;display:grid;gap:6px
+}
+.inboxRow{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.code{font-weight:900}
+.meta{font-size:12px;opacity:.8}
+.inboxBtns{display:flex;gap:8px}
+.btnMini{
+  background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:6px 10px;
+  font-weight:800;cursor:pointer
+}
+.btnMini.ok{background:#1f2a1f;border-color:#2a5a2a}
+.btnMini.bad{background:#3a1515;border-color:#8a1f1f}
+.noteMini{font-size:13px;color:#cfd6df}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.empty{padding:22px;text-align:center;border:1px dashed var(--soft);border-radius:12px;opacity:.8}
+
+/* Two-column layout for CANCELED view */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:flex-start}
+@media (max-width:900px){ .split{ grid-template-columns:1fr } }
+.split .col{display:grid;grid-template-columns:1fr;gap:14px}
+.sectionTitle{font-weight:900;color:#cfd6df;opacity:.9;margin-bottom:6px}
+
+/* Card */
+.card{
+  background:#121316;border:1px solid var(--soft);border-radius:16px;padding:14px;box-shadow:0 8px 28px rgba(0,0,0,.28);
+  position:relative;overflow:hidden
+}
+.row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+.badge{padding:4px 8px;border-radius:999px;background:#1a1c20;border:1px solid var(--soft);font-size:12px;font-weight:900}
+.small{font-size:12px;opacity:.75}
+.addr{margin-top:6px;font-size:14px;opacity:.95}
+.items{margin-top:8px;border-top:1px dashed var(--soft);padding-top:8px;display:flex;flex-direction:column;gap:4px}
+.item{display:flex;justify-content:space-between;font-size:14px}
+.total{margin-top:10px;font-weight:900;display:flex;justify-content:flex-end}
+
+/* Status */
+.status{padding:4px 10px;border-radius:10px;font-size:12px;font-weight:900;background:#1a1c20;border:1px solid var(--soft)}
+.status[data-s='ПРЕГЛЕД']{color:#f0f0f0}
+.status[data-s='ПРИГОТВЯ СЕ']{background:#1e2a18;color:#95ff6b;border-color:#2c4a23}
+.status[data-s='ДОСТАВЯ СЕ']{background:#262017;color:#ffcf7a;border-color:#554125}
+.status[data-s='ДОСТАВЕНО']{background:#1c2a1c;color:#86ff86;border-color:#2a5a2a}
+.status[data-s='ОТКАЗАНА']{background:#2a1c1c;color:#ff9a9a;border-color:#5a2a2a}
+
+/* Buttons */
+.btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{
+  background:#181a1f;border:1px solid var(--soft);color:#fff;border-radius:10px;padding:8px 10px;
+  font-weight:800;cursor:pointer;transition:border-color .15s ease
+}
+.btn:hover{border-color:#ffffff33}
+.btn.ok{background:#1f2a1f;border-color:#2a5a2a}
+.btn.warn{background:#2a2418;border-color:#554125}
+.btn.bad{background:#3a1515;border-color:#8a1f1f}
+
+/* Inline inputs */
+.inline{display:inline-flex;gap:6px;align-items:center;background:#181a1f;border:1px solid var(--soft);border-radius:10px;padding:6px 8px}
+.inline input{
+  width:64px;background:transparent;border:none;color:#fff;outline:none;font-weight:800;text-align:center
+}
+.inline label{font-size:12px;opacity:.75}
+
+/* Close (delete) */
+.close{
+  position:absolute;top:8px;right:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:999px;background:#3a1515;border:1px solid #8a1f1f;color:#fff;font-weight:900;line-height:1;cursor:pointer
+}
+.close:hover{background:#4a1919;border-color:#b32626}
+
+/* Note (read-only) */
+.noteWrap{margin-top:10px;border:1px solid var(--soft);border-radius:12px;overflow:hidden;background:#181a1f}
+.noteHead{display:flex;justify-content:space-between;align-items:center;padding:8px 10px}
+.noteHead strong{font-size:13px}
+.noteBody{padding:10px 12px}
+.noteText{white-space:pre-wrap;word-wrap:break-word;font-size:14px;color:#e6edf3}
+.noteHint{font-size:12px;color:#9aa6b2;margin-left:auto}
+
+/* Reason tag */
+.reason{margin-top:8px;padding:8px 10px;border-radius:10px;background:#1a1d22;border:1px dashed #ffffff2a;color:#d9e2ee;font-size:13px}
+.reason.auto{background:#231a1a;border-color:#ff9a9a55;color:#ffbdbd}
+.reason.admin{background:#221f17;border-color:#ffd16655;color:#ffe3a1}
+
+/* Top utility bar */
+.topUtil{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.kbd{
+  background:#1a1c20;border:1px solid var(--soft);border-bottom-color:#00000044;border-radius:8px;
+  padding:4px 8px;font-size:12px;color:#cfd6d6
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="title">Админ панел — Поръчки</div>
+    <div class="header-right">
+      <div class="filter">
+        <select id="statusFilter" title="Филтър по статус">
+          <option value="ALL">Всички (без преглед/отказ/доставено)</option>
+          <option value="ПРЕГЛЕД">ПРЕГЛЕД</option>
+          <option value="ПРИГОТВЯ СЕ">ПРИГОТВЯ СЕ</option>
+          <option value="ДОСТАВЯ СЕ">ДОСТАВЯ СЕ</option>
+          <option value="ДОСТАВЕНО">ДОСТАВЕНО</option>
+          <option value="ОТКАЗАНА">ОТКАЗАНА</option>
+        </select>
+        <input id="searchBox" type="search" placeholder="Търси по име/телефон/адрес/код…">
+      </div>
+      <div class="stat"><span id="count">0</span> поръчки</div>
+      <div class="stat">Оборот (Доставени): <span id="deliveredSum">0,00 лв.</span></div>
+    </div>
+  </div>
+
+  <div class="topUtil">
+    <span class="kbd">Инбокс „Нова поръчка“: Приеми / Откажи</span>
+    <span class="kbd">Авто-отказ: 20 мин без приемане</span>
+    <span class="kbd">ETA: въведи мин → Enter / blur (auto-save)</span>
+  </div>
+
+  <!-- INBOX: НОВА ПОРЪЧКА -->
+  <div id="inbox" class="inbox" style="display:none">
+    <div class="inboxHead">
+      <span class="dot"></span>
+      <div class="ttl">Нова поръчка</div>
+      <div class="meta" id="inboxCount">0 чакащи</div>
+    </div>
+    <div id="inboxList" class="inboxList"></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div id="emptyState" class="empty" style="display:none">Няма поръчки по текущия филтър.</div>
+</div>
+
+<audio id="newOrderSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+<audio id="loopSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
+
+<script type="module">
+/* ===== Gate ===== */
+const verified = localStorage.getItem('adminVerified') === '1';
+if (!verified) {
+  alert('❌ Нямаш достъп до админ панела. Моля, влез през началната страница.');
+  window.location.href = 'index.html';
+}
+
+/* ===== Utils ===== */
+const lv = n => (Number(n)||0).toFixed(2).replace('.',',')+' лв.';
+const fmtWhen = ts => {
+  try{ if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleString();
+  } catch(_){ return ''; }
+};
+const esc = s => String(s||'').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&gt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const MINUTES = m => m*60*1000;
+
+/* ===== DOM ===== */
+const grid = document.getElementById('grid');
+const countE = document.getElementById('count');
+const deliveredSumE = document.getElementById('deliveredSum');
+const emptyE = document.getElementById('emptyState');
+const selStatus = document.getElementById('statusFilter');
+const searchBox = document.getElementById('searchBox');
+const sound = document.getElementById('newOrderSound');
+const loopSound = document.getElementById('loopSound');
+loopSound.volume = 1.0; // максимална сила
+
+let alarmTimer = null;
+let alarmActive = false;
+
+function startAlarm() {
+  if (alarmActive) return;
+  alarmActive = true;
+  loopSound.currentTime = 0;
+  loopSound.play().catch(()=>{});
+  alarmTimer = setInterval(()=>{
+    loopSound.currentTime = 0;
+    loopSound.play().catch(()=>{});
+  }, 1000); // на всяка секунда
+}
+
+function stopAlarm() {
+  if (!alarmActive) return;
+  alarmActive = false;
+  clearInterval(alarmTimer);
+  alarmTimer = null;
+  loopSound.pause();
+  loopSound.currentTime = 0;
+}
+
+const inboxWrap = document.getElementById('inbox');
+const inboxList = document.getElementById('inboxList');
+const inboxCount = document.getElementById('inboxCount');
+
+/* ===== Firebase ===== */
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
+import {
+  getFirestore, collection, query, orderBy, onSnapshot,
+  doc, updateDoc, deleteDoc, setDoc, serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
+  authDomain: "corner-bbq.firebaseapp.com",
+  projectId: "corner-bbq",
+  storageBucket: "corner-bbq.firebasestorage.app",
+  messagingSenderId: "878314744141",
+  appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
+  measurementId: "G-FWBDL96GN0"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const auth = getAuth(app);
+
+/* === Anonymous sign-in (if rules require) === */
+try{
+  await new Promise(res => {
+    const unsub = onAuthStateChanged(auth, user => { if (user) {unsub();res();} });
+    signInAnonymously(auth).catch(()=>{});
+    setTimeout(()=>{unsub();res();}, 1200);
+  });
+}catch(_){}
+
+/* ===== State ===== */
+let orders = [];
+let firstLoad = true;
+
+/* ===== Live feed ===== */
+const q = query(collection(db, 'orders'), orderBy('createdAt','desc'));
+onSnapshot(q, (snap) => {
+  const newOrders = snap.docs.map(d => ({ id: d.id, code: d.id, ...d.data() }));
+
+  // колко бяха/са ПРЕГЛЕД
+  const prevPending = orders.filter(isPending).length;
+  const nextPending = newOrders.filter(isPending).length;
+
+  // ако има НОВИ чакащи -> ping + старт
+  if (!firstLoad && nextPending > prevPending) {
+    sound.currentTime = 0;
+    sound.volume = 1.0;
+    sound.play().catch(() => {});
+    startAlarm();
+  }
+
+  firstLoad = false;
+  orders = newOrders;
+  render();
+
+  // централизирано: ако има чакащи -> дръж включено; иначе -> спри
+  if (nextPending > 0) {
+    startAlarm();   // idempotent – няма да стартира втори път
+  } else {
+    stopAlarm();
+  }
+});
+
+/* ===== Helpers ===== */
+const isDelivered = o => (o.status||'') === 'ДОСТАВЕНО';
+const isCanceled  = o => (o.status||'') === 'ОТКАЗАНА';
+const isPending   = o => (o.status||'') === 'ПРЕГЛЕД'; // неприета
+const isAutoReason = o => typeof o.canceledReason === 'string' && o.canceledReason.startsWith('⏲️ Автоматично');
+
+function createdDate(o){
+  const ts = o.createdAt;
+  if (!ts) return null;
+  try{ return ts.toDate ? ts.toDate() : new Date(ts); }catch(_){ return null; }
+}
+function isTimedOut(o, limitMs = MINUTES(20)){
+  if (!isPending(o)) return false;
+  const d = createdDate(o);
+  if (!d) return false;
+  return (Date.now() - d.getTime()) >= limitMs;
+}
+
+/* ===== Auto-cancel loop (20 мин без приемане) ===== */
+async function autoCancelTimedOut(){
+  const toCancel = orders.filter(o => isTimedOut(o));
+  for (const o of toCancel){
+    stopAlarm();
+    try{
+      await updateDoc(doc(db,'orders', o.id), {
+        status: 'ОТКАЗАНА',
+        canceledReason: '⏲️ Автоматично: изтекли 20 мин без приемане'
+      });
+    }catch{
+      await setDoc(doc(db,'orders', o.id), {
+        status: 'ОТКАЗАНА',
+        canceledReason: '⏲️ Автоматично: изтекли 20 мин без приемане'
+      }, { merge:true });
+    }
+  }
+}
+
+autoCancelTimedOut();
+setInterval(autoCancelTimedOut, 30000);
+
+/* ===== Filters + Render ===== */
+selStatus.addEventListener('change', render);
+searchBox.addEventListener('input', render);
+
+function render(){
+  // INBOX: само „ПРЕГЛЕД“ (неприети)
+  const inboxData = orders.filter(o => isPending(o));
+  inboxWrap.style.display = inboxData.length ? 'block' : 'none';
+  inboxCount.textContent = `${inboxData.length} чакащи`;
+  inboxList.innerHTML = inboxData.map(renderInboxCard).join('');
+  bindInbox();
+
+  const fStatus = selStatus.value;
+  const qTxt = (searchBox.value || '').trim().toLowerCase();
+
+  const deliveredSum = orders
+    .filter(o => isDelivered(o))
+    .reduce((s,o)=> s + (Number(o.total)||0), 0);
+  deliveredSumE.textContent = lv(deliveredSum);
+
+  let data = orders.slice();
+
+  // В изглед „ALL“: скриваме ПРЕГЛЕД (те са в INBOX), и скриваме ДОСТАВЕНО/ОТКАЗАНА
+  if (fStatus === 'ALL'){
+    data = data.filter(o => !isPending(o) && !isDelivered(o) && !isCanceled(o));
+  } else if (fStatus !== 'ALL'){
+    data = data.filter(o => (o.status||'') === fStatus);
+  }
+
+  if (qTxt){
+    data = data.filter(o=>{
+      const c = o.customer || {};
+      const hay = [o.id, c.names, c.phone, c.address, o.note, o.canceledReason].join(' ').toLowerCase();
+      return hay.includes(qTxt);
+    });
+  }
+
+  countE.textContent = String(data.length);
+  emptyE.style.display = data.length ? 'none' : 'block';
+
+  if (fStatus === 'ОТКАЗАНА'){
+    const autoCanceled  = data.filter(o => isAutoReason(o));
+    const adminCanceled = data.filter(o => !isAutoReason(o));
+
+    grid.innerHTML = `
+      <div class="split">
+        <div>
+          <div class="sectionTitle">⏲️ Отказани заради изтекло време</div>
+          <div class="col" id="colAuto"></div>
+        </div>
+        <div>
+          <div class="sectionTitle">🛑 Отказани от админ</div>
+          <div class="col" id="colAdmin"></div>
+        </div>
+      </div>
+    `;
+    const colAuto  = document.getElementById('colAuto');
+    const colAdmin = document.getElementById('colAdmin');
+    colAuto.innerHTML  = autoCanceled.map(renderCard).join('');
+    colAdmin.innerHTML = adminCanceled.map(renderCard).join('');
+  } else {
+    grid.innerHTML = data.map(renderCard).join('');
+  }
+
+  bindUI();
+}
+
+/* ===== INBOX card ===== */
+function renderInboxCard(o){
+  const names = esc(o.customer?.names || '');
+  const phone = esc(o.customer?.phone || '');
+  const code  = o.id;
+  const total = lv(Number(o.total)||0);
+  const note  = o.note ? esc(o.note) : '';
+  const when  = fmtWhen(o.createdAt);
+
+  return `
+    <div class="inboxCard" data-id="${code}">
+      <div class="inboxRow">
+        <div class="code">#${code} · ${names}</div>
+        <div class="meta">${when}</div>
+      </div>
+      <div class="inboxRow">
+        <div class="meta">☎ ${phone || '—'}</div>
+        <div class="meta">Общо: <b>${total}</b></div>
+      </div>
+      ${note ? `<div class="noteMini">📝 ${note}</div>` : ''}
+      <div class="inboxRow">
+        <div class="inboxBtns">
+          <button class="btnMini ok"  data-inbox-action="accept" data-id="${code}">Приеми</button>
+          <button class="btnMini bad" data-inbox-action="decline" data-id="${code}">Откажи</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function bindInbox(){
+  inboxList.querySelectorAll('[data-inbox-action="accept"]').forEach(b=>{
+    b.addEventListener('click', ()=> acceptOrder(b.dataset.id));
+  });
+  inboxList.querySelectorAll('[data-inbox-action="decline"]').forEach(b=>{
+    b.addEventListener('click', ()=> declineOrder(b.dataset.id));
+  });
+}
+
+/* ===== Main cards ===== */
+function renderCard(o){
+  const when   = fmtWhen(o.createdAt);
+  const items  = Array.isArray(o.items) ? o.items : [];
+  const status = o.status || 'ПРЕГЛЕД';
+  const prep   = Number(o.prepEtaMin)||0;
+  const delv   = Number(o.deliveryEtaMin)||0;
+  const address= esc(o.customer?.address || '');
+  const names  = esc(o.customer?.names || '');
+  const phone  = esc(o.customer?.phone || '');
+  const code   = o.id;
+  const noteTxt= o.note || '';
+  const reason = o.canceledReason || '';
+  const reasonClass = isAutoReason(o) ? 'auto' : 'admin';
+
+  return `
+    <div class="card" data-id="${code}">
+      <button class="close" title="Изтрий" data-id="${code}">×</button>
+      <div class="row">
+        <span class="badge">Код: #${code}</span>
+        <span class="small">${when}</span>
+        <span class="status" data-s="${status}">${status}</span>
+      </div>
+
+      <div class="row"><strong>${names}</strong> <span class="small">(${phone})</span></div>
+      <div class="addr">📍 ${address || '(без адрес)'}</div>
+
+      <div class="items">
+        ${items.map(it=>`
+          <div class="item"><span>${esc(it.name||'')}</span><span>${lv(Number(it.price)||0)}</span></div>
+        `).join('')}
+      </div>
+
+      <div class="total">Общо: ${lv(Number(o.total)||0)}</div>
+
+      <div class="row" style="gap:10px;margin-top:10px;flex-wrap:wrap">
+        <div class="inline">
+          <label for="prep_${code}">Приготвяне</label>
+          <input id="prep_${code}" type="number" inputmode="numeric" min="0" step="1" value="${prep}" data-type="prep" data-id="${code}">
+          <span class="small">мин</span>
+        </div>
+        <div class="inline">
+          <label for="deliv_${code}">Доставка</label>
+          <input id="deliv_${code}" type="number" inputmode="numeric" min="0" step="1" value="${delv}" data-type="deliv" data-id="${code}">
+          <span class="small">мин</span>
+        </div>
+      </div>
+
+      <div class="noteWrap">
+        <div class="noteHead">
+          <strong>📝 Бележка от клиента</strong>
+          <span class="noteHint">само за четене</span>
+        </div>
+        <div class="noteBody">
+          <div class="noteText">${esc(noteTxt) || '<span class="small" style="opacity:.8">(няма бележка)</span>'}</div>
+        </div>
+      </div>
+
+      ${isCanceled(o) ? `<div class="reason ${reason ? reasonClass : ''}">${reason ? esc(reason) : 'Отказана'}</div>` : ''}
+
+      <div class="util" style="margin-top:10px">
+        <button class="btn" data-action="copy" data-code="${code}">📋 Копирай кода</button>
+        <button class="btn" data-action="link" data-code="${code}">🔗 Линк за клиента</button>
+        <button class="btn" data-action="maps" data-address="${address}">🚗 Достави</button>
+      </div>
+
+      <div class="btns">
+        ${(status!=='ДОСТАВЕНО' && status!=='ОТКАЗАНА') ? `
+          <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${code}">ПРЕГЛЕД</button>
+          <button class="btn ok"  data-action="s" data-target="ПРИГОТВЯ СЕ"  data-id="${code}">ПРИГОТВЯ СЕ</button>
+          <button class="btn warn"data-action="s" data-target="ДОСТАВЯ СЕ"   data-id="${code}">ДОСТАВЯ СЕ</button>
+          <button class="btn ok"  data-action="s" data-target="ДОСТАВЕНО"    data-id="${code}">ДОСТАВЕНО</button>
+          <button class="btn bad" data-action="cancel" data-id="${code}">ОТКАЗАНА</button>
+        ` : `
+          <button class="btn"     data-action="s" data-target="ПРЕГЛЕД"     data-id="${code}">ПРЕГЛЕД</button>
+          <button class="btn bad" data-action="cancel" data-id="${code}">ОТКАЗАНА</button>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+/* ===== Bindings ===== */
+function bindUI(){
+  // Промяна на статус
+  grid.querySelectorAll('[data-action="s"]').forEach(btn=>{
+    btn.addEventListener('click', ()=> changeStatus(btn.dataset.id, btn.dataset.target));
+  });
+
+  // Отказ (ръчен)
+  grid.querySelectorAll('[data-action="cancel"]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.id;
+      const reason = prompt('Причина за отказ (ще се вижда при клиента):','🛑 Админ: отказано');
+      if (!reason) return;
+      await declineOrder(id, reason);
+    });
+  });
+
+  // Изтриване
+  grid.querySelectorAll('.close').forEach(b=>{
+    b.addEventListener('click', ()=> deleteOrder(b.dataset.id));
+  });
+
+  // ETA save (blur, Enter, debounce input)
+  const debouncers = new Map();
+  const doSave = async (id, type, val, inpEl) => {
+    const raw = String(val ?? '').trim();
+    if (raw === '') return;
+    let v = parseInt(raw, 10);
+    if (Number.isNaN(v)) return;
+    v = Math.max(0, v);
+    const patch = (type === 'prep') ? { prepEtaMin: v } : { deliveryEtaMin: v };
+    try{ await updateDoc(doc(db,'orders',id), patch); }
+    catch{ await setDoc(doc(db,'orders',id), patch, { merge:true }); }
+    inpEl.value = String(v);
+    inpEl.style.borderColor = '#4cff84';
+    setTimeout(()=> inpEl.style.borderColor='', 900);
+  };
+
+  grid.querySelectorAll('.inline input').forEach(inp=>{
+    const id = inp.dataset.id;
+    const type = inp.dataset.type;
+    const saveNow = ()=> doSave(id, type, inp.value, inp);
+    inp.addEventListener('blur', saveNow);
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); }});
+    inp.addEventListener('input', ()=>{
+      const key = id + '|' + type;
+      clearTimeout(debouncers.get(key));
+      const t = setTimeout(saveNow, 600);
+      debouncers.set(key, t);
+    });
+  });
+
+  // Утилити
+  grid.querySelectorAll('[data-action="copy"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const code = b.dataset.code;
+      try{ await navigator.clipboard.writeText(code); b.textContent='✔ Копирано'; setTimeout(()=>b.textContent='📋 Копирай кода',1200);}
+      catch{ alert('Копирайте ръчно: '+code); }
+    });
+  });
+
+  grid.querySelectorAll('[data-action="link"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const code = b.dataset.code;
+      const base = (location.protocol==='file:') ? 'index6.html' : new URL('index6.html', location.href).toString();
+      const url = (base.includes('?')?base:base) + (base.includes('?')?'&':'?') + 'code=' + encodeURIComponent(code);
+      try{ await navigator.clipboard.writeText(url); b.textContent='✔ Линк копиран'; setTimeout(()=>b.textContent='🔗 Линк за клиента',1200);}
+      catch{ prompt('Копирай линка:', url); }
+    });
+  });
+
+  grid.querySelectorAll('[data-action="maps"]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const address = b.dataset.address || '';
+      if(!address.trim()) return alert('Адресът липсва.');
+      const url = `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(address)}`;
+      window.open(url,'_blank');
+    });
+  });
+}
+
+/* ===== Inbox actions ===== */
+async function acceptOrder(id){
+  try{
+    await setDoc(doc(db,'orders',id), {
+      status:'ПРИГОТВЯ СЕ',
+      acceptedAt: serverTimestamp()
+    }, { merge:true });
+  }catch(e){
+    console.error(e);
+    alert('Неуспешно приемане.');
+  }
+}
+
+async function declineOrder(id, reason='🛑 Админ: отказано'){
+    try{
+    await setDoc(doc(db,'orders',id), {
+      status:'ОТКАЗАНА',
+      canceledReason: reason
+    }, { merge:true });
+  }catch(e){
+    console.error(e);
+    alert('Неуспешен отказ.');
+  }
+}
+
+
+/* ===== CRUD ===== */
+async function changeStatus(id, targetStatus){
+  try{
+    await updateDoc(doc(db,'orders',id), { status: targetStatus });
+  }catch(err){
+    try{
+      await setDoc(doc(db,'orders',id), { status: targetStatus }, { merge:true });
+    }catch(e){
+      console.error(e);
+      alert('Неуспешна промяна на статус.');
+    }
+  }
+}
+
+async function deleteOrder(id){
+  try{
+    const ok = confirm('Сигурен ли си, че искаш да изтриеш тази поръчка?');
+    if (!ok) return;
+    await deleteDoc(doc(db,'orders',id));
+  }catch(err){ console.error(err); alert('Грешка при изтриване.'); }
+}
+
+/* ===== Local click log (optional) ===== */
+(function(){
+  const who = (localStorage.getItem('adminName') || '').trim();
+  if(!who) return;
+  function logAction(text){
+    const k = `logs_${who}`;
+    const now = new Date();
+    const entry = `${now.toLocaleString()} — ${who} ${text}`;
+    const arr = JSON.parse(localStorage.getItem(k) || '[]');
+    arr.unshift(entry);
+    localStorage.setItem(k, JSON.stringify(arr));
+    const known = new Set(JSON.parse(localStorage.getItem('logs__admins')||'[]'));
+    known.add(who);
+    localStorage.setItem('logs__admins', JSON.stringify([...known]));
+  }
+  document.addEventListener('click', e=>{
+    let desc = '';
+    if(e.target.closest('button, a, input, select')){
+      const el = e.target.closest('button, a, input, select');
+      const tag = el.tagName.toLowerCase();
+      const label = el.innerText || el.value || el.id || '(без текст)';
+      desc = `кликна върху ${tag} → "${label.trim().slice(0,60)}"`;
+    } else desc = `кликна на произволно място (${e.clientX}x${e.clientY})`;
+    const page = location.pathname.split('/').pop() || 'непозната страница';
+    logAction(`${desc} [${page}]`);
+  });
+  logAction(`влезе в системата (${location.pathname.split('/').pop()})`);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Corner BBQ — Проследи поръчка</title>
+<meta name="theme-color" content="#0b0d10">
+<link rel="icon" href="snimki/logo.png">
+
+<style>
+:root{
+  --bg:#0b0d10; --panel:#12151a; --muted:#a7b0ba; --soft:#ffffff10;
+  --accent:#ff7a00; --success:#22cc88; --warn:#ffd166; --danger:#ff6b6b;
+  --radius:16px; --shadow:0 14px 40px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+  background:radial-gradient(1200px 600px at 50% -20%, #17202a 0%, var(--bg) 55%);
+  color:#fff; display:flex; align-items:flex-start; justify-content:center; padding:42px 14px 24px;
+}
+.wrap{width:min(860px, 100%);}
+
+.header{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+.logo{width:36px;height:36px;border-radius:10px; background:#fff url("snimki/logo.png") center/80% no-repeat; border:1px solid #ffffffaa}
+.brand{font-weight:900;letter-spacing:.3px}
+.back{
+  margin-left:auto;background:#1a1f26;border:1px solid var(--soft);color:#fff;border-radius:12px;
+  padding:8px 12px;cursor:pointer;font-weight:800
+}
+.back:hover{filter:brightness(1.08)}
+
+.card{
+  background:linear-gradient(180deg,#151a20,#101317); border:1px solid var(--soft);
+  border-radius:22px; box-shadow:var(--shadow); padding:20px;
+}
+
+.title{
+  font-size:28px; font-weight:900; color:#fff; letter-spacing:.6px; margin:6px 2px 12px;
+  display:flex; align-items:center; gap:10px
+}
+.title .dot{width:10px;height:10px;border-radius:999px;background:var(--accent);box-shadow:0 0 16px var(--accent)}
+
+/* INPUT ROW + HITBOX FIX */
+.input-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; position:relative; }
+.input-row input{
+  flex:1; min-width:240px;
+  background:#0e1217; color:#fff; border:1px solid var(--soft);
+  border-radius:14px; padding:12px 14px; outline:none; font-weight:700; letter-spacing:1px;
+}
+.input-row input::placeholder{color:#7e8794}
+.input-row button{
+  background:var(--accent); border:none; color:#fff; font-weight:900;
+  padding:12px 16px; border-radius:14px; cursor:pointer; box-shadow:0 10px 28px rgba(255,122,0,.25);
+  position:relative; z-index:2; pointer-events:auto; /* <-- винаги кликаем */
+}
+
+.help{color:var(--muted); font-size:13px; margin:2px 2px 14px}
+
+.status-card{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px }
+@media (max-width:640px){ .status-card{ grid-template-columns:1fr } }
+
+.stat{ background:#0f141a; border:1px solid var(--soft); border-radius:14px; padding:14px 12px; }
+.stat h4{margin:0 0 6px; font-size:14px; color:#b9c2cd; letter-spacing:.3px}
+.value{ font-size:18px; font-weight:900; letter-spacing:.4px }
+.value.ok{color:var(--success)} .value.warn{color:var(--warn)} .value.bad{color:var(--danger)} .value.accent{color:var(--accent)}
+
+.banner{
+  margin-top:16px; padding:12px 14px; border-radius:14px; border:1px dashed var(--soft);
+  color:#cfd6df; background:#0d1217;
+}
+
+.footer-note{margin-top:20px; text-align:center; color:#7f8a97; font-size:12px}
+hr.sep{border:none; height:1px; background:linear-gradient(90deg,transparent,#ffffff14,transparent); margin:14px 0}
+.small{font-size:12px; color:#9aa6b2}
+
+.kit{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:6px }
+.kit .chip{ border:1px solid var(--soft); background:#0d1217; border-radius:10px; padding:6px 8px; font-size:12px; color:#c7d0da }
+.copy{ margin-left:auto; background:transparent; color:#c7d0da; border:1px solid var(--soft); border-radius:10px; padding:6px 8px; cursor:pointer }
+.copy:hover{filter:brightness(1.06)}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="logo" aria-hidden="true"></div>
+    <div class="brand">Corner BBQ</div>
+    <button class="back" id="goHome">← Начало</button>
+  </div>
+
+  <div class="card">
+    <div class="title"><span class="dot"></span> Проследи поръчка</div>
+
+    <div class="input-row">
+      <input id="codeInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Въведи 4-цифрен код на поръчка" autocomplete="one-time-code" />
+      <button id="checkBtn" type="button">Провери</button>
+    </div>
+    <div class="help">Въведи кода, който виждаш накрая при поръчка. Последно ползван: <span id="lastCode" class="small">—</span></div>
+
+    <hr class="sep">
+
+    <!-- Резултат -->
+    <div id="resultEmpty" class="banner">🛈 Въведи 4 цифри и натисни „Провери“, за да видиш статуса.</div>
+
+    <div id="resultWrap" class="hidden">
+      <div class="kit">
+        <div class="chip">Код: <b id="outCode">—</b></div>
+        <div class="chip">Общо: <b id="outTotal">—</b></div>
+        <div class="chip">Клиент: <b id="outName">—</b></div>
+        <button class="copy" id="copyLink" type="button">Копирай линк за проследяване</button>
+      </div>
+
+      <div class="status-card">
+        <div class="stat">
+          <h4>Статус</h4>
+          <div id="outStatus" class="value">—</div>
+        </div>
+        <div class="stat">
+          <h4>Време за приготвяне (~мин)</h4>
+          <div id="outPrep" class="value">—</div>
+        </div>
+        <div class="stat">
+          <h4>Време за доставка (~мин)</h4>
+          <div id="outDelivery" class="value">—</div>
+        </div>
+        <div class="stat">
+          <h4>Причина (ако е отказана)</h4>
+          <div id="outReason" class="value bad">—</div>
+        </div>
+      </div>
+
+      <div class="banner small" id="liveInfo">Обновява се автоматично при промяна в ресторанта.</div>
+    </div>
+  </div>
+
+  <div class="footer-note">© Corner BBQ • live tracking</div>
+</div>
+
+<!-- Firebase (модулен SDK) + логика -->
+<script type="module">
+// ======= Firebase init (модулна версия v10) =======
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
+import { getFirestore, doc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAhaEPIEODEoRiwTulBw4W9YTXyMW9sqKg",
+  authDomain: "corner-bbq.firebaseapp.com",
+  projectId: "corner-bbq",
+  storageBucket: "corner-bbq.firebasestorage.app",
+  messagingSenderId: "878314744141",
+  appId: "1:878314744141:web:f869886ee4380e9dbcaf04",
+  measurementId: "G-FWBDL96GN0"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// ======= UI елементи =======
+const codeInput   = document.getElementById('codeInput');
+const checkBtn    = document.getElementById('checkBtn');
+const lastCodeEl  = document.getElementById('lastCode');
+const resultEmpty = document.getElementById('resultEmpty');
+const resultWrap  = document.getElementById('resultWrap');
+const outCode     = document.getElementById('outCode');
+const outTotal    = document.getElementById('outTotal');
+const outName     = document.getElementById('outName');
+const outStatus   = document.getElementById('outStatus');
+const outPrep     = document.getElementById('outPrep');
+const outDeliv    = document.getElementById('outDelivery');
+const outReason   = document.getElementById('outReason');
+const goHomeBtn   = document.getElementById('goHome');
+const copyLinkBtn = document.getElementById('copyLink');
+
+const LS_TRACK = 'bbq_track_code';
+
+// ======= Помощни =======
+const fmtLv = v => typeof v==='number' ? (v.toFixed(2).replace('.',',') + ' лв.') : '—';
+function showEmpty(message='🛈 Въведи 4 цифри и натисни „Провери“, за да видиш статуса.') {
+  resultWrap.classList.add('hidden');
+  resultEmpty.textContent = message;
+  resultEmpty.classList.remove('hidden');
+}
+function showResult() {
+  resultEmpty.classList.add('hidden');
+  resultWrap.classList.remove('hidden');
+}
+function markStatus(statusText){
+  outStatus.className = 'value accent';
+  const s = (statusText||'').toLowerCase();
+  if (s.includes('доставена')) outStatus.className = 'value ok';
+  else if (s.includes('отказ')) outStatus.className = 'value bad';
+  else if (s.includes('в доставка') || s.includes('подготов') || s.includes('приета')) outStatus.className = 'value accent';
+  else if (s.includes('чака')) outStatus.className = 'value warn';
+}
+
+// ======= Начало бутон =======
+goHomeBtn.addEventListener('click', e=>{
+  e.preventDefault();
+  const target = (location.protocol === 'file:') ? 'file:///E:/BBQ_SITE/index.html' : 'index.html';
+  window.location.href = target;
+});
+
+// ======= Live слушател =======
+let unsubscribe = null;
+
+async function runCheck(){
+  const code = (codeInput.value||'').trim();
+  // бутонът е винаги активен; просто валидираме входа
+  if (!/^\d{4}$/.test(code)) {
+    showEmpty('⚠ Въведи валиден 4-цифрен код.');
+    return;
+  }
+
+  // спри стар слушател
+  if (typeof unsubscribe === 'function') { unsubscribe(); unsubscribe = null; }
+
+  try{
+    const ref  = doc(db, 'orders', code);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      localStorage.setItem(LS_TRACK, code);
+      showEmpty('❌ Не откриваме поръчка с такъв код. Провери цифрите или опитай по-късно.');
+      return;
+    }
+
+    // запази последния код и включи live
+    localStorage.setItem(LS_TRACK, code);
+    lastCodeEl.textContent = code;
+
+    unsubscribe = onSnapshot(ref, (docSnap)=>{
+      if (!docSnap.exists()) { showEmpty('❌ Поръчката вече не съществува.'); return; }
+      const d = docSnap.data() || {};
+      const status = (d.status || d.state || 'Чака приемане');
+
+      outCode.textContent   = code;
+      outTotal.textContent  = fmtLv(Number(d.total ?? d.totalPrice));
+      outName.textContent   = (d.customer?.names || d.customerName || '—');
+
+      outStatus.textContent = status;
+      markStatus(status);
+
+      outPrep.textContent   = (Number(d.prepEtaMin) > 0)     ? `${Number(d.prepEtaMin)} мин`     : '—';
+      outDeliv.textContent  = (Number(d.deliveryEtaMin) > 0) ? `${Number(d.deliveryEtaMin)} мин` : '—';
+      outReason.textContent = (status.toLowerCase().includes('отказ') && d.canceledReason) ? d.canceledReason : '—';
+
+      showResult();
+    }, (err)=>{
+      console.error(err);
+      showEmpty('⚠ Възникна грешка при връзката. Презареди страницата.');
+    });
+
+  }catch(err){
+    console.error(err);
+    showEmpty('⚠ Възникна грешка. Опитай отново.');
+  }
+}
+
+// ======= Закачане: винаги работи с клик и Enter =======
+checkBtn.addEventListener('click', runCheck);
+codeInput.addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); runCheck(); }
+});
+
+// ======= Автозареждане от ?code= или от LS =======
+(function initFromURLAndLS(){
+  const params = new URLSearchParams(location.search);
+  const qCode  = params.get('code') || params.get('kod') || params.get('order');
+  const saved  = localStorage.getItem(LS_TRACK) || '';
+  lastCodeEl.textContent = saved || '—';
+
+  if (qCode && /^\d{4}$/.test(qCode)) {
+    showEmpty('⏳ Зареждане на статус…');
+    codeInput.value = qCode;
+    runCheck();
+  } else if (saved && /^\d{4}$/.test(saved)) {
+    showEmpty('⏳ Зареждане на статус…');
+    codeInput.value = saved;
+    runCheck();
+  }
+})();
+
+
+// ======= Копиране на директен линк =======
+copyLinkBtn.addEventListener('click', async ()=>{
+  try{
+    const code = (codeInput.value||'').trim();
+    if(!/^\d{4}$/.test(code)) return;
+    const url = new URL(location.href);
+    url.searchParams.set('code', code);
+    await navigator.clipboard.writeText(url.toString());
+    copyLinkBtn.textContent = '✅ Копирано';
+    setTimeout(()=> copyLinkBtn.textContent='Копирай линк за проследяване', 1200);
+  }catch(_){}
+});
+
+// ======= Почисти listener при напускане =======
+addEventListener('beforeunload', ()=>{ if (typeof unsubscribe==='function') unsubscribe(); });
+</script>
+</body>
+</html>
