@@ -1187,6 +1187,62 @@ const domProductsToArray = () => {
   /* ===========================================================
    * БЛОК 8 (END)
    * =========================================================== */
+function renderSavedAddonsPanels(catKeyOverride) {
+  const key = (catKeyOverride || currentCat()).toLowerCase();
+  const category = CATALOG[key];
+  if (!category || !Array.isArray(category.items)) return;
+
+  if (!grid) return;
+  const cards = [...grid.querySelectorAll(".product")];
+
+  cards.forEach((card, index) => {
+    const item = category.items[index];
+    if (!item || !Array.isArray(item.addons) || !item.addons.length) {
+      // ако няма добавки – махаме стар панел, ако има
+      const oldPanel = card.querySelector(".addons-side");
+      if (oldPanel) oldPanel.remove();
+      return;
+    }
+
+    // създаваме/изчистваме панела
+    let sidePanel = card.querySelector(".addons-side");
+    if (!sidePanel) {
+      sidePanel = document.createElement("div");
+      sidePanel.className = "addons-side";
+      card.style.position = "relative";
+      card.appendChild(sidePanel);
+    } else {
+      sidePanel.innerHTML = "";
+    }
+
+    const titleDiv = document.createElement("div");
+    titleDiv.className = "title";
+    titleDiv.textContent = "Добавки";
+    sidePanel.appendChild(titleDiv);
+
+    item.addons.forEach((a) => {
+      // показваме само избраните (checked = true)
+      if (a.checked === false) return;
+
+      const row = document.createElement("div");
+      row.className = "addon-row";
+
+      const lbl = document.createElement("span");
+      lbl.textContent = `+ ${a.label || ""}`;
+
+      const price = document.createElement("span");
+      const p = parseFloat(a.price || 0);
+      price.textContent = `${isFinite(p) ? p.toFixed(2) : "0.00"} лв`;
+
+      const right = document.createElement("div");
+      right.className = "addon-right";
+      right.append(price);
+
+      row.append(lbl, right);
+      sidePanel.appendChild(row);
+    });
+  });
+}
 
 
   /* ===========================================================
@@ -1194,24 +1250,28 @@ const domProductsToArray = () => {
    * (START)
    * =========================================================== */
 
-  const _activate = activate;
-  activate = function (cat, opts) {
-    _activate(cat, opts);
+const _activate = activate;
+activate = function (cat, opts) {
+  _activate(cat, opts);
 
-    const key = cat || currentCat();
+  const key = cat || currentCat();
 
-    applyAddonsLabelsToDOM(key);
-    enableInlineEditing();
-    enableProductDnd();
-    injectDeleteButtons();
+  applyAddonsLabelsToDOM(key);
+  enableInlineEditing();
+  enableProductDnd();
+  injectDeleteButtons();
 
-    if (typeof ensurePlusRightUniversal === "function")
-      ensurePlusRightUniversal();
-    if (typeof ensureMobilePlusRight === "function")
-      ensureMobilePlusRight();
+  // 🔥 НОВО: винаги рисува панелите за добавки от CATALOG
+  renderSavedAddonsPanels(key);
 
-    applyEuroConversion();
-  };
+  if (typeof ensurePlusRightUniversal === "function")
+    ensurePlusRightUniversal();
+  if (typeof ensureMobilePlusRight === "function")
+    ensureMobilePlusRight();
+
+  applyEuroConversion();
+};
+
 
   // Динамичен курс BGN → EUR
   async function updateEuroRatesAndPrices() {
