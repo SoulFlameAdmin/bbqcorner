@@ -1044,16 +1044,18 @@ function productCardHTML(it, i, withAddons = false) {
             const code  = (a.code || a.label || a.name || "").replace(/"/g, "&quot;");
             const label = esc(a.label || a.name || "Добавка");
             const price = Number(a.price || 0);
-            const priceHtml = price ? ` <span class="addon-price">${fmtLv(price)}</span>` : "";
+
             return `
-              <label>
+              <label class="addon-row">
                 <input
                   type="checkbox"
                   class="addon-checkbox"
                   data-code="${code}"
                   data-price="${price}"
                 >
-                + ${label}${priceHtml}
+                <span class="addon-icon">+</span>
+                <span class="addon-name">${label}</span>
+                <span class="addon-price">${price ? fmtLv(price) : ""}</span>
               </label>
             `;
           }).join("")
@@ -1061,6 +1063,7 @@ function productCardHTML(it, i, withAddons = false) {
       </div>
     `;
   }
+
 
   return `
     <article class="product ${i % 2 ? "even" : ""}">
@@ -1073,9 +1076,11 @@ function productCardHTML(it, i, withAddons = false) {
         ${desc}
 
         ${ current === "burgeri" ? addonsBlock : (wholeAddonsBlock || "") }
+        ${ customAddonsBlock }
 
         ${pricePlusRow}
       </div>
+
     </article>`;
 }
 
