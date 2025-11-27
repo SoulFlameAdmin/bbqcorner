@@ -1,20 +1,37 @@
 // api/upload-image.js
-// Vercel Serverless функция за качване на снимка в GitHub
+// Vercel Serverless функция за качване на снимка в GitHub (с Bearer token)
 
 export default async function handler(req, res) {
   console.log("📥 [API] upload-image.js получи заявка");
 
+  // ❗ Само POST заявки
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Only POST allowed" });
   }
 
   try {
-    // понякога body идва като string → парсваме го
+    // 🛡️ 1. Взимаме токена от Authorization header
+    const authHeader = req.headers.authorization || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      console.log("❌ [API] Missing Authorization header");
+      return res.status(400).json({ ok: false, error: "Missing token" });
+    }
+
+    const GITHUB_TOKEN = authHeader.replace("Bearer ", "").trim();
+    if (!GITHUB_TOKEN) {
+      console.log("❌ [API] Bearer token was empty");
+      return res.status(400).json({ ok: false, error: "Token empty" });
+    }
+
+    console.log("🔑 [API] Получен Bearer Token (OK)");
+
+    // 🧩 2. Body (може да е string → парсваме)
     const rawBody = req.body || "{}";
     const body =
       typeof rawBody === "string" ? JSON.parse(rawBody || "{}") : rawBody;
 
     const { fileName, fileBase64, path } = body;
+
     console.log("📄 [API] fileName:", fileName);
     console.log("📂 [API] path:", path);
 
@@ -24,16 +41,11 @@ export default async function handler(req, res) {
         .json({ ok: false, error: "Missing fileName or fileBase64" });
     }
 
-    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-    const REPO = "SoulFlameAdmin/bbqcorner";
-    const BRANCH = "main";
+    // 🧬 3. GitHub upload данни
+    const REPO = process.env.GITHUB_REPO || "SoulFlameAdmin/bbqcorner";
+    const BRANCH = process.env.GITHUB_BRANCH || "main";
 
-    if (!GITHUB_TOKEN) {
-      console.log("❌ [API] Missing GITHUB token!!!");
-      return res.status(500).json({ ok: false, error: "Missing token" });
-    }
-
-    // махаме "data:image/...;base64," ако го има
+    // 🧹 махаме data:image/...;base64,
     const pureBase64 = fileBase64.includes(",")
       ? fileBase64.split(",")[1]
       : fileBase64;
@@ -42,6 +54,7 @@ export default async function handler(req, res) {
 
     console.log("⬆ [API] Uploading to:", UPLOAD_PATH);
 
+    // 🚀 4. Upload към GitHub
     const githubRes = await fetch(
       `https://api.github.com/repos/${REPO}/contents/${UPLOAD_PATH}`,
       {

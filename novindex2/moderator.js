@@ -184,9 +184,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const fileName = `${categoryKey}_${productKey}_${Date.now()}_${safeName}`;
 
+    // 🔑 взимаме токена (ще те попита само първия път)
+    const githubToken = getGithubToken();
+    if (!githubToken) {
+      alert("❌ Няма GitHub token – не мога да кача снимката.");
+      throw new Error("Missing GitHub token");
+    }
+
     const resp = await fetch("/api/upload-image", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${githubToken}`    // 🔥 важният header
+      },
       body: JSON.stringify({
         fileName,
         fileBase64: base64
@@ -203,6 +213,44 @@ document.addEventListener("DOMContentLoaded", () => {
     // json.url идва от api/upload-image.js (download_url от GitHub)
     return json.url;
   }
+
+// Взима GitHub токена от localStorage или пита веднъж
+  function getGithubToken() {
+    let token = localStorage.getItem("bbq_github_token");
+    if (!token) {
+      token = prompt(
+        "Въведи GitHub Personal Access Token (ще се запази само на този компютър):",
+        ""
+      );
+      if (token) {
+        token = token.trim();
+        localStorage.setItem("bbq_github_token", token);
+      }
+    }
+    return token || "";
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
