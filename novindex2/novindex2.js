@@ -1488,6 +1488,7 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
     bindAddButtons();
     recalcMobileOffsets();
     ensureMobilePlusRight();
+    renderAddonsSidePanels(realCat);
     return;
   }
 
@@ -1512,7 +1513,140 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
   bindAddButtons();
   recalcMobileOffsets();
   ensureMobilePlusRight();
+  renderAddonsSidePanels(realCat);
 }
+
+
+
+
+
+
+
+
+
+
+
+// 🌶 ПАНЕЛ С ИЗБРАНИ ДОБАВКИ ДО КАРТАТА
+function renderAddonsSidePanels(catKey) {
+  if (!grid) return;
+
+  const key = (catKey || current || "").toLowerCase();
+  const category = CATALOG[key];
+  if (!category || !Array.isArray(category.items)) return;
+
+  const cards = [...grid.querySelectorAll(".product")];
+
+  category.items.forEach((item, idx) => {
+    const cardEl = cards[idx];
+    if (!cardEl) return;
+
+    // махаме стар панел
+    const oldPanel = cardEl.querySelector(".addons-side");
+    if (oldPanel) oldPanel.remove();
+
+    if (!item || !Array.isArray(item.addons)) return;
+
+    // взимаме само маркираните добавки (checked: true)
+    const selected = item.addons.filter(a => a && a.checked);
+    if (!selected.length) return;
+
+    const sidePanel = document.createElement("div");
+    sidePanel.className = "addons-side";
+
+    const titleDiv = document.createElement("div");
+    titleDiv.className = "title";
+    titleDiv.textContent = "Добавки";
+    sidePanel.appendChild(titleDiv);
+
+    selected.forEach((a) => {
+      const row = document.createElement("div");
+      row.className = "addon-row";
+
+      const lbl = document.createElement("span");
+      lbl.textContent = `+ ${a.label || ""}`;
+
+      const price = document.createElement("span");
+      const priceNum = parseFloat(a.price || 0);
+      price.textContent = `${priceNum.toFixed(2)} лв`;
+
+      const right = document.createElement("div");
+      right.className = "addon-right";
+      right.append(price);
+
+      row.append(lbl, right);
+      sidePanel.appendChild(row);
+    });
+
+    cardEl.style.position = "relative";
+    cardEl.appendChild(sidePanel);
+  });
+}
+
+// еднократно CSS за панела с добавки
+(function ensureAddonsSideCSS() {
+  const css = `
+    .product, .menu-item, .item-card {
+      overflow: visible !important;
+      position: relative !important;
+      z-index: 5;
+    }
+
+    .addons-side {
+      position: absolute;
+      left: 105%;
+      top: 0;
+      margin-left: 10px;
+      background: #fff;
+      border: 1px solid #ffb30055;
+      border-radius: 10px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.08);
+      min-width: 190px;
+      z-index: 9999;
+      transition: all 0.25s ease;
+      animation: slideInRight .25s ease forwards;
+    }
+
+    .addons-side .title {
+      font-weight: 700;
+      color: #ff7a00;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .addons-side .addon-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .addons-side .addon-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+  `;
+  const style = document.createElement("style");
+  style.textContent = css;
+  document.head.appendChild(style);
+})();
+
+
+
+
+
+
+
+
+
+
 
 
 /* ===== Инициализация ===== */
