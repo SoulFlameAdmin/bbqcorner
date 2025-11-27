@@ -74,6 +74,8 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   display:inline-flex;
   gap:6px;
   z-index:50;
+  opacity:1;
+  pointer-events:auto;
 }
 
 /* Стил на бутоните */
@@ -87,6 +89,18 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color
   font-weight:700;
   cursor:pointer;
   box-shadow:0 2px 8px rgba(0,0,0,.35);
+}
+
+/* ❌ СКРИВАНЕ САМО КОГАТО НЕ СМЕ В MODERATOR */
+body:not(.is-mod) .cat-hover-tools{
+  opacity:0;
+  pointer-events:none;
+}
+
+/* ✨ Показване при hover, когато НЕ сме в MODERATOR */
+body:not(.is-mod) .cat:hover .cat-hover-tools{
+  opacity:1;
+  pointer-events:auto;
 }
 
 /* -----------------------------------------
@@ -158,13 +172,45 @@ body.is-mod .cat:hover .cat-hover-tools{
 .add-btn:hover{background:var(--accent)}
 .add-btn:active{transform:translateY(1px)}
 
-.actions-row{display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:flex-start;gap:10px 14px;width:100%;margin:8px 0 0 0}
-.addons{display:flex;flex-direction:column;gap:6px;align-items:flex-start;flex:1 1 auto;min-width:240px;max-width:520px}
-.addons-underimg{width:100%;margin:8px 16px 10px 16px}
-.addons label{display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;user-select:none}
-.addons input{accent-color:var(--accent)}
-.actions-row .hdr{font-weight:700;margin-bottom:6px}
-.actions-row .add-btn{margin-left:auto;align-self:flex-start}
+.addons{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  align-items:flex-start;
+  flex:1 1 auto;
+  min-width:240px;
+  max-width:520px;
+}
+
+.addons-underimg{
+  width:100%;
+  margin:8px 16px 10px 16px;
+}
+
+/* редът с добавката да е като бутон/карта */
+.addons label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  margin-bottom:4px;
+  border-radius:10px;
+  background:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  cursor:pointer;
+  font-weight:600;
+  font-size:13px;
+  user-select:none;
+}
+
+/* квадратчето */
+.addons input.addon-checkbox{
+  width:18px;
+  height:18px;
+  accent-color:var(--accent);
+  flex-shrink:0;
+}
+
 
 .btn-all{display:inline-block;margin-left:8px;padding:2px 8px;font-weight:800;font-size:12px;border:1px solid var(--soft);border-radius:8px;background:#f6f6f6;cursor:pointer}
 .btn-all:hover{background:#fff;box-shadow:var(--shadow)}
