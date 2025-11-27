@@ -1033,6 +1033,35 @@ function productCardHTML(it, i, withAddons = false) {
     }
   }
 
+  // 🔶 Custom добавки, идващи от Firestore (it.addons)
+  let customAddonsBlock = "";
+  if (Array.isArray(it.addons) && it.addons.length) {
+    customAddonsBlock = `
+      <div class="addons">
+        <div class="hdr">Добавки</div>
+        ${
+          it.addons.map(a => {
+            const code  = (a.code || a.label || a.name || "").replace(/"/g, "&quot;");
+            const label = esc(a.label || a.name || "Добавка");
+            const price = Number(a.price || 0);
+            const priceHtml = price ? ` <span class="addon-price">${fmtLv(price)}</span>` : "";
+            return `
+              <label>
+                <input
+                  type="checkbox"
+                  class="addon-checkbox"
+                  data-code="${code}"
+                  data-price="${price}"
+                >
+                + ${label}${priceHtml}
+              </label>
+            `;
+          }).join("")
+        }
+      </div>
+    `;
+  }
+
   return `
     <article class="product ${i % 2 ? "even" : ""}">
       <div class="leftcol">
