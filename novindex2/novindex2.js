@@ -1744,16 +1744,3 @@ if (sidebar) {
     popThenActivate(catEl, key);
   });
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

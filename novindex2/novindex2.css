@@ -600,3 +600,6 @@ body.is-mod .cat:hover .cat-hover-tools{
   font-size:11px;
 }
 
+.addons-side {
+  display: none !important;
+}
