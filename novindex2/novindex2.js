@@ -1584,9 +1584,8 @@ function renderAddonsSidePanels(catKey) {
     const selected = item.addons.filter(a => a && a.checked);
     if (!selected.length) return;
 
-const sidePanel = document.createElement("div");
-// наследява всички стилове от .addons + нашите .addons-side
-sidePanel.className = "addons addons-side";
+    const sidePanel = document.createElement("div");
+    sidePanel.className = "addons-side";
 
     const titleDiv = document.createElement("div");
     titleDiv.className = "title";
@@ -1680,6 +1679,76 @@ sidePanel.className = "addons addons-side";
   style.textContent = css;
   document.head.appendChild(style);
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+/* ===== Инициализация ===== */
+function shouldBypassDelay(evt){ return evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey || evt.button === 1; }
+const POP_DELAY = 100;
+function popThenActivate(el, key){
+  if (!el) return activate(key, {fromNav:true});
+  el.classList.remove("is-pressed"); el.classList.add("is-popping"); el.dataset.locked = "1";
+  setTimeout(()=>{ activate(key, {fromNav:true}); el.classList.remove("is-popping"); delete el.dataset.locked; }, POP_DELAY);
+}
+function initFromURL(){
+  const params = new URLSearchParams(location.search);
+  const cat = params.get("cat") || "burgeri";
+  activate(cat, {replace:true});
+}
+
+// 🔁 Hook: вика се когато каталогът се зареди/обнови от Firestore / API / localStorage
+window.__bbqAfterCloud = function(from){
+  console.log("♻️ Ререндер след зареждане на каталога от:", from);
+
+  // ❗ В нормален режим обновяваме sidebar-а от Firestore.
+  // ❗ В MOD режим НЕ го пипаме, за да не трием бутоните от HTML-а.
+  if (!IS_MOD) {
+    renderSidebar();
+  }
+
+  setupSidebarHoverTools();
+  initFromURL();
+};
+
+
+// първо възстановяваме количката и бележката
+restoreCartFromLS();
+restoreOrderNote?.();
+
+// първоначално активиране на категорията по URL (ще се презапише след Firestore)
+initFromURL();
+
+// кликове в сайдбара
+// кликове в сайдбара – делегиране, работи и след renderSidebar()/rebuildSidebar()
+if (sidebar) {
+  sidebar.addEventListener("click", (e) => {
+    const catEl = e.target.closest(".cat");
+    if (!catEl || !sidebar.contains(catEl)) return;
+
+    const key = catEl.dataset.cat;
+    if (!key) return;
+
+    if (shouldBypassDelay(e)) return;
+    e.preventDefault();
+    if (catEl.dataset.locked === "1" || key === current) return;
+
+    popThenActivate(catEl, key);
+  });
+}
+
+
+
+
+
 
 
 
