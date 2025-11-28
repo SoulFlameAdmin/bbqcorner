@@ -1625,6 +1625,162 @@ sidePanel.className = "addons addons-side";
 }
 
 
+// еднократно CSS за панела с добавки
+(function ensureAddonsSideCSS() {
+  const css = `
+    .product, .menu-item, .item-card {
+      overflow: visible !important;
+      position: relative !important;
+      z-index: 5;
+    }
+
+    .addons-side {
+      position: absolute;
+      left: 105%;
+      top: 0;
+      margin-left: 10px;
+      background: #fff;
+      border: 1px solid #ffb30055;
+      border-radius: 10px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.08);
+      min-width: 190px;
+      z-index: 9999;
+      transition: all 0.25s ease;
+      animation: slideInRight .25s ease forwards;
+    }
+
+    .addons-side .title {
+      font-weight: 700;
+      color: #ff7a00;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .addons-side .addon-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .addons-side .addon-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+  `;
+  const style = document.createElement("style");
+  style.textContent = css;
+  document.head.appendChild(style);
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+/* ===== Инициализация ===== */
+function shouldBypassDelay(evt){ return evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey || evt.button === 1; }
+const POP_DELAY = 100;
+function popThenActivate(el, key){
+  if (!el) return activate(key, {fromNav:true});
+  el.classList.remove("is-pressed"); el.classList.add("is-popping"); el.dataset.locked = "1";
+  setTimeout(()=>{ activate(key, {fromNav:true}); el.classList.remove("is-popping"); delete el.dataset.locked; }, POP_DELAY);
+}
+function initFromURL(){
+  const params = new URLSearchParams(location.search);
+  const cat = params.get("cat") || "burgeri";
+  activate(cat, {replace:true});
+}
+
+// 🔁 Hook: вика се когато каталогът се зареди/обнови от Firestore / API / localStorage
+window.__bbqAfterCloud = function(from){
+  console.log("♻️ Ререндер след зареждане на каталога от:", from);
+
+  // ❗ В нормален режим обновяваме sidebar-а от Firestore.
+  // ❗ В MOD режим НЕ го пипаме, за да не трием бутоните от HTML-а.
+  if (!IS_MOD) {
+    renderSidebar();
+  }
+
+  setupSidebarHoverTools();
+  initFromURL();
+};
+
+
+// първо възстановяваме количката и бележката
+restoreCartFromLS();
+restoreOrderNote?.();
+
+// първоначално активиране на категорията по URL (ще се презапише след Firestore)
+initFromURL();
+
+// кликове в сайдбара
+// кликове в сайдбара – делегиране, работи и след renderSidebar()/rebuildSidebar()
+if (sidebar) {
+  sidebar.addEventListener("click", (e) => {
+    const catEl = e.target.closest(".cat");
+    if (!catEl || !sidebar.contains(catEl)) return;
+
+    const key = catEl.dataset.cat;
+    if (!key) return;
+
+    if (shouldBypassDelay(e)) return;
+    e.preventDefault();
+    if (catEl.dataset.locked === "1" || key === current) return;
+
+    popThenActivate(catEl, key);
+  });
+}
+
+
+
+.addons-side{
+  position:absolute;
+  left:105%;
+  top:0;
+  margin-left:10px;
+  background:#fff;
+  border:1px solid #ffb30055;
+  border-radius:10px;
+  padding:10px 14px;
+  box-shadow:0 4px 18px rgba(0,0,0,.08);
+  min-width:190px;
+  z-index:9999;
+  transition:all .25s ease;
+}
+
+.addons-side .title{
+  font-weight:700;
+  color:#ff7a00;
+  margin-bottom:6px;
+  text-align:center;
+}
+
+/* по избор – скриваме панелите на мобилно, да не излизат извън екрана */
+@media (max-width:900px){
+  .addons-side{
+    display:none;
+  }
+}
+
+
+
+
+
 
 
 
