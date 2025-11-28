@@ -1560,16 +1560,6 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
 
 
 
-
-
-
-
-
-
-
-
-
-
 // 🌶 ПАНЕЛ С ИЗБРАНИ ДОБАВКИ ДО КАРТАТА
 function renderAddonsSidePanels(catKey) {
   if (!grid) return;
@@ -1634,109 +1624,6 @@ sidePanel.className = "addons addons-side";
   });
 }
 
-
-
-
-
-
-
-// ===============================
-// 🚀 ГЛАВНА ИНИЦИАЛИЗАЦИЯ ЗА ПУБЛИЧНИЯ САЙТ (novindex2)
-// ===============================
-document.addEventListener("DOMContentLoaded", () => {
-  // 1) Възстанови количката от LocalStorage
-  try {
-    restoreCartFromLS?.();
-  } catch (e) {
-    console.warn("restoreCartFromLS error:", e);
-  }
-
-  // 2) Рендер на сайдбара (само в нормален режим, не в модератор)
-  try {
-    if (!IS_MOD && typeof renderSidebar === "function") {
-      renderSidebar();
-    }
-  } catch (e) {
-    console.warn("renderSidebar error:", e);
-  }
-
-  // 3) Активирай категорията от URL-а (по подразбиране ПРОМОЦИИ)
-  try {
-    const params = new URLSearchParams(location.search);
-    const cat = params.get("cat") || "promocii";
-    if (typeof activate === "function") {
-      activate(cat, { replace: true });
-    }
-  } catch (e) {
-    console.warn("activate init error:", e);
-  }
-
-  // 4) Навигация по категориите в сайдбара
-  try {
-    if (sidebar) {
-      sidebar.addEventListener("click", (e) => {
-        const link = e.target.closest(".cat");
-        if (!link) return;
-        e.preventDefault();
-        const c = link.dataset.cat;
-        if (!c) return;
-        activate(c, { fromNav: true });
-      });
-    }
-  } catch (e) {
-    console.warn("sidebar nav error:", e);
-  }
-
-  // 5) Закачаме „+“ бутоните и оправяме позициите им
-  try {
-    if (typeof bindAddButtons === "function") {
-      bindAddButtons();
-    }
-    recalcMobileOffsets?.();
-    ensurePlusRightUniversal?.();
-  } catch (e) {
-    console.warn("bindAddButtons/init layout error:", e);
-  }
-});
-
-// 🔁 Допълнителен hook след зареждане от Firestore/API
-const __oldAfterCloud = window.__bbqAfterCloud || null;
-
-window.__bbqAfterCloud = function (src) {
-  // ако има стар hook – викаме го
-  if (typeof __oldAfterCloud === "function") {
-    try {
-      __oldAfterCloud(src);
-    } catch (e) {
-      console.warn("old afterCloud error:", e);
-    }
-  }
-
-  // след като каталога дойде от Firestore / API / localStorage
-  try {
-    // пререндър на сайдбара
-    if (!IS_MOD && typeof renderSidebar === "function") {
-      renderSidebar();
-    }
-
-    // активиране на текущата категория според URL-а
-    const params = new URLSearchParams(location.search);
-    const cat = params.get("cat") || "promocii";
-    if (typeof activate === "function") {
-      activate(cat, { replace: true });
-    }
-
-    // вързваме + бутоните отново
-    if (typeof bindAddButtons === "function") {
-      bindAddButtons();
-    }
-
-    recalcMobileOffsets?.();
-    ensurePlusRightUniversal?.();
-  } catch (e) {
-    console.warn("afterCloud refresh error:", e);
-  }
-};
 
 
 
