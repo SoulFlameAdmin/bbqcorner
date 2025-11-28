@@ -1690,10 +1690,41 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // 🔁 Допълнителен hook след зареждане от Firestore/API
-const __oldAfterCloud = window.__bbqAfterCloud;
+const __oldAfterCloud = window.__bbqAfterCloud || null;
+
 window.__bbqAfterCloud = function (src) {
+  // ако има стар hook – викаме го
   if (typeof __oldAfterCloud === "function") {
-    try { __oldAfterCloud(src); } catch (e) { console.warn("old afterCloud error:", e); }
+    try {
+      __oldAfterCloud(src);
+    } catch (e) {
+      console.warn("old afterCloud error:", e);
+    }
   }
 
-  // с
+  // след като каталога дойде от Firestore / API / localStorage
+  try {
+    // пререндър на сайдбара
+    if (!IS_MOD && typeof renderSidebar === "function") {
+      renderSidebar();
+    }
+
+    // активиране на текущата категория според URL-а
+    const params = new URLSearchParams(location.search);
+    const cat = params.get("cat") || "promocii";
+    if (typeof activate === "function") {
+      activate(cat, { replace: true });
+    }
+
+    // вързваме + бутоните отново
+    if (typeof bindAddButtons === "function") {
+      bindAddButtons();
+    }
+
+    recalcMobileOffsets?.();
+    ensurePlusRightUniversal?.();
+  } catch (e) {
+    console.warn("afterCloud refresh error:", e);
+  }
+};
+
