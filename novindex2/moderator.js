@@ -923,7 +923,7 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
    * (START)
    * =========================================================== */
 
-  const enableInlineEditing = () => {
+    const enableInlineEditing = () => {
     // Заглавие / описание / цена
     document
       .querySelectorAll(".product .title, .product .desc, .price-badge .lv")
@@ -935,11 +935,35 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
 
         el.addEventListener("input", () => {
           const key = currentCat();
-          const cards = [...grid.querySelectorAll(".product")];
+          const catObj = CATALOG[key] || {};
+          const cards = grid ? [...grid.querySelectorAll(".product")] : [];
           const index = cards.findIndex((x) => x.contains(el));
+
+          // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery') – няма .product карти
+          if (index < 0 && catObj.view === "gallery") {
+            // засега позволяваме само смяна на общата цена hellPrice
+            if (el.classList.contains("lv")) {
+              const newPrice = lvParse(el.textContent);
+              catObj.hellPrice = newPrice;
+
+              // обновяваме визуално всички цени в галерията
+              const formatted = lvFormat(newPrice);
+              document
+                .querySelectorAll(".gallery .price-badge .lv")
+                .forEach((node) => {
+                  node.textContent = formatted;
+                });
+
+              persistDraft();
+              applyEuroConversion();
+            }
+            return;
+          }
+
+          // нормалните категории с .product
           if (index < 0) return;
 
-          const item = (CATALOG[key]?.items || [])[index];
+          const item = (catObj.items || [])[index];
           if (!item) return;
 
           if (el.classList.contains("title")) {
@@ -954,6 +978,24 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
         });
       });
 
+    // 🔠 Заглавия на секциите при HELL (sec-title)
+    const keyForGallery = currentCat();
+    if (CATALOG[keyForGallery] && CATALOG[keyForGallery].view === "gallery") {
+      document.querySelectorAll(".sec-title").forEach((titleEl, idx) => {
+        titleEl.contentEditable = "true";
+        titleEl.setAttribute("data-mod", "1");
+        titleEl.style.outline = "1px dashed #ff7a00";
+        titleEl.style.cursor = "text";
+
+        titleEl.addEventListener("input", () => {
+          const cat = CATALOG[currentCat()];
+          if (!cat || !Array.isArray(cat.groups)) return;
+          if (!cat.groups[idx]) return;
+          cat.groups[idx].heading = titleEl.textContent.trim();
+          persistDraft();
+        });
+      });
+    }
 
     // Смяна на снимки (Vercel + GitHub upload)
     document
@@ -963,25 +1005,23 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
 
         img.addEventListener("click", () => {
           const input = document.createElement("input");
-          input.type  = "file";
+          input.type = "file";
           input.accept = "image/*";
 
           input.onchange = async (e) => {
-            const file = e.target.files?.[0];
+            const file = (e.target.files && e.target.files[0]);
             if (!file) return;
 
-            const key   = currentCat();
-            const cards = [...grid.querySelectorAll(".product")];
-            const index = cards.findIndex((x) => x.contains(img));
-            if (index < 0) {
-              console.warn("Не намерих продукт за тази снимка");
-              return;
-            }
+            const key = currentCat();
+            const catObj = CATALOG[key] || {};
 
-            // productKey – прост идентификатор по индекс
-            const productKey = `item_${index}`;
+            // по подразбиране търсим .product карта
+            const cards = grid ? [...grid.querySelectorAll(".product")] : [];
+            let index = cards.findIndex((x) => x.contains(img));
 
             try {
+              const productKey = index >= 0 ? `item_${index}` : "tile";
+
               // 1) качваме файла към /api/upload-image -> GitHub
               const url = await uploadImageViaApi(file, key, productKey);
 
@@ -992,9 +1032,32 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
                 img.style.backgroundImage = `url('${url}')`;
               }
 
-              // 3) записваме URL и в CATALOG[key].items[index].img
-              if (CATALOG[key]?.items?.[index]) {
-                CATALOG[key].items[index].img = url;
+              // 3А) Нормален продукт – пазим в CATALOG[key].items[index].img
+              if (index >= 0 && catObj.items && catObj.items[index]) {
+                catObj.items[index].img = url;
+              }
+              // 3Б) HELL / GALLERY – няма .product; update по група и индекс в галерията
+              else if (catObj.view === "gallery") {
+                const tileEl = img.closest(".tile");
+                const galleryEl = tileEl ? tileEl.closest(".gallery") : null;
+                if (tileEl && galleryEl && Array.isArray(catObj.groups)) {
+                  const galleries = [
+                    ...document.querySelectorAll(".gallery")
+                  ];
+                  const groupIdx = galleries.indexOf(galleryEl);
+                  if (groupIdx >= 0 && catObj.groups[groupIdx]) {
+                    const imgsInGroup = [
+                      ...galleryEl.querySelectorAll(".tile img")
+                    ];
+                    const imgIdx = imgsInGroup.indexOf(img);
+                    if (
+                      imgIdx >= 0 &&
+                      Array.isArray(catObj.groups[groupIdx].images)
+                    ) {
+                      catObj.groups[groupIdx].images[imgIdx] = url;
+                    }
+                  }
+                }
               }
 
               // 4) пазим чернова локално
@@ -1010,7 +1073,6 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
           input.click();
         });
       });
-
 
     // Редакция на текстовете на добавките
     document.querySelectorAll(".addons label").forEach((lbl) => {
@@ -1045,7 +1107,7 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
               `.addon-checkbox:not([data-group])`
             )
           ];
-          const idx = all.findIndex((b) => b.closest("label") === lbl);
+          const idx = all.findIndex((b) => b === box);
           const price = Number(all[idx].getAttribute("data-price") || 0);
           mem.paid[idx] = { code, label: raw, price };
         }
