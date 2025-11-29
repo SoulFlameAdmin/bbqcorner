@@ -155,82 +155,62 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   // ============================
-  // 🧩 ХЕЛПЪРИ ЗА UPLOAD НА СНИМКИ (Vercel + GitHub)
-  // ============================
+// 🧩 ХЕЛПЪРИ ЗА UPLOAD НА СНИМКИ
+// ============================
 
-  // леко чистене на име на файл
-  function sanitizeFileName(name) {
-    return name.replace(/[^a-z0-9.\-_]/gi, "_");
+// леко чистене на име на файл
+function sanitizeFileName(name) {
+  return name.replace(/[^a-z0-9.\-_]/gi, "_");
+}
+
+// File → base64 (data URL)
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result);
+    reader.onerror = (e) => reject(e);
+    reader.readAsDataURL(file);
+  });
+}
+
+// ===========================================================
+// Качва снимка чрез backend /api/upload-image
+// ВРЪЩА публичния URL (без GitHub токени, без Authorization)
+// ===========================================================
+async function uploadImageViaApi(file, categoryKey, productKey) {
+  const safeName  = sanitizeFileName(file.name);
+  const rawBase64 = await fileToBase64(file); // "data:image/jpeg;base64,AAAA..."
+  const base64    = rawBase64.split(",")[1];  // махаме "data:..."
+
+  const fileName = `${categoryKey}_${productKey}_${Date.now()}_${safeName}`;
+
+  // ✔ Извикваме upload-image.js без токени
+  const resp = await fetch("/api/upload-image", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      fileName,
+      fileBase64: base64
+    })
+  });
+
+  const json = await resp.json();
+
+  if (!resp.ok || !json.ok) {
+    console.error("Upload API error:", json);
+    throw new Error(json.error || "Upload failed");
   }
 
-  // File → base64 (data URL)
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload  = () => resolve(reader.result);
-      reader.onerror = (e) => reject(e);
-      reader.readAsDataURL(file);
-    });
-  }
+  // ✔ json.url идва от api/upload-image.js — публичният линк
+  return json.url;
+}
 
-  /**
-   * Качва снимка чрез backend /api/upload-image
-   * и връща публичния URL от GitHub.
-   */
-  async function uploadImageViaApi(file, categoryKey, productKey) {
-    const safeName  = sanitizeFileName(file.name);
-    const rawBase64 = await fileToBase64(file);   // "data:image/jpeg;base64,AAAA..."
-    const base64    = rawBase64.split(",")[1];    // махаме data:... частта
-
-    const fileName = `${categoryKey}_${productKey}_${Date.now()}_${safeName}`;
-
-    // 🔑 взимаме токена (ще те попита само първия път)
-    const githubToken = getGithubToken();
-    if (!githubToken) {
-      alert("❌ Няма GitHub token – не мога да кача снимката.");
-      throw new Error("Missing GitHub token");
-    }
-
-    const resp = await fetch("/api/upload-image", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${githubToken}`    // 🔥 важният header
-      },
-      body: JSON.stringify({
-        fileName,
-        fileBase64: base64
-      })
-    });
-
-    const json = await resp.json();
-
-    if (!resp.ok || !json.ok) {
-      console.error("Upload API error:", json);
-      throw new Error(json.error || "Upload failed");
-    }
-
-    // json.url идва от api/upload-image.js (download_url от GitHub)
-    return json.url;
-  }
-
-// Взима GitHub токена от localStorage или пита веднъж
-  function getGithubToken() {
-    let token = localStorage.getItem("bbq_github_token");
-    if (!token) {
-      token = prompt(
-        "Въведи GitHub Personal Access Token (ще се запази само на този компютър):",
-        ""
-      );
-      if (token) {
-        token = token.trim();
-        localStorage.setItem("bbq_github_token", token);
-      }
-    }
-    return token || "";
-  }
-
-
+// ❌ GitHub токени вече НЕ се използват
+function getGithubToken() {
+  return ""; 
+}
 
 
 
