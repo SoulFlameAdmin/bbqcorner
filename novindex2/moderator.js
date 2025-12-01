@@ -268,7 +268,7 @@ const snapshotRuntime = () => {
         img:   it.img   || ""
       };
 
-      // 🧩 ВАЖНО: пазим и добавките
+      // 🧩 пазим и добавките
       if (Array.isArray(it.addons) && it.addons.length) {
         base.addons = it.addons.map(a => ({ ...a }));
       }
@@ -280,14 +280,18 @@ const snapshotRuntime = () => {
       title: cat.title || key.toUpperCase(),
       view: cat.view ?? undefined,
       hellPrice: cat.hellPrice ?? undefined,
-      items: Array.isArray(cat.items) ? cat.items.map(normalizeItem) : undefined,
+      items: Array.isArray(cat.items)
+        ? cat.items.map(normalizeItem)
+        : undefined,
       groups: Array.isArray(cat.groups)
         ? cat.groups.map((g) => ({
             heading: g.heading || "",
             items: Array.isArray(g.items) ? g.items.map(normalizeItem) : undefined,
             images: Array.isArray(g.images) ? [...g.images] : undefined,
-            // 🔸 НОВО: индивидуални цени за галерията (HELL)
+            // 🔸 индивидуални цени за галерията (HELL)
             prices: Array.isArray(g.prices) ? [...g.prices] : undefined,
+            // 🔸 ИМЕНА под снимките (галерия) – ново!
+            labels: Array.isArray(g.labels) ? [...g.labels] : undefined,
             pair: Array.isArray(g.pair) ? g.pair.map((p) => ({ ...p })) : undefined
           }))
         : undefined
@@ -298,6 +302,7 @@ const snapshotRuntime = () => {
 
   return snap;
 };
+
 
 
 
@@ -920,256 +925,278 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
    * =========================================================== */
 
 
-   /* ===========================================================
-   * БЛОК 7: INLINE РЕДАКЦИЯ НА ПРОДУКТИ (ТЕКСТ/ЦЕНИ/СНИМКИ)
-   * (START)
-   * =========================================================== */
+/* ===========================================================
+ * БЛОК 7: INLINE РЕДАКЦИЯ НА ПРОДУКТИ (ТЕКСТ/ЦЕНИ/СНИМКИ)
+ * (START)
+ * =========================================================== */
 
-  const enableInlineEditing = () => {
-    // Заглавие / описание / цена
-    document
-      .querySelectorAll(".product .title, .product .desc, .price-badge .lv")
-      .forEach((el) => {
-        el.contentEditable = "true";
-        el.setAttribute("data-mod", "1");
-        el.style.outline = "1px dashed #ff7a00";
-        el.style.cursor = "text";
+const enableInlineEditing = () => {
+  // Заглавие / описание / цена / име под снимка в галерия
+  document
+    .querySelectorAll(
+      ".product .title, .product .desc, .price-badge .lv, .gallery .caption"
+    )
+    .forEach((el) => {
+      el.contentEditable = "true";
+      el.setAttribute("data-mod", "1");
+      el.style.outline = "1px dashed #ff7a00";
+      el.style.cursor = "text";
 
-        el.addEventListener("input", () => {
-          const key    = currentCat();
-          const catObj = CATALOG[key] || {};
-          const cards  = grid ? [...grid.querySelectorAll(".product")] : [];
-          const index  = cards.findIndex((x) => x.contains(el));
+      el.addEventListener("input", () => {
+        const key    = currentCat();
+        const catObj = CATALOG[key] || {};
+        const cards  = grid ? [...grid.querySelectorAll(".product")] : [];
+        const index  = cards.findIndex((x) => x.contains(el));
 
-          // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery') – работим по плочка, не по cat.hellPrice
-          if (index < 0 && catObj.view === "gallery") {
-            // интересуват ни само LV полетата в плочките
-            if (!el.classList.contains("lv")) return;
+        // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery') – работим по плочка
+        if (index < 0 && catObj.view === "gallery") {
+          // намираме .tile за тази плочка
+          let tile = el.closest(".tile");
+          if (!tile && el.classList.contains("caption")) {
+            // при caption .tile е братче в същия контейнер
+            const wrap = el.closest("div");
+            if (wrap) tile = wrap.querySelector(".tile");
+          }
+          if (!tile) return;
 
-            const tile = el.closest(".tile");
-            if (!tile) return;
+          const gIdx   = Number(tile.dataset.g);
+          const imgIdx = Number(tile.dataset.i);
 
-            const gIdx   = Number(tile.dataset.g);
-            const imgIdx = Number(tile.dataset.i);
+          if (!Array.isArray(catObj.groups) || !catObj.groups[gIdx]) return;
+          const group = catObj.groups[gIdx];
 
-            if (!Array.isArray(catObj.groups) || !catObj.groups[gIdx]) return;
-            const group = catObj.groups[gIdx];
-
+          // 🧮 ЦЕНА на конкретната снимка
+          if (el.classList.contains("lv")) {
             const newPrice = lvParse(el.textContent);
 
-            // осигуряваме масива с цени за тази група
             if (!Array.isArray(group.prices)) group.prices = [];
             group.prices[imgIdx] = newPrice;
 
             // нормализираме LV текста
             el.textContent = lvFormat(newPrice);
 
-            // ъпдейт на € според ВСЕКИ lv поотделно
+            // ъпдейт на € според конкретния lv
             persistDraft();
             applyEuroConversion();
-            return; // ❗ много важно – да не пада надолу към "нормалните" продукти
+            return; // да не пада надолу
           }
 
-          // === нормални категории с .product карти
-          if (index < 0) return;
+          // 🏷 ИМЕ под снимката (caption)
+          if (el.classList.contains("caption")) {
+            const newName = el.textContent.trim();
+            if (!newName) return;
 
-          const item = (catObj.items || [])[index];
-          if (!item) return;
+            if (!Array.isArray(group.labels)) group.labels = [];
+            group.labels[imgIdx] = newName;
 
-          if (el.classList.contains("title")) {
-            item.name = el.textContent.trim();
-          } else if (el.classList.contains("desc")) {
-            item.desc = el.textContent.trim();
-          } else if (el.classList.contains("lv")) {
-            item.price = lvParse(el.textContent);
+            persistDraft();
+            return;
           }
 
-          persistDraft();
-        });
-      });
-
-    // 🔠 Заглавия на секциите при HELL (sec-title)
-    const keyForGallery = currentCat();
-    if (CATALOG[keyForGallery] && CATALOG[keyForGallery].view === "gallery") {
-      document.querySelectorAll(".sec-title").forEach((titleEl, idx) => {
-        titleEl.contentEditable = "true";
-        titleEl.setAttribute("data-mod", "1");
-        titleEl.style.outline = "1px dashed #ff7a00";
-        titleEl.style.cursor = "text";
-
-        titleEl.addEventListener("input", () => {
-          const cat = CATALOG[currentCat()];
-          if (!cat || !Array.isArray(cat.groups)) return;
-          if (!cat.groups[idx]) return;
-          cat.groups[idx].heading = titleEl.textContent.trim();
-          persistDraft();
-        });
-      });
-    }
-
-    // Смяна на снимки (Vercel + GitHub upload)
-    document
-      .querySelectorAll(".product .photo, .tile img, .water-card img")
-      .forEach((img) => {
-        img.style.cursor = "pointer";
-
-        img.addEventListener("click", () => {
-          const input = document.createElement("input");
-          input.type = "file";
-          input.accept = "image/*";
-
-          input.onchange = async (e) => {
-            const file = (e.target.files && e.target.files[0]);
-            if (!file) return;
-
-            const key    = currentCat();
-            const catObj = CATALOG[key] || {};
-
-            // по подразбиране търсим .product карта
-            const cards = grid ? [...grid.querySelectorAll(".product")] : [];
-            let index   = cards.findIndex((x) => x.contains(img));
-
-            try {
-              const productKey = index >= 0 ? `item_${index}` : "tile";
-
-              // 1) качваме файла към /api/upload-image -> GitHub
-              const url = await uploadImageViaApi(file, key, productKey);
-
-              // 2) обновяваме DOM
-              if (img.tagName === "IMG") {
-                img.src = url;
-              } else {
-                img.style.backgroundImage = `url('${url}')`;
-              }
-
-              // 3А) Нормален продукт – пазим в CATALOG[key].items[index].img
-              if (index >= 0 && catObj.items && catObj.items[index]) {
-                catObj.items[index].img = url;
-              }
-              // 3Б) HELL / GALLERY – update по група и индекс в галерията
-              else if (catObj.view === "gallery") {
-                const tileEl    = img.closest(".tile");
-                const galleryEl = tileEl ? tileEl.closest(".gallery") : null;
-                if (tileEl && galleryEl && Array.isArray(catObj.groups)) {
-                  const galleries = [
-                    ...document.querySelectorAll(".gallery")
-                  ];
-                  const groupIdx = galleries.indexOf(galleryEl);
-                  if (groupIdx >= 0 && catObj.groups[groupIdx]) {
-                    const imgsInGroup = [
-                      ...galleryEl.querySelectorAll(".tile img")
-                    ];
-                    const imgIdx = imgsInGroup.indexOf(img);
-                    if (
-                      imgIdx >= 0 &&
-                      Array.isArray(catObj.groups[groupIdx].images)
-                    ) {
-                      catObj.groups[groupIdx].images[imgIdx] = url;
-                    }
-                  }
-                }
-              }
-
-              persistDraft();
-              toast("📸 Снимката е качена!");
-
-            } catch (err) {
-              console.error("Upload error:", err);
-              toast("❌ Грешка при качване на снимка");
-            }
-          };
-
-          input.click();
-        });
-      });
-
-    // Редакция на текстовете на добавките
-    document.querySelectorAll(".addons label").forEach((lbl) => {
-      const txtNode = [...lbl.childNodes].find((n) => n.nodeType === 3);
-      if (!txtNode) return;
-
-      lbl.setAttribute("contenteditable", "true");
-
-      lbl.addEventListener("blur", () => {
-        const key = currentCat();
-        const box = lbl.querySelector(".addon-checkbox");
-        if (!box) return;
-
-        const group = box.dataset.group || null;
-        const code  = box.dataset.code  || null;
-        const raw   = (lbl.textContent || "").trim().replace(/^\+\s*/, "");
-        const mem   = getMemory() || {};
-
-        if (group === "veg" || group === "sauce") {
-          const all = [
-            ...lbl.parentElement.parentElement.querySelectorAll(
-              `.addon-checkbox[data-group="${group}"]`
-            )
-          ];
-          const idx = all.findIndex((b) => b.closest("label") === lbl);
-          mem[group] = mem[group] || [];
-          mem[group][idx] = raw;
-        } else {
-          mem.paid = mem.paid || [];
-          const all = [
-            ...lbl.parentElement.parentElement.querySelectorAll(
-              `.addon-checkbox:not([data-group])`
-            )
-          ];
-          const idx   = all.findIndex((b) => b === box);
-          const price = Number(all[idx].getAttribute("data-price") || 0);
-          mem.paid[idx] = { code, label: raw, price };
+          return;
         }
 
-        putAddonsFor(key, mem);
+        // === нормални категории с .product карти
+        if (index < 0) return;
+
+        const item = (catObj.items || [])[index];
+        if (!item) return;
+
+        if (el.classList.contains("title")) {
+          item.name = el.textContent.trim();
+        } else if (el.classList.contains("desc")) {
+          item.desc = el.textContent.trim();
+        } else if (el.classList.contains("lv")) {
+          item.price = lvParse(el.textContent);
+        }
+
+        persistDraft();
       });
     });
 
-    // Двоен клик – бърза смяна на цена на платени добавки
-    document
-      .querySelectorAll(".addons .addon-checkbox:not([data-group])")
-      .forEach((box) => {
-        const lbl = box.closest("label");
-        if (!lbl) return;
+  // 🔠 Заглавия на секциите при HELL (sec-title)
+  const keyForGallery = currentCat();
+  if (CATALOG[keyForGallery] && CATALOG[keyForGallery].view === "gallery") {
+    document.querySelectorAll(".sec-title").forEach((titleEl, idx) => {
+      titleEl.contentEditable = "true";
+      titleEl.setAttribute("data-mod", "1");
+      titleEl.style.outline = "1px dashed #ff7a00";
+      titleEl.style.cursor = "text";
 
-        lbl.addEventListener("dblclick", (e) => {
-          e.preventDefault();
-          const cur = Number(box.getAttribute("data-price") || 0);
-          const p   = prompt("Цена за тази добавка:", cur);
-          if (p == null) return;
-
-          const val = Number(String(p).replace(",", "."));
-          if (!Number.isFinite(val)) return;
-
-          box.setAttribute("data-price", val);
-
-          const key = currentCat();
-          const mem = getMemory() || {};
-          mem.paid = mem.paid || [];
-
-          const all = [
-            ...lbl.parentElement.parentElement.querySelectorAll(
-              `.addon-checkbox:not([data-group])`
-            )
-          ];
-          const idx = all.findIndex((b) => b === box);
-
-          const labelText = (lbl.textContent || "")
-            .trim()
-            .replace(/^\+\s*/, "");
-          const code = box.getAttribute("data-code") || "";
-
-          mem.paid[idx] = { code, label: labelText, price: val };
-          putAddonsFor(key, mem);
-
-          toast("Цена обновена");
-        });
+      titleEl.addEventListener("input", () => {
+        const cat = CATALOG[currentCat()];
+        if (!cat || !Array.isArray(cat.groups)) return;
+        if (!cat.groups[idx]) return;
+        cat.groups[idx].heading = titleEl.textContent.trim();
+        persistDraft();
       });
-  };
+    });
+  }
 
-  /* ===========================================================
-   * БЛОК 7 (END)
-   * =========================================================== */
+  // Смяна на снимки (Vercel + GitHub upload)
+  document
+    .querySelectorAll(".product .photo, .tile img, .water-card img")
+    .forEach((img) => {
+      img.style.cursor = "pointer";
+
+      img.addEventListener("click", () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+
+        input.onchange = async (e) => {
+          const file = (e.target.files && e.target.files[0]);
+          if (!file) return;
+
+          const key    = currentCat();
+          const catObj = CATALOG[key] || {};
+
+          // по подразбиране търсим .product карта
+          const cards = grid ? [...grid.querySelectorAll(".product")] : [];
+          let index   = cards.findIndex((x) => x.contains(img));
+
+          try {
+            const productKey = index >= 0 ? `item_${index}` : "tile";
+
+            // 1) качваме файла към /api/upload-image -> GitHub
+            const url = await uploadImageViaApi(file, key, productKey);
+
+            // 2) обновяваме DOM
+            if (img.tagName === "IMG") {
+              img.src = url;
+            } else {
+              img.style.backgroundImage = `url('${url}')`;
+            }
+
+            // 3А) Нормален продукт – пазим в CATALOG[key].items[index].img
+            if (index >= 0 && catObj.items && catObj.items[index]) {
+              catObj.items[index].img = url;
+            }
+            // 3Б) HELL / GALLERY – update по група и индекс в галерията
+            else if (catObj.view === "gallery") {
+              const tileEl    = img.closest(".tile");
+              const galleryEl = tileEl ? tileEl.closest(".gallery") : null;
+              if (tileEl && galleryEl && Array.isArray(catObj.groups)) {
+                const galleries = [
+                  ...document.querySelectorAll(".gallery")
+                ];
+                const groupIdx = galleries.indexOf(galleryEl);
+                if (groupIdx >= 0 && catObj.groups[groupIdx]) {
+                  const imgsInGroup = [
+                    ...galleryEl.querySelectorAll(".tile img")
+                  ];
+                  const imgIdx = imgsInGroup.indexOf(img);
+                  if (
+                    imgIdx >= 0 &&
+                    Array.isArray(catObj.groups[groupIdx].images)
+                  ) {
+                    catObj.groups[groupIdx].images[imgIdx] = url;
+                  }
+                }
+              }
+            }
+
+            persistDraft();
+            toast("📸 Снимката е качена!");
+
+          } catch (err) {
+            console.error("Upload error:", err);
+            toast("❌ Грешка при качване на снимка");
+          }
+        };
+
+        input.click();
+      });
+    });
+
+  // Редакция на текстовете на добавките
+  document.querySelectorAll(".addons label").forEach((lbl) => {
+    const txtNode = [...lbl.childNodes].find((n) => n.nodeType === 3);
+    if (!txtNode) return;
+
+    lbl.setAttribute("contenteditable", "true");
+
+    lbl.addEventListener("blur", () => {
+      const key = currentCat();
+      const box = lbl.querySelector(".addon-checkbox");
+      if (!box) return;
+
+      const group = box.dataset.group || null;
+      const code  = box.dataset.code  || null;
+      const raw   = (lbl.textContent || "").trim().replace(/^\+\s*/, "");
+      const mem   = getMemory() || {};
+
+      if (group === "veg" || group === "sauce") {
+        const all = [
+          ...lbl.parentElement.parentElement.querySelectorAll(
+            `.addon-checkbox[data-group="${group}"]`
+          )
+        ];
+        const idx = all.findIndex((b) => b.closest("label") === lbl);
+        mem[group] = mem[group] || [];
+        mem[group][idx] = raw;
+      } else {
+        mem.paid = mem.paid || [];
+        const all = [
+          ...lbl.parentElement.parentElement.querySelectorAll(
+            `.addon-checkbox:not([data-group])`
+          )
+        ];
+        const idx   = all.findIndex((b) => b === box);
+        const price = Number(all[idx].getAttribute("data-price") || 0);
+        mem.paid[idx] = { code, label: raw, price };
+      }
+
+      putAddonsFor(key, mem);
+    });
+  });
+
+  // Двоен клик – бърза смяна на цена на платени добавки
+  document
+    .querySelectorAll(".addons .addon-checkbox:not([data-group])")
+    .forEach((box) => {
+      const lbl = box.closest("label");
+      if (!lbl) return;
+
+      lbl.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        const cur = Number(box.getAttribute("data-price") || 0);
+        const p   = prompt("Цена за тази добавка:", cur);
+        if (p == null) return;
+
+        const val = Number(String(p).replace(",", "."));
+        if (!Number.isFinite(val)) return;
+
+        box.setAttribute("data-price", val);
+
+        const key = currentCat();
+        const mem = getMemory() || {};
+        mem.paid = mem.paid || [];
+
+        const all = [
+          ...lbl.parentElement.parentElement.querySelectorAll(
+            `.addon-checkbox:not([data-group])`
+          )
+        ];
+        const idx = all.findIndex((b) => b === box);
+
+        const labelText = (lbl.textContent || "")
+          .trim()
+          .replace(/^\+\s*/, "");
+        const code = box.getAttribute("data-code") || "";
+
+        mem.paid[idx] = { code, label: labelText, price: val };
+        putAddonsFor(key, mem);
+
+        toast("Цена обновена");
+      });
+    });
+};
+
+/* ===========================================================
+ * БЛОК 7 (END)
+ * =========================================================== */
+
 
 
 

@@ -1469,7 +1469,15 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
       .map((group, gIdx) => {
         const pics = (group.images || [])
           .map((src, imgIdx) => {
-            const label = esc(prettyLabel(src));
+            // 🔸 име за конкретната снимка:
+            // ако има записано в group.labels → взимаме него,
+            // иначе ползваме prettyLabel(src)
+            const rawLabel =
+              Array.isArray(group.labels) && group.labels[imgIdx]
+                ? group.labels[imgIdx]
+                : prettyLabel(src);
+
+            const label = esc(rawLabel);
 
             // 🧩 индивидуална цена за тази снимка, ако има такава
             const rawPrice = Array.isArray(group.prices)
@@ -1490,11 +1498,13 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
                   <div class="eur">${fmtEur(price)}</div>
                 </div>
                 <button class="add-btn"
-                        data-name="${label.replace(/"/g, "&quot;")}"
+                        data-name="${rawLabel.replace(/"/g, "&quot;")}"
                         data-price="${price}"
                         data-img="${src}">+</button>
               </div>
-              <div class="caption">${label}</div>
+              <div class="caption"
+                   data-g="${gIdx}"
+                   data-i="${imgIdx}">${label}</div>
             </div>`;
           })
           .join("");
@@ -1511,6 +1521,7 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
     ensureMobilePlusRight();
     return;
   }
+
 
 
   // === стандартен списък с продукти ===
