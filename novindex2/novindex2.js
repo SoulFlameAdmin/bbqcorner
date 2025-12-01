@@ -1469,14 +1469,18 @@ if (data.view === "gallery") {
     .map((group, gIdx) => {
       const pics = (group.images || [])
         .map((src, imgIdx) => {
-          // 🏷 1) Име: първо от group.labels, после от името на файла
-          const rawLabel =
-            Array.isArray(group.labels) && group.labels[imgIdx]
-              ? group.labels[imgIdx]
+          // име под снимката – ако имаме запазен item, ползваме него,
+          // иначе prettyLabel(src)
+          const itemName =
+            Array.isArray(group.items) &&
+            group.items[imgIdx] &&
+            group.items[imgIdx].name
+              ? group.items[imgIdx].name
               : prettyLabel(src);
-          const label = esc(rawLabel);
 
-          // 💰 2) Индивидуална цена за тази снимка, ако има
+          const label = esc(itemName);
+
+          // индивидуална цена за тази снимка, ако има такава
           const rawPrice = Array.isArray(group.prices)
             ? group.prices[imgIdx]
             : undefined;

@@ -513,14 +513,69 @@ const savePermanent = () => {
       if (!entry) return;
 
       if (action === "restore") {
+        const entry = arr[i];
+        if (!entry) return;
+
         if (entry.kind === "product") {
-          const { catKey, index, item } = entry;
+          const { catKey, index, item, groupIndex, isHell } = entry;
+
+          // ако няма категория – създаваме я
           if (!CATALOG[catKey]) {
             CATALOG[catKey] = { title: catKey.toUpperCase(), items: [] };
           }
-          const L = CATALOG[catKey].items;
+
+          // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL / gallery продукт (плочка)
+          if (isHell && typeof groupIndex === "number") {
+            const cat = CATALOG[catKey];
+            cat.view = cat.view || "gallery";
+            cat.groups = cat.groups || [];
+
+            if (!cat.groups[groupIndex]) {
+              cat.groups[groupIndex] = {
+                heading: "",
+                images: [],
+                prices: [],
+                items: []
+              };
+            }
+
+            const g = cat.groups[groupIndex];
+
+            if (!Array.isArray(g.images)) g.images = [];
+            if (!Array.isArray(g.prices)) g.prices = [];
+            if (!Array.isArray(g.items))  g.items  = [];
+
+            const len = g.images.length;
+            const pos = Math.max(0, Math.min(index ?? len, len));
+
+            const priceNum =
+              typeof item.price === "number"
+                ? item.price
+                : (cat.hellPrice ?? 0);
+
+            const imgUrl = item.img || "";
+
+            g.images.splice(pos, 0, imgUrl);
+            g.prices.splice(pos, 0, priceNum);
+            g.items.splice(pos, 0, {
+              name: item.name || "Продукт",
+              desc: "",
+              price: priceNum,
+              img: imgUrl
+            });
+
+            persistDraft();
+            trashDel(i);
+            activate(catKey, { replace: true });
+            toast("Възстановен продукт (HELL)");
+            return;
+          }
+
+          // 🧊 Нормален продукт (не HELL gallery)
+          const L = CATALOG[catKey].items || (CATALOG[catKey].items = []);
           const pos = Math.max(0, Math.min(index ?? L.length, L.length));
           L.splice(pos, 0, item);
+
           persistDraft();
           trashDel(i);
           activate(catKey, { replace: true });
@@ -943,9 +998,11 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
  * =========================================================== */
 
 const enableInlineEditing = () => {
-  // Заглавие / описание / цена (нормални продукти + HELL цени)
+  // Заглавие / описание / цена + caption за HELL
   document
-    .querySelectorAll(".product .title, .product .desc, .price-badge .lv")
+    .querySelectorAll(
+      ".product .title, .product .desc, .price-badge .lv, .gallery .caption"
+    )
     .forEach((el) => {
       el.contentEditable = "true";
       el.setAttribute("data-mod", "1");
@@ -958,11 +1015,8 @@ const enableInlineEditing = () => {
         const cards  = grid ? [...grid.querySelectorAll(".product")] : [];
         const index  = cards.findIndex((x) => x.contains(el));
 
-        // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery') – работим по плочка, не по cat.hellPrice
+        // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery')
         if (index < 0 && catObj.view === "gallery") {
-          // интересуват ни само LV полетата в плочките
-          if (!el.classList.contains("lv")) return;
-
           const tile = el.closest(".tile");
           if (!tile) return;
 
@@ -972,19 +1026,46 @@ const enableInlineEditing = () => {
           if (!Array.isArray(catObj.groups) || !catObj.groups[gIdx]) return;
           const group = catObj.groups[gIdx];
 
-          const newPrice = lvParse(el.textContent);
+          // 2а) Цена – .lv вътре в плочката
+          if (el.classList.contains("lv")) {
+            const newPrice = lvParse(el.textContent);
 
-          // осигуряваме масива с цени за тази група
-          if (!Array.isArray(group.prices)) group.prices = [];
-          group.prices[imgIdx] = newPrice;
+            if (!Array.isArray(group.prices)) group.prices = [];
+            group.prices[imgIdx] = newPrice;
 
-          // нормализираме LV текста
-          el.textContent = lvFormat(newPrice);
+            el.textContent = lvFormat(newPrice);
+            persistDraft();
+            applyEuroConversion();
+            return;
+          }
 
-          // ъпдейт на € според ВСЕКИ lv поотделно
-          persistDraft();
-          applyEuroConversion();
-          return; // ❗ важно – да не пада надолу към "нормалните" продукти
+          // 2б) Име под снимката – .caption
+          if (el.classList.contains("caption")) {
+            const newName = (el.textContent || "").trim();
+
+            if (!Array.isArray(group.items)) group.items = [];
+            if (!group.items[imgIdx]) {
+              group.items[imgIdx] = {
+                name: newName || "Продукт",
+                desc: "",
+                price:
+                  (Array.isArray(group.prices)
+                    ? group.prices[imgIdx]
+                    : catObj.hellPrice) || 0,
+                img: Array.isArray(group.images)
+                  ? group.images[imgIdx]
+                  : ""
+              };
+            } else {
+              group.items[imgIdx].name = newName || "Продукт";
+            }
+
+            persistDraft();
+            return;
+          }
+
+          // за gallery нямаме други editable елементи
+          return;
         }
 
         // === нормални категории с .product карти
@@ -1020,34 +1101,6 @@ const enableInlineEditing = () => {
         if (!cat.groups[idx]) return;
         cat.groups[idx].heading = titleEl.textContent.trim();
         persistDraft();
-      });
-    });
-
-    // 🆕 ИМЕНА ПОД СНИМКИТЕ (CAPTIONS) ПРИ HELL
-    const catGallery = CATALOG[keyForGallery];
-    const galleries  = [...document.querySelectorAll(".gallery")];
-
-    galleries.forEach((gal, gIdx) => {
-      const captions = [...gal.querySelectorAll(".caption")];
-
-      captions.forEach((capEl, imgIdx) => {
-        capEl.contentEditable = "true";
-        capEl.setAttribute("data-mod", "1");
-        capEl.style.outline = "1px dashed #ff7a00";
-        capEl.style.cursor = "text";
-
-        capEl.addEventListener("input", () => {
-          const catNow = CATALOG[currentCat()];
-          if (!catNow || !Array.isArray(catNow.groups)) return;
-          const group = catNow.groups[gIdx];
-          if (!group) return;
-
-          if (!Array.isArray(group.labels)) group.labels = [];
-          group.labels[imgIdx] = capEl.textContent.trim();
-
-          // 🔁 пазим в черновата → после saveToCloud() го праща към Firestore
-          persistDraft();
-        });
       });
     });
   }
@@ -1096,18 +1149,37 @@ const enableInlineEditing = () => {
               const tileEl    = img.closest(".tile");
               const galleryEl = tileEl ? tileEl.closest(".gallery") : null;
               if (tileEl && galleryEl && Array.isArray(catObj.groups)) {
-                const galleries = [...document.querySelectorAll(".gallery")];
-                const groupIdx  = galleries.indexOf(galleryEl);
+                const galleries = [
+                  ...document.querySelectorAll(".gallery")
+                ];
+                const groupIdx = galleries.indexOf(galleryEl);
                 if (groupIdx >= 0 && catObj.groups[groupIdx]) {
                   const imgsInGroup = [
                     ...galleryEl.querySelectorAll(".tile img")
                   ];
                   const imgIdx = imgsInGroup.indexOf(img);
-                  if (
-                    imgIdx >= 0 &&
-                    Array.isArray(catObj.groups[groupIdx].images)
-                  ) {
-                    catObj.groups[groupIdx].images[imgIdx] = url;
+                  const group  = catObj.groups[groupIdx];
+
+                  if (imgIdx >= 0) {
+                    if (!Array.isArray(group.images)) group.images = [];
+                    group.images[imgIdx] = url;
+
+                    if (!Array.isArray(group.items)) group.items = [];
+                    if (!group.items[imgIdx]) {
+                      group.items[imgIdx] = {
+                        name:
+                          (group.items[imgIdx]?.name) ||
+                          "Продукт",
+                        desc: "",
+                        price:
+                          (Array.isArray(group.prices)
+                            ? group.prices[imgIdx]
+                            : catObj.hellPrice) || 0,
+                        img: url
+                      };
+                    } else {
+                      group.items[imgIdx].img = url;
+                    }
                   }
                 }
               }
@@ -1215,7 +1287,6 @@ const enableInlineEditing = () => {
  * =========================================================== */
 
 
-
   /* ===========================================================
    * БЛОК 8: DnD НА ПРОДУКТИ + ИЗТРИВАНЕ С ПАРОЛА
    * (START)
@@ -1291,53 +1362,75 @@ const domProductsToArray = () => {
     });
   };
 
-  const injectDeleteButtons = () => {
-    grid?.querySelectorAll(".product").forEach((card, idx) => {
-      if (card.querySelector(".mod-del")) return;
+// 🔥 Специално кошче / delete за HELL (gallery плочки)
+const injectHellDeleteButtons = () => {
+  const key = currentCat();
+  const cat = CATALOG[key] || {};
+  if (cat.view !== "gallery" || !Array.isArray(cat.groups)) return;
 
-      const btn = document.createElement("button");
-      btn.className = "mod-del";
-      btn.textContent = "🗑";
+  document.querySelectorAll(".tile[data-g][data-i]").forEach((tile) => {
+    if (tile.querySelector(".mod-del")) return; // вече има бутон
 
-      Object.assign(btn.style, {
-        position: "absolute",
-        top: "8px",
-        right: "8px",
-        zIndex: "5",
-        background: "rgba(0,0,0,.6)",
-        color: "#fff",
-        border: "none",
-        borderRadius: "10px",
-        padding: "4px 8px",
-        cursor: "pointer"
-      });
+    const gIdx   = Number(tile.dataset.g);
+    const imgIdx = Number(tile.dataset.i);
+    const group  = cat.groups[gIdx];
+    if (!group) return;
 
-      card.style.position = "relative";
-      card.appendChild(btn);
+    const btn = document.createElement("button");
+    btn.className = "mod-del";
+    btn.textContent = "🗑";
 
-      btn.addEventListener("click", () => {
-        if (!askPass("Парола за изтриване на продукт")) return;
-
-        const key = currentCat();
-        const list = CATALOG[key]?.items;
-        if (list && list[idx]) {
-          const item = { ...list[idx] };
-          trashPush({
-            kind: "product",
-            catKey: key,
-            index: idx,
-            item,
-            title: item.name
-          });
-
-          list.splice(idx, 1);
-          persistDraft();
-          activate(key, { replace: true });
-          toast("В кошчето");
-        }
-      });
+    Object.assign(btn.style, {
+      position: "absolute",
+      top: "8px",
+      right: "8px",
+      zIndex: "5",
+      background: "rgba(0,0,0,.6)",
+      color: "#fff",
+      border: "none",
+      borderRadius: "10px",
+      padding: "4px 8px",
+      cursor: "pointer"
     });
-  };
+
+    tile.style.position = "relative";
+    tile.appendChild(btn);
+
+    btn.addEventListener("click", () => {
+      if (!askPass("Парола за изтриване на продукт")) return;
+
+      const img   = Array.isArray(group.images) ? group.images[imgIdx] : "";
+      const price =
+        Array.isArray(group.prices) && typeof group.prices[imgIdx] === "number"
+          ? group.prices[imgIdx]
+          : cat.hellPrice ?? 0;
+      const name =
+        Array.isArray(group.items) && group.items[imgIdx]
+          ? group.items[imgIdx].name || "Продукт"
+          : "Продукт";
+
+      // пращаме в кошчето със специални полета
+      trashPush({
+        kind: "product",
+        catKey: key,
+        index: imgIdx,
+        groupIndex: gIdx,
+        isHell: true,
+        item: { name, price, img },
+        title: name
+      });
+
+      if (Array.isArray(group.images)) group.images.splice(imgIdx, 1);
+      if (Array.isArray(group.prices)) group.prices.splice(imgIdx, 1);
+      if (Array.isArray(group.items))  group.items.splice(imgIdx, 1);
+
+      persistDraft();
+      activate(key, { replace: true });
+      toast("В кошчето");
+    });
+  });
+};
+
 
   /* ===========================================================
    * БЛОК 8 (END)
@@ -1358,8 +1451,8 @@ activate = function (cat, opts) {
   enableInlineEditing();
   enableProductDnd();
   injectDeleteButtons();
+  injectHellDeleteButtons();   // 🧨 delete бутони за HELL плочките
 
-  // 🔥 ТУК ДОБАВЯМЕ
   renderAddonsSidePanels(key);
 
   if (typeof ensurePlusRightUniversal === "function")
@@ -1469,23 +1562,53 @@ activate = function (cat, opts) {
   // 🗑 – Кошче
   addBtn("🗑 Кошче", 320, openTrashUI, { background: "#333" });
 
-  // ➕ – Нов продукт
-  addBtn("➕ Добави продукт", 260, () => {
-    const key = currentCat();
-    if (!CATALOG[key]) {
-      CATALOG[key] = { title: key.toUpperCase(), items: [] };
-    }
+// ➕ – Нов продукт
+addBtn("➕ Добави продукт", 260, () => {
+  const key = currentCat();
+  if (!CATALOG[key]) {
+    CATALOG[key] = { title: key.toUpperCase(), items: [] };
+  }
 
-    CATALOG[key].items.push({
+  const cat = CATALOG[key];
+
+  // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery') – създаваме нова плочка
+  if (cat.view === "gallery" && Array.isArray(cat.groups) && cat.groups.length) {
+    const g = cat.groups[0]; // по подразбиране първата секция "HELL - 250мл"
+
+    if (!Array.isArray(g.images)) g.images = [];
+    if (!Array.isArray(g.prices)) g.prices = [];
+    if (!Array.isArray(g.items))  g.items  = [];
+
+    const defaultImg   = "snimki/produkti/hell/default.jpg"; // смени ако искаш
+    const defaultPrice = cat.hellPrice ?? 0;
+
+    g.images.push(defaultImg);
+    g.prices.push(defaultPrice);
+    g.items.push({
       name: "Нов продукт",
-      desc: "Описание...",
-      price: 0,
-      img: "snimki/default.jpg"
+      desc: "",
+      price: defaultPrice,
+      img: defaultImg
     });
 
     persistDraft();
     activate(key, { replace: true });
+    toast("Нов HELL продукт добавен");
+    return;
+  }
+
+  // 🧊 Нормални категории – старото поведение
+  cat.items = cat.items || [];
+  cat.items.push({
+    name: "Нов продукт",
+    desc: "Описание...",
+    price: 0,
+    img: "snimki/default.jpg"
   });
+
+  persistDraft();
+  activate(key, { replace: true });
+});
 
   // ➕ – Добави добавка (само за храни)
   addBtn(
