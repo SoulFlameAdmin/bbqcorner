@@ -1466,21 +1466,32 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
     const hellPrice = data.hellPrice ?? 2.0;
 
     grid.innerHTML = data.groups
-      .map((group) => {
-        const pics = group.images
-          .map((src) => {
+      .map((group, gIdx) => {
+        const pics = (group.images || [])
+          .map((src, imgIdx) => {
             const label = esc(prettyLabel(src));
+
+            // 🧩 индивидуална цена за тази снимка, ако има такава
+            const rawPrice = Array.isArray(group.prices)
+              ? group.prices[imgIdx]
+              : undefined;
+
+            const price =
+              typeof rawPrice === "number" && !Number.isNaN(rawPrice)
+                ? rawPrice
+                : hellPrice;
+
             return `
             <div>
-              <div class="tile">
+              <div class="tile" data-g="${gIdx}" data-i="${imgIdx}">
                 <img src="${src}" alt="${label}">
                 <div class="price-badge">
-                  <div class="lv">${fmtLv(hellPrice)}</div>
-                  <div class="eur">${fmtEur(hellPrice)}</div>
+                  <div class="lv">${fmtLv(price)}</div>
+                  <div class="eur">${fmtEur(price)}</div>
                 </div>
                 <button class="add-btn"
                         data-name="${label.replace(/"/g, "&quot;")}"
-                        data-price="${hellPrice}"
+                        data-price="${price}"
                         data-img="${src}">+</button>
               </div>
               <div class="caption">${label}</div>
@@ -1489,7 +1500,7 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
           .join("");
 
         return `
-          <h2 class="sec-title">${esc(group.heading)}</h2>
+          <h2 class="sec-title">${esc(group.heading || "")}</h2>
           <div class="gallery">${pics}</div>
         `;
       })
@@ -1501,30 +1512,6 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
     return;
   }
 
-  // === view: groups (подсекции с продукти) ===
-  if (data.groups && Array.isArray(data.groups)) {
-    const groupsHTML = data.groups
-      .map(
-        (group) => `
-        <h2 class="sec-title">${esc(group.heading)}</h2>
-        <div class="grid-products">
-         ${group.items
-           ?.map((it, i) =>
-             productCardHTML(it, i, catHasAddons(current))
-           )
-           .join("")}
-        </div>
-      `
-      )
-      .join("");
-
-    grid.innerHTML = groupsHTML;
-    bindAddButtons();
-    recalcMobileOffsets();
-    ensureMobilePlusRight();
-    renderAddonsSidePanels(realCat);
-    return;
-  }
 
   // === стандартен списък с продукти ===
   const items = data?.items || [];

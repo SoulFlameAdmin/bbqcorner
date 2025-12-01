@@ -286,6 +286,8 @@ const snapshotRuntime = () => {
             heading: g.heading || "",
             items: Array.isArray(g.items) ? g.items.map(normalizeItem) : undefined,
             images: Array.isArray(g.images) ? [...g.images] : undefined,
+            // 🔸 НОВО: индивидуални цени за галерията (HELL)
+            prices: Array.isArray(g.prices) ? [...g.prices] : undefined,
             pair: Array.isArray(g.pair) ? g.pair.map((p) => ({ ...p })) : undefined
           }))
         : undefined
@@ -918,12 +920,12 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
    * =========================================================== */
 
 
-  /* ===========================================================
+   /* ===========================================================
    * БЛОК 7: INLINE РЕДАКЦИЯ НА ПРОДУКТИ (ТЕКСТ/ЦЕНИ/СНИМКИ)
    * (START)
    * =========================================================== */
 
-    const enableInlineEditing = () => {
+  const enableInlineEditing = () => {
     // Заглавие / описание / цена
     document
       .querySelectorAll(".product .title, .product .desc, .price-badge .lv")
@@ -934,33 +936,41 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
         el.style.cursor = "text";
 
         el.addEventListener("input", () => {
-          const key = currentCat();
+          const key    = currentCat();
           const catObj = CATALOG[key] || {};
-          const cards = grid ? [...grid.querySelectorAll(".product")] : [];
-          const index = cards.findIndex((x) => x.contains(el));
+          const cards  = grid ? [...grid.querySelectorAll(".product")] : [];
+          const index  = cards.findIndex((x) => x.contains(el));
 
-          // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery') – няма .product карти
+          // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery') – работим по плочка, не по cat.hellPrice
           if (index < 0 && catObj.view === "gallery") {
-            // засега позволяваме само смяна на общата цена hellPrice
-            if (el.classList.contains("lv")) {
-              const newPrice = lvParse(el.textContent);
-              catObj.hellPrice = newPrice;
+            // интересуват ни само LV полетата в плочките
+            if (!el.classList.contains("lv")) return;
 
-              // обновяваме визуално всички цени в галерията
-              const formatted = lvFormat(newPrice);
-              document
-                .querySelectorAll(".gallery .price-badge .lv")
-                .forEach((node) => {
-                  node.textContent = formatted;
-                });
+            const tile = el.closest(".tile");
+            if (!tile) return;
 
-              persistDraft();
-              applyEuroConversion();
-            }
-            return;
+            const gIdx   = Number(tile.dataset.g);
+            const imgIdx = Number(tile.dataset.i);
+
+            if (!Array.isArray(catObj.groups) || !catObj.groups[gIdx]) return;
+            const group = catObj.groups[gIdx];
+
+            const newPrice = lvParse(el.textContent);
+
+            // осигуряваме масива с цени за тази група
+            if (!Array.isArray(group.prices)) group.prices = [];
+            group.prices[imgIdx] = newPrice;
+
+            // нормализираме LV текста
+            el.textContent = lvFormat(newPrice);
+
+            // ъпдейт на € според ВСЕКИ lv поотделно
+            persistDraft();
+            applyEuroConversion();
+            return; // ❗ много важно – да не пада надолу към "нормалните" продукти
           }
 
-          // нормалните категории с .product
+          // === нормални категории с .product карти
           if (index < 0) return;
 
           const item = (catObj.items || [])[index];
@@ -1012,12 +1022,12 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
             const file = (e.target.files && e.target.files[0]);
             if (!file) return;
 
-            const key = currentCat();
+            const key    = currentCat();
             const catObj = CATALOG[key] || {};
 
             // по подразбиране търсим .product карта
             const cards = grid ? [...grid.querySelectorAll(".product")] : [];
-            let index = cards.findIndex((x) => x.contains(img));
+            let index   = cards.findIndex((x) => x.contains(img));
 
             try {
               const productKey = index >= 0 ? `item_${index}` : "tile";
@@ -1036,9 +1046,9 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
               if (index >= 0 && catObj.items && catObj.items[index]) {
                 catObj.items[index].img = url;
               }
-              // 3Б) HELL / GALLERY – няма .product; update по група и индекс в галерията
+              // 3Б) HELL / GALLERY – update по група и индекс в галерията
               else if (catObj.view === "gallery") {
-                const tileEl = img.closest(".tile");
+                const tileEl    = img.closest(".tile");
                 const galleryEl = tileEl ? tileEl.closest(".gallery") : null;
                 if (tileEl && galleryEl && Array.isArray(catObj.groups)) {
                   const galleries = [
@@ -1060,7 +1070,6 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
                 }
               }
 
-              // 4) пазим чернова локално
               persistDraft();
               toast("📸 Снимката е качена!");
 
@@ -1087,9 +1096,9 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
         if (!box) return;
 
         const group = box.dataset.group || null;
-        const code = box.dataset.code || null;
-        const raw = (lbl.textContent || "").trim().replace(/^\+\s*/, "");
-        const mem = getMemory() || {};
+        const code  = box.dataset.code  || null;
+        const raw   = (lbl.textContent || "").trim().replace(/^\+\s*/, "");
+        const mem   = getMemory() || {};
 
         if (group === "veg" || group === "sauce") {
           const all = [
@@ -1107,7 +1116,7 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
               `.addon-checkbox:not([data-group])`
             )
           ];
-          const idx = all.findIndex((b) => b === box);
+          const idx   = all.findIndex((b) => b === box);
           const price = Number(all[idx].getAttribute("data-price") || 0);
           mem.paid[idx] = { code, label: raw, price };
         }
@@ -1126,7 +1135,7 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
         lbl.addEventListener("dblclick", (e) => {
           e.preventDefault();
           const cur = Number(box.getAttribute("data-price") || 0);
-          const p = prompt("Цена за тази добавка:", cur);
+          const p   = prompt("Цена за тази добавка:", cur);
           if (p == null) return;
 
           const val = Number(String(p).replace(",", "."));
@@ -1161,6 +1170,7 @@ sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
   /* ===========================================================
    * БЛОК 7 (END)
    * =========================================================== */
+
 
 
   /* ===========================================================
