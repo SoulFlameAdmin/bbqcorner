@@ -1461,66 +1461,61 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
     return;
   }
 
-  // === view: gallery ===
-  if (data.view === "gallery") {
-    const hellPrice = data.hellPrice ?? 2.0;
+// === view: gallery ===
+if (data.view === "gallery") {
+  const hellPrice = data.hellPrice ?? 2.0;
 
-    grid.innerHTML = data.groups
-      .map((group, gIdx) => {
-        const pics = (group.images || [])
-          .map((src, imgIdx) => {
-            // 🔸 име за конкретната снимка:
-            // ако има записано в group.labels → взимаме него,
-            // иначе ползваме prettyLabel(src)
-            const rawLabel =
-              Array.isArray(group.labels) && group.labels[imgIdx]
-                ? group.labels[imgIdx]
-                : prettyLabel(src);
+  grid.innerHTML = (data.groups || [])
+    .map((group, gIdx) => {
+      const pics = (group.images || [])
+        .map((src, imgIdx) => {
+          // 🏷 1) Име: първо от group.labels, после от името на файла
+          const rawLabel =
+            Array.isArray(group.labels) && group.labels[imgIdx]
+              ? group.labels[imgIdx]
+              : prettyLabel(src);
+          const label = esc(rawLabel);
 
-            const label = esc(rawLabel);
+          // 💰 2) Индивидуална цена за тази снимка, ако има
+          const rawPrice = Array.isArray(group.prices)
+            ? group.prices[imgIdx]
+            : undefined;
 
-            // 🧩 индивидуална цена за тази снимка, ако има такава
-            const rawPrice = Array.isArray(group.prices)
-              ? group.prices[imgIdx]
-              : undefined;
+          const price =
+            typeof rawPrice === "number" && !Number.isNaN(rawPrice)
+              ? rawPrice
+              : hellPrice;
 
-            const price =
-              typeof rawPrice === "number" && !Number.isNaN(rawPrice)
-                ? rawPrice
-                : hellPrice;
-
-            return `
-            <div>
-              <div class="tile" data-g="${gIdx}" data-i="${imgIdx}">
-                <img src="${src}" alt="${label}">
-                <div class="price-badge">
-                  <div class="lv">${fmtLv(price)}</div>
-                  <div class="eur">${fmtEur(price)}</div>
-                </div>
-                <button class="add-btn"
-                        data-name="${rawLabel.replace(/"/g, "&quot;")}"
-                        data-price="${price}"
-                        data-img="${src}">+</button>
+          return `
+          <div>
+            <div class="tile" data-g="${gIdx}" data-i="${imgIdx}">
+              <img src="${src}" alt="${label}">
+              <div class="price-badge">
+                <div class="lv">${fmtLv(price)}</div>
+                <div class="eur">${fmtEur(price)}</div>
               </div>
-              <div class="caption"
-                   data-g="${gIdx}"
-                   data-i="${imgIdx}">${label}</div>
-            </div>`;
-          })
-          .join("");
+              <button class="add-btn"
+                      data-name="${label.replace(/"/g, "&quot;")}"
+                      data-price="${price}"
+                      data-img="${src}">+</button>
+            </div>
+            <div class="caption">${label}</div>
+          </div>`;
+        })
+        .join("");
 
-        return `
-          <h2 class="sec-title">${esc(group.heading || "")}</h2>
-          <div class="gallery">${pics}</div>
-        `;
-      })
-      .join("");
+      return `
+        <h2 class="sec-title">${esc(group.heading || "")}</h2>
+        <div class="gallery">${pics}</div>
+      `;
+    })
+    .join("");
 
-    bindAddButtons();
-    recalcMobileOffsets();
-    ensureMobilePlusRight();
-    return;
-  }
+  bindAddButtons();
+  recalcMobileOffsets();
+  ensureMobilePlusRight();
+  return;
+}
 
 
 
