@@ -1503,7 +1503,7 @@ if (data.view === "gallery") {
                       data-price="${price}"
                       data-img="${src}">+</button>
             </div>
-            <div class="caption">${label}</div>
+            <div class="caption" data-g="${gIdx}" data-i="${imgIdx}">${label}</div>
           </div>`;
         })
         .join("");

@@ -1287,10 +1287,10 @@ const enableInlineEditing = () => {
  * =========================================================== */
 
 
-  /* ===========================================================
-   * БЛОК 8: DnD НА ПРОДУКТИ + ИЗТРИВАНЕ С ПАРОЛА
-   * (START)
-   * =========================================================== */
+/* ===========================================================
+ * БЛОК 8: DnD НА ПРОДУКТИ + ИЗТРИВАНЕ С ПАРОЛА
+ * (START)
+ * =========================================================== */
 
 const domProductsToArray = () => {
   const list = [];
@@ -1327,54 +1327,58 @@ const domProductsToArray = () => {
 };
 
 
-  const enableProductDnd = () => {
-    let dragged = null;
+const enableProductDnd = () => {
+  if (!grid) return;
 
-    grid?.querySelectorAll(".product").forEach((card) => {
-      card.draggable = true;
+  let dragged = null;
 
-      card.addEventListener("dragstart", () => {
-        dragged = card;
-        card.style.opacity = ".4";
-      });
+  grid.querySelectorAll(".product").forEach((card) => {
+    card.draggable = true;
 
-      card.addEventListener("dragend", () => {
-        card.style.opacity = "1";
-        dragged = null;
-      });
-
-      card.addEventListener("dragover", (e) => e.preventDefault());
-
-      card.addEventListener("drop", (e) => {
-        e.preventDefault();
-        if (!dragged || dragged === card) return;
-
-        card.parentNode.insertBefore(dragged, card.nextSibling);
-
-        const key = currentCat();
-        const arr = domProductsToArray();
-        if (CATALOG[key]) {
-          CATALOG[key].items = arr;
-          persistDraft();
-          toast("Подредено");
-        }
-      });
+    card.addEventListener("dragstart", () => {
+      dragged = card;
+      card.style.opacity = ".4";
     });
-  };
 
-// 🔥 Специално кошче / delete за HELL (gallery плочки)
-const injectHellDeleteButtons = () => {
+    card.addEventListener("dragend", () => {
+      card.style.opacity = "1";
+      dragged = null;
+    });
+
+    card.addEventListener("dragover", (e) => e.preventDefault());
+
+    card.addEventListener("drop", (e) => {
+      e.preventDefault();
+      if (!dragged || dragged === card) return;
+
+      card.parentNode.insertBefore(dragged, card.nextSibling);
+
+      const key = currentCat();
+      const arr = domProductsToArray();
+      if (CATALOG[key]) {
+        CATALOG[key].items = arr;
+        persistDraft();
+        toast("Подредено");
+      }
+    });
+  });
+};
+
+
+/* 🔥 Универсално кошче за всички .product карти (всички категории) */
+const injectDeleteButtons = () => {
+  if (!grid) return;
+
   const key = currentCat();
   const cat = CATALOG[key] || {};
-  if (cat.view !== "gallery" || !Array.isArray(cat.groups)) return;
+  if (!Array.isArray(cat.items)) return;
 
-  document.querySelectorAll(".tile[data-g][data-i]").forEach((tile) => {
-    if (tile.querySelector(".mod-del")) return; // вече има бутон
+  const cards = [...grid.querySelectorAll(".product")];
+  if (!cards.length) return;
 
-    const gIdx   = Number(tile.dataset.g);
-    const imgIdx = Number(tile.dataset.i);
-    const group  = cat.groups[gIdx];
-    if (!group) return;
+  cards.forEach((card) => {
+    // вече има кошче → не пипаме
+    if (card.querySelector(".mod-del")) return;
 
     const btn = document.createElement("button");
     btn.className = "mod-del";
@@ -1385,7 +1389,7 @@ const injectHellDeleteButtons = () => {
       top: "8px",
       right: "8px",
       zIndex: "5",
-      background: "rgba(0,0,0,.6)",
+      background: "rgba(0,0,0,0.6)",
       color: "#fff",
       border: "none",
       borderRadius: "10px",
@@ -1393,48 +1397,163 @@ const injectHellDeleteButtons = () => {
       cursor: "pointer"
     });
 
-    tile.style.position = "relative";
-    tile.appendChild(btn);
+    // за да стоят правилно бутоните
+    if (!card.style.position || card.style.position === "static") {
+      card.style.position = "relative";
+    }
 
-    btn.addEventListener("click", () => {
-      if (!askPass("Парола за изтриване на продукт")) return;
+    card.appendChild(btn);
 
-      const img   = Array.isArray(group.images) ? group.images[imgIdx] : "";
-      const price =
-        Array.isArray(group.prices) && typeof group.prices[imgIdx] === "number"
-          ? group.prices[imgIdx]
-          : cat.hellPrice ?? 0;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (typeof askPass === "function") {
+        if (!askPass("Парола за изтриване на продукт")) return;
+      }
+
+      const keyNow = currentCat();
+      const catNow = CATALOG[keyNow] || {};
+      const curCards = [...(grid?.querySelectorAll(".product") || [])];
+      const realIndex = curCards.indexOf(card);
+      if (realIndex < 0 || !Array.isArray(catNow.items)) return;
+
+      const item = catNow.items[realIndex] || {};
       const name =
-        Array.isArray(group.items) && group.items[imgIdx]
-          ? group.items[imgIdx].name || "Продукт"
-          : "Продукт";
+        item.name ||
+        card.querySelector(".title")?.textContent.trim() ||
+        "Продукт";
 
-      // пращаме в кошчето със специални полета
+      const lvEl = card.querySelector(".price-badge .lv");
+      const price =
+        typeof item.price === "number"
+          ? item.price
+          : lvEl
+          ? lvParse(lvEl.textContent)
+          : 0;
+
+      let img = item.img || item.image || "";
+      if (!img) {
+        const bg =
+          card.querySelector(".photo")?.style?.backgroundImage || "";
+        const m = bg.match(/url\(['"]?(.*?)['"]?\)/i);
+        if (m && m[1]) img = m[1];
+      }
+
+      // 🗑 пращаме в глобалното кошче
       trashPush({
         kind: "product",
-        catKey: key,
-        index: imgIdx,
-        groupIndex: gIdx,
-        isHell: true,
+        catKey: keyNow,
+        index: realIndex,
         item: { name, price, img },
         title: name
       });
 
-      if (Array.isArray(group.images)) group.images.splice(imgIdx, 1);
-      if (Array.isArray(group.prices)) group.prices.splice(imgIdx, 1);
-      if (Array.isArray(group.items))  group.items.splice(imgIdx, 1);
+      // махаме от данните
+      catNow.items.splice(realIndex, 1);
 
       persistDraft();
-      activate(key, { replace: true });
+      activate(keyNow, { replace: true });
       toast("В кошчето");
     });
   });
 };
 
 
-  /* ===========================================================
-   * БЛОК 8 (END)
-   * =========================================================== */
+// 🔥 Специално кошче / delete за HELL (gallery плочки)
+const injectHellDeleteButtons = () => {
+  const key = currentCat();
+  const cat = CATALOG[key] || {};
+  if (cat.view !== "gallery" || !Array.isArray(cat.groups)) return;
+
+  const galleries = [...document.querySelectorAll(".gallery")];
+  if (!galleries.length) return;
+
+  galleries.forEach((galleryEl, gIdx) => {
+    const group = cat.groups[gIdx];
+    if (!group) return;
+
+    const tiles = [...galleryEl.querySelectorAll(".tile")];
+
+    tiles.forEach((tile) => {
+      // ако вече има бутон – не добавяме втори
+      if (tile.querySelector(".mod-del")) return;
+
+      const btn = document.createElement("button");
+      btn.className = "mod-del";
+      btn.textContent = "🗑";
+
+      Object.assign(btn.style, {
+        position: "absolute",
+        top: "8px",
+        right: "8px",
+        zIndex: "5",
+        background: "rgba(0,0,0,.6)",
+        color: "#fff",
+        border: "none",
+        borderRadius: "10px",
+        padding: "4px 8px",
+        cursor: "pointer"
+      });
+
+      tile.style.position = "relative";
+      tile.appendChild(btn);
+
+      btn.addEventListener("click", () => {
+        if (typeof askPass === "function") {
+          if (!askPass("Парола за изтриване на продукт")) return;
+        }
+
+        // 💡 пресмятаме индекса по текущия DOM
+        const curGallery   = tile.closest(".gallery");
+        const allGalleries = [...document.querySelectorAll(".gallery")];
+        const curGIdx      = allGalleries.indexOf(curGallery);
+        if (curGIdx < 0 || !cat.groups[curGIdx]) return;
+
+        const curGroup = cat.groups[curGIdx];
+        const tilesNow = [...curGallery.querySelectorAll(".tile")];
+        const imgIdx   = tilesNow.indexOf(tile);
+        if (imgIdx < 0) return;
+
+        const img =
+          Array.isArray(curGroup.images) ? curGroup.images[imgIdx] : "";
+        const price =
+          Array.isArray(curGroup.prices) &&
+          typeof curGroup.prices[imgIdx] === "number"
+            ? curGroup.prices[imgIdx]
+            : curGroup.hellPrice ?? cat.hellPrice ?? 0;
+        const name =
+          Array.isArray(curGroup.items) && curGroup.items[imgIdx]
+            ? curGroup.items[imgIdx].name || "Продукт"
+            : "Продукт";
+
+        // 🗑 пращаме в глобалното кошче
+        trashPush({
+          kind: "product",
+          catKey: key,
+          index: imgIdx,
+          groupIndex: curGIdx,
+          isHell: true,
+          item: { name, price, img },
+          title: name
+        });
+
+        // махаме от данните
+        if (Array.isArray(curGroup.images)) curGroup.images.splice(imgIdx, 1);
+        if (Array.isArray(curGroup.prices)) curGroup.prices.splice(imgIdx, 1);
+        if (Array.isArray(curGroup.items))  curGroup.items.splice(imgIdx, 1);
+
+        persistDraft();
+        activate(key, { replace: true });
+        toast("В кошчето");
+      });
+    });
+  });
+};
+
+
+/* ===========================================================
+ * БЛОК 8 (END)
+ * =========================================================== */
+
 
   /* ===========================================================
    * БЛОК 9: HOOK КЪМ activate() + КОНВЕРСИЯ BGN → EUR
