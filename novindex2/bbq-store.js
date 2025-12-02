@@ -2,7 +2,7 @@
 // ======================================================
 // ☁️ Firestore слой за Corner BBQ
 // Прави window.BBQ_STORE.load() и window.BBQ_STORE.save()
-// да работят с Firebase Firestore.
+// да работят стабилно с Firebase Firestore.
 // ======================================================
 
 import {
@@ -21,16 +21,16 @@ if (!db) {
   );
 }
 
-// ЕДНА централна колекция/документ в Firestore за цялото меню
-// Можеш да промениш "bbq_main" и "catalog" по твое желание
+// ⬆ ИМЕТО НА КОЛЕКЦИЯТА И ДОКУМЕНТА (не ги пипай без нужда)
 const COLLECTION = "bbq_site";
 const DOCUMENT   = "catalog_v1";
 
 window.BBQ_STORE = {
-  // =========================================
-  // Зареждане от Firestore
+
+  // ======================================================
+  // 📥 LOAD — Зареждане от Firestore
   // Вика се от novindex2.js → loadFromCloud()
-  // =========================================
+  // ======================================================
   async load() {
     if (!db) return null;
 
@@ -39,61 +39,82 @@ window.BBQ_STORE = {
       const snap = await getDoc(ref);
 
       if (!snap.exists()) {
-        console.log(
-          "[BBQ_STORE] Doc още не съществува в Firestore → връщам null"
-        );
+        console.log("[BBQ_STORE] Doc още не съществува → връщам null");
         return null;
       }
 
       const data = snap.data();
-      console.log("✅ [BBQ_STORE] Данните са заредени от Firestore:", data);
+      console.log("✅ [BBQ_STORE] Заредени данни от Firestore:", data);
 
-      // Връщаме структурата така, че да е съвместима с novindex2.js:
-      // data.CATALOG, data.ORDER, data.ADDONS, data.cat_thumbs, data.addons_labels
+      // Връщаме структурата като при стария JSON файл
       return {
         ...data,
         ok: true,
         via: "firestore"
       };
+
     } catch (e) {
       console.error("[BBQ_STORE] Грешка при load() от Firestore:", e);
       return null;
     }
   },
 
-  // =========================================
-  // Запис към Firestore
+  // ======================================================
+  // 💾 SAVE — Запис в Firestore
   // Вика се от moderator.js → saveToCloud()
-  // =========================================
+  // ======================================================
   async save(payload) {
     if (!db) {
-      console.error("[BBQ_STORE] Няма db, не мога да записвам.");
+      console.error("[BBQ_STORE] Няма db → прекратявам запис.");
       return { ok: false, via: "no-db" };
     }
 
     try {
       const ref = doc(db, COLLECTION, DOCUMENT);
 
-      // Добавяме serverTimestamp за ориентир в Firestore
+      // -----------------------------
+      // 1) Премахваме addons_labels:
+      // Firestore хвърля грешка за nested entity
+      // -----------------------------
+      const cleanPayload = { ...payload };
+      if (cleanPayload.addons_labels) {
+        delete cleanPayload.addons_labels;
+      }
+
+      // -----------------------------
+      // 2) Гарантираме ЧИСТ JSON:
+      // премахва undefined, функции, прототипи
+      // -----------------------------
+      const jsonSafe = JSON.parse(JSON.stringify(cleanPayload));
+
+      // -----------------------------
+      // 3) Добавяме метаданни (време)
+      // -----------------------------
       const toSave = {
-        ...payload,
-        savedAtISO: payload.savedAt || new Date().toISOString(),
+        ...jsonSafe,
+        savedAtISO: jsonSafe.savedAt || new Date().toISOString(),
         updatedAt: serverTimestamp()
       };
 
+      // -----------------------------
+      // 4) Запис в Firestore
+      // -----------------------------
       await setDoc(ref, toSave);
 
-      // Локален кеш – за fallback, ако /api/catalog падне
+      // -----------------------------
+      // 5) Локален кеш (fallback)
+      // -----------------------------
       try {
-        localStorage.setItem("BBQ_MAIN_CATALOG", JSON.stringify(payload));
-      } catch (e) {
-        console.warn("[BBQ_STORE] Не мога да запиша локален кеш:", e);
+        localStorage.setItem("BBQ_MAIN_CATALOG", JSON.stringify(cleanPayload));
+      } catch (err) {
+        console.warn("[BBQ_STORE] Не мога да запиша локален кеш:", err);
       }
 
       console.log("✅ [BBQ_STORE] Данните са записани в Firestore");
       return { ok: true, via: "firestore" };
+
     } catch (e) {
-      console.error("[BBQ_STORE] Грешка при save() към Firestore:", e);
+      console.error("[BBQ_STORE] Грешка при save():", e);
       return { ok: false, via: "firestore-error", error: String(e) };
     }
   }
