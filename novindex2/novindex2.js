@@ -43,42 +43,50 @@ function recalcMobileOffsets(){
   ensureMobilePlusRight();
   ensurePlusRightUniversal();
 }
-
-/* ➜ На телефон мести бутона точно вдясно от цената */
-function ensureMobilePlusRight(){
+/* ➜ На телефон мести бутона точно вдясно от цената — без да чупи кръглата форма */
+function ensureMobilePlusRight() {
   const isPhone = window.matchMedia("(max-width:900px)").matches;
   if (!isPhone) return;
 
   document.querySelectorAll(".product .pad").forEach(pad => {
     const price = pad.querySelector(".price-badge");
-    const btn   = pad.querySelector(".mobile-add-btn") || pad.querySelector(".add-btn");
+    const btn   = pad.querySelector(".add-btn");
     if (!price || !btn) return;
 
+    // намираме или създаваме контейнера price-plus
     let row = pad.querySelector(".price-plus");
-    if (!row){
+    if (!row) {
       row = document.createElement("div");
       row.className = "price-plus";
       price.replaceWith(row);
       row.appendChild(price);
     }
+
+    // местим бутона до цената
     row.appendChild(btn);
-    btn.style.display = "inline-flex";
-    btn.style.width   = "auto";
-    btn.style.margin  = "0";
+
+    // НУЛИРАМЕ вредните inline стилове от стария код
+    btn.style.width   = "";
+    btn.style.height  = "";
+    btn.style.margin  = "";
+    btn.style.display = "";
   });
 }
+
 window.addEventListener("load",  ensureMobilePlusRight);
 window.addEventListener("resize", ensureMobilePlusRight);
 
+
 /* ➜ Универсално: само преместваме съществуващия “+” след цената. НЕ създаваме нов! */
-function ensurePlusRightUniversal(){
+function ensurePlusRightUniversal() {
   const hosts = document.querySelectorAll('.product, .tile, .water-card');
+
   hosts.forEach(card => {
     const pad   = card.querySelector('.pad') || card;
     const price = pad.querySelector('.price-badge') || card.querySelector('.price-badge');
     if (!price) return;
 
-    // ако по погрешка има повече от един "+" — запази само първия
+    // чистим дублирани + бутони
     const allPlus = pad.querySelectorAll('.add-btn');
     if (allPlus.length > 1) {
       allPlus.forEach((b, i) => { if (i > 0) b.remove(); });
@@ -90,6 +98,7 @@ function ensurePlusRightUniversal(){
     plus.classList.add('add-btn');
     plus.classList.remove('mobile-add-btn');
 
+    // поставяме бутона след цената
     if (plus !== price.nextElementSibling) {
       price.insertAdjacentElement('afterend', plus);
     }
