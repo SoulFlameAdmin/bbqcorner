@@ -169,7 +169,6 @@ document.addEventListener("DOMContentLoaded", () => {
    * БЛОК 2 (END)
    * =========================================================== */
 
-
 /* ===========================================================
  * БЛОК 3: SNAPSHOT НА ТЕКУЩОТО МЕНЮ (CATALOG/ORDER/THUMBS)
  * (START)
@@ -191,73 +190,87 @@ const snapshotRuntime = () => {
   ORDER.forEach((key) => {
     const cat = CATALOG[key] || {};
 
-const normalizeItem = (it) => {
-  // 🛡️ Фикс за null / undefined / невалиден продукт
-  if (!it || typeof it !== "object") {
-    return {
-      name: "Продукт",
-      desc: "",
-      price: 0,
-      img: ""
+    // 🟡 normalizeItem – безопасен за null/undefined
+    const normalizeItem = (it) => {
+      if (!it || typeof it !== "object") {
+        return {
+          name: "Продукт",
+          desc: "",
+          price: 0,
+          img: ""
+        };
+      }
+
+      const base = {
+        name: it.name || "Продукт",
+        desc: it.desc || "",
+        price: Number(it.price) || 0,
+        img: it.img || ""
+      };
+
+      if (Array.isArray(it.addons) && it.addons.length) {
+        base.addons = it.addons.map(a => ({ ...a }));
+      }
+
+      return base;
     };
-  }
 
-  const base = {
-    name: it.name || "Продукт",
-    desc: it.desc || "",
-    price: Number(it.price) || 0,
-    img: it.img || ""
-  };
-
-  if (Array.isArray(it.addons) && it.addons.length) {
-    base.addons = it.addons.map(a => ({ ...a }));
-  }
-
-  return base;
-};
-
-
+    // 🟧 ПЪЛЕН SNAPSHOT ЗА ВСЯКА КАТЕГОРИЯ
     snap.catalog[key] = {
       title:     cat.title || key.toUpperCase(),
       view:      cat.view ?? undefined,
       hellPrice: cat.hellPrice ?? undefined,
 
+      // нормални продукти
       items: Array.isArray(cat.items)
         ? cat.items.map(normalizeItem)
-        : undefined,
+        : [],
 
+      // 🟧 HELL групи – безопасни, пълни, без undefined
       groups: Array.isArray(cat.groups)
-        ? cat.groups.map((g) => ({
-            heading: g.heading || "",
-            items: Array.isArray(g.items)
-              ? g.items.map(normalizeItem)
-              : undefined,
-            images: Array.isArray(g.images)
-              ? [...g.images]
-              : undefined,
-            // 🆕 имена под снимките (HELL captions)
-            labels: Array.isArray(g.labels)
-              ? [...g.labels]
-              : undefined,
-            // 🆕 индивидуални цени за галерията (HELL)
-            prices: Array.isArray(g.prices)
-              ? [...g.prices]
-              : undefined,
-            pair: Array.isArray(g.pair)
-              ? g.pair.map((p) => ({ ...p }))
-              : undefined
-          }))
-        : undefined
+        ? cat.groups.map((g) => {
+            const count = (g.images?.length || 0);
+
+            return {
+              heading: g.heading || "",
+
+              // снимките винаги са масив
+              images: Array.isArray(g.images) ? [...g.images] : [],
+
+              // 🟡 винаги създаваме items
+              items: Array.from({ length: count }).map((_, i) => ({
+                name:
+                  g.items?.[i]?.name ??
+                  g.labels?.[i] ??
+                  `Продукт ${i + 1}`,
+              })),
+
+              // 🟡 винаги създаваме labels
+              labels: Array.from({ length: count }).map(
+                (_, i) =>
+                  g.labels?.[i] ??
+                  g.items?.[i]?.name ??
+                  `Продукт ${i + 1}`
+              ),
+
+              // 🟡 винаги създаваме prices
+              prices: Array.from({ length: count }).map(
+                (_, i) => Number(g.prices?.[i] ?? cat.hellPrice ?? 2)
+              )
+            };
+          })
+        : []
     };
 
+    // миниатюри
     snap.cat_thumbs[key] = CAT_THUMBS[key] || DEFAULT_CAT_THUMB;
   });
 
   return snap;
 };
-
-
-
+/* ===========================================================
+ * БЛОК 3: (END)
+ * =========================================================== */
 
 // ===========================================================
 // APPLY SAVED — КРИТИЧНИЯТ FIX ЗА ADDONS
