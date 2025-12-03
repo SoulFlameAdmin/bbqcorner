@@ -54,22 +54,34 @@ async function loadFromFirestore() {
 async function saveToFirestore(payload) {
   if (!db) return false;
   try {
-    // 🧹 Копие на payload, за да махнем addons_labels
+    // 🔥 правим копие и чистим всички addons_labels, независимо от case
     const cleanPayload = { ...payload };
 
-    // Firestore не харесва addons_labels (дълбоко вложени/дупки в масивите)
-    // → не го пазим там, той си е само за модератора (LS_MOD_DRAFT).
-    if (cleanPayload.addons_labels) {
-      delete cleanPayload.addons_labels;
+    // махаме стандартното поле
+    delete cleanPayload.addons_labels;
+    delete cleanPayload.ADDONS_LABELS;
+
+    // защитно – ако някъде е вкаранo вътре
+    if (cleanPayload.catalog && cleanPayload.catalog.addons_labels) {
+      delete cleanPayload.catalog.addons_labels;
+    }
+    if (cleanPayload.CATALOG && cleanPayload.CATALOG.addons_labels) {
+      delete cleanPayload.CATALOG.addons_labels;
     }
 
-    // Firestore НЕ приема undefined вътре в обекта
-    // -> JSON stringify/parse чисти undefined и прототипи
+    // още по-защитно: чистим всички root полета, които по някакъв начин
+    // се казват addons_labels (какъвто и case да е)
+    Object.keys(cleanPayload).forEach((k) => {
+      if (k.toLowerCase() === "addons_labels") {
+        delete cleanPayload[k];
+      }
+    });
+
+    // Firestore не приема undefined → JSON round-trip
     const cleaned = JSON.parse(JSON.stringify(cleanPayload));
 
     const ref = doc(db, COLLECTION, DOC_ID);
-    // ПЪЛЕН overwrite на документа catalog_v1
-    await setDoc(ref, cleaned);
+    await setDoc(ref, cleaned); // FULL overwrite
 
     console.log(
       "🔥 Записано във Firestore (bbq_site/catalog_v1, FULL OVERWRITE).",
