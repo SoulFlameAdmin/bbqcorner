@@ -2259,27 +2259,31 @@ persistDraft();
   /* ===========================================================
    * БЛОК 11 (END)
    * =========================================================== */
-
 function cleanUndefined(obj) {
-    return JSON.parse(JSON.stringify(obj));
+  return JSON.parse(JSON.stringify(obj));
 }
 
 async function saveToCloud() {
   const snap = snapshotRuntime();
   const mem  = getMemory();
 
-let payload = {
-   CATALOG: snap.catalog,
-   ORDER: snap.order,
-   ADDONS: window.ADDONS || {},
-   cat_thumbs: snap.cat_thumbs,
-   addons_labels: mem.addons_labels || {},
-   savedAt: new Date().toISOString()
-};
+  // 🔥 ВАЖНО: backend-ът очаква малки букви: catalog / order
+  let payload = {
+    catalog: snap.catalog,
+    order: snap.order,
+    addons: window.ADDONS || {},
+    cat_thumbs: snap.cat_thumbs,
+    addons_labels: mem.addons_labels || {},
+    savedAt: new Date().toISOString()
+  };
 
-// 🧹 Премахва всички undefined – 100% fix
-payload = cleanUndefined(payload);
+  // по желание – дублираме и в главни, ако някъде се ползват:
+  payload.CATALOG = payload.catalog;
+  payload.ORDER   = payload.order;
+  payload.ADDONS  = payload.addons;
 
+  // 🧹 махаме undefined – иначе Firestore понякога гърми
+  payload = cleanUndefined(payload);
 
   try {
     const res = await window.BBQ_STORE.save(payload);
