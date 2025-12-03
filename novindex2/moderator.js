@@ -209,7 +209,7 @@ const snapshotRuntime = () => {
       };
 
       if (Array.isArray(it.addons) && it.addons.length) {
-        base.addons = it.addons.map(a => ({ ...a }));
+        base.addons = it.addons.map((a) => ({ ...a }));
       }
 
       return base;
@@ -242,7 +242,7 @@ const snapshotRuntime = () => {
                 name:
                   g.items?.[i]?.name ??
                   g.labels?.[i] ??
-                  `Продукт ${i + 1}`,
+                  `Продукт ${i + 1}`
               })),
 
               // 🟡 винаги създаваме labels
@@ -268,60 +268,54 @@ const snapshotRuntime = () => {
 
   return snap;
 };
-/* ===========================================================
- * БЛОК 3: (END)
- * =========================================================== */
+
 
 // ===========================================================
-// APPLY SAVED — КРИТИЧНИЯТ FIX ЗА ADDONS
+// APPLY SAVED — FIX ЗА ORDER + ADDONS + HELL GROUPS
 // ===========================================================
 
 const applySaved = (data) => {
   if (!data || typeof data !== "object") return;
 
-  // 1) ORDER – подреждане на категориите
+  // 1) ORDER – snapshot-ът е истината (НЕ връщаме стари категории)
   if (Array.isArray(data.order) && data.order.length) {
-    const known = new Set(ORDER);
-    data.order.forEach((k) => {
-      if (!known.has(k)) ORDER.push(k);
-    });
-    const rest = ORDER.filter((k) => !data.order.includes(k));
-
     ORDER.length = 0;
     data.order.forEach((k) => ORDER.push(k));
-    rest.forEach((k) => ORDER.push(k));
   }
 
-  // 2) CATALOG – заглавия, items, groups
+  // 2) CATALOG – заглавия, items (с addons), groups (HELL)
   if (data.catalog && typeof data.catalog === "object") {
     Object.entries(data.catalog).forEach(([key, val]) => {
       if (!CATALOG[key]) {
         CATALOG[key] = { title: val.title || key.toUpperCase(), items: [] };
       }
 
-      CATALOG[key].title = val.title || CATALOG[key].title;
-      CATALOG[key].view = val.view ?? CATALOG[key].view;
+      CATALOG[key].title     = val.title     || CATALOG[key].title;
+      CATALOG[key].view      = val.view      ?? CATALOG[key].view;
       CATALOG[key].hellPrice = val.hellPrice ?? CATALOG[key].hellPrice;
 
-      // 🔥 ТУК Е ФИКСЪТ — ВРЪЩАМЕ ADDONS В PRODUKTA
+      // 🔥 Връщаме items + addons
       if (Array.isArray(val.items)) {
-        CATALOG[key].items = val.items.map(it => ({
+        CATALOG[key].items = val.items.map((it) => ({
           ...it,
           addons: Array.isArray(it.addons) ? it.addons : []
         }));
       }
 
-      if (Array.isArray(val.groups)) CATALOG[key].groups = val.groups;
+      // 🔥 HELL / gallery групи – пазим ги 1:1 от snapshot-а
+      if (Array.isArray(val.groups)) {
+        CATALOG[key].groups = val.groups;
+      }
     });
   }
 
   // 3) THUMBS – миниатюри по категории
-  if (data.cat_thumbs) {
-    Object.assign(CAT_THUMBS, data.cat_thumbs || {});
+  if (data.cat_thumbs && typeof data.cat_thumbs === "object") {
+    Object.assign(CAT_THUMBS, data.cat_thumbs);
   }
 
   // 4) ADDONS LABELS – записваме ги в черновата памет
-  if (data.addons_labels) {
+  if (data.addons_labels && typeof data.addons_labels === "object") {
     const mem = getMemory();
     mem.addons_labels = data.addons_labels;
     setMemory(mem);
@@ -332,7 +326,7 @@ const applySaved = (data) => {
 // Чернова – snapshot + addons_labels
 const persistDraft = () => {
   const snap = snapshotRuntime();
-  const mem = getMemory();
+  const mem  = getMemory();
   snap.addons_labels = mem.addons_labels || {};
   save(LS_MOD_DRAFT, snap);
 };
@@ -342,9 +336,10 @@ const savePermanent = () => {
   save(LS_MOD_DATA, snapshotRuntime());
 };
 
-  /* ===========================================================
-   * БЛОК 3 (END)
-   * =========================================================== */
+/* ===========================================================
+ * БЛОК 3 (END)
+ * =========================================================== */
+
 
 
   /* ===========================================================
