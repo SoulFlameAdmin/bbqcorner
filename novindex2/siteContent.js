@@ -54,11 +54,18 @@ async function loadFromFirestore() {
 async function saveToFirestore(payload) {
   if (!db) return false;
   try {
-    // 🔥 ВАЖНО:
-    // Firestore НЕ приема undefined вътре в обекта (например CATALOG.promocii.view = undefined)
-    // Затова чистим payload-а чрез JSON stringify → parse
-    // (undefined полетата изчезват автоматично)
-    const cleaned = JSON.parse(JSON.stringify(payload));
+    // 🧹 Копие на payload, за да махнем addons_labels
+    const cleanPayload = { ...payload };
+
+    // Firestore не харесва addons_labels (дълбоко вложени/дупки в масивите)
+    // → не го пазим там, той си е само за модератора (LS_MOD_DRAFT).
+    if (cleanPayload.addons_labels) {
+      delete cleanPayload.addons_labels;
+    }
+
+    // Firestore НЕ приема undefined вътре в обекта
+    // -> JSON stringify/parse чисти undefined и прототипи
+    const cleaned = JSON.parse(JSON.stringify(cleanPayload));
 
     const ref = doc(db, COLLECTION, DOC_ID);
     // ПЪЛЕН overwrite на документа catalog_v1
