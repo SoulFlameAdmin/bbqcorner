@@ -1039,30 +1039,45 @@ const enableInlineEditing = () => {
             return;
           }
 
-          // 2б) Име под снимката – .caption
-          if (el.classList.contains("caption")) {
-            const newName = (el.textContent || "").trim();
 
+          // 2б) Име под снимката – .caption (HELL)
+          if (el.classList.contains("caption")) {
+            const newName = ((el.textContent || "").trim()) || "Продукт";
+
+            // 🔥 1) Пазим името и в labels – това чете основният сайт
+            if (!Array.isArray(group.labels)) group.labels = [];
+            group.labels[imgIdx] = newName;
+
+            // 🔥 2) Пазим го и в items – за модератора / бъдещи функции
             if (!Array.isArray(group.items)) group.items = [];
+
             if (!group.items[imgIdx]) {
-              group.items[imgIdx] = {
-                name: newName || "Продукт",
-                desc: "",
-                price:
-                  (Array.isArray(group.prices)
-                    ? group.prices[imgIdx]
-                    : catObj.hellPrice) || 0,
-                img: Array.isArray(group.images)
+              const priceFromGroup =
+                Array.isArray(group.prices)
+                  ? group.prices[imgIdx]
+                  : (catObj.hellPrice || 0);
+
+              const imgFromGroup =
+                Array.isArray(group.images)
                   ? group.images[imgIdx]
-                  : ""
+                  : "";
+
+              group.items[imgIdx] = {
+                name: newName,
+                desc: "",
+                price: priceFromGroup,
+                img: imgFromGroup
               };
             } else {
-              group.items[imgIdx].name = newName || "Продукт";
+              group.items[imgIdx].name = newName;
             }
 
+            // 🔁 записваме черновата, после "Запази всичко" я праща към Firestore
             persistDraft();
             return;
           }
+
+
 
           // за gallery нямаме други editable елементи
           return;
