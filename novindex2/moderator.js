@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
    * =========================================================== */
 
 
-  /* ===========================================================
+   /* ===========================================================
    * БЛОК 2: НАСТРОЙКИ, УТИЛИТИ ФУНКЦИИ И ПОЛЕЗНИ ПОМОЩНИЦИ
    * (START)
    * =========================================================== */
@@ -149,95 +149,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const getMemory = () => read(LS_MOD_DRAFT, {});
   const setMemory = (obj) => save(LS_MOD_DRAFT, obj);
 
-
-
-
-
-
   // ============================
-// 🧩 ХЕЛПЪРИ ЗА UPLOAD НА СНИМКИ
-// ============================
+  // 🧩 UPLOAD НА СНИМКИ ЧРЕЗ Firebase Storage (storage.js)
+  // ============================
+  async function uploadImageViaApi(file, categoryKey, productKey) {
+    if (!window.BBQ_UPLOAD || typeof window.BBQ_UPLOAD.upload !== "function") {
+      console.error("[moderator] BBQ_UPLOAD.upload липсва – увери се, че novindex2/storage.js е зареден преди moderator.js");
+      throw new Error("BBQ_UPLOAD.upload is not available");
+    }
 
-// леко чистене на име на файл
-function sanitizeFileName(name) {
-  return name.replace(/[^a-z0-9.\-_]/gi, "_");
-}
-
-// File → base64 (data URL)
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload  = () => resolve(reader.result);
-    reader.onerror = (e) => reject(e);
-    reader.readAsDataURL(file);
-  });
-}
-
-// ===========================================================
-// Качва снимка чрез backend /api/upload-image
-// ВРЪЩА публичния URL (без GitHub токени, без Authorization)
-// ===========================================================
-async function uploadImageViaApi(file, categoryKey, productKey) {
-  const safeName  = sanitizeFileName(file.name);
-  const rawBase64 = await fileToBase64(file); // "data:image/jpeg;base64,AAAA..."
-  const base64    = rawBase64.split(",")[1];  // махаме "data:..."
-
-  const fileName = `${categoryKey}_${productKey}_${Date.now()}_${safeName}`;
-
-  // ✔ Извикваме upload-image.js без токени
-  const resp = await fetch("/api/upload-image", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      fileName,
-      fileBase64: base64
-    })
-  });
-
-  const json = await resp.json();
-
-  if (!resp.ok || !json.ok) {
-    console.error("Upload API error:", json);
-    throw new Error(json.error || "Upload failed");
+    // връща директно публичния URL от Firebase Storage
+    const url = await window.BBQ_UPLOAD.upload(file, categoryKey, productKey);
+    return url;
   }
-
-  // ✔ json.url идва от api/upload-image.js — публичният линк
-  return json.url;
-}
-
-// ❌ GitHub токени вече НЕ се използват
-function getGithubToken() {
-  return ""; 
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /* ===========================================================
    * БЛОК 2 (END)
    * =========================================================== */
+
 
 /* ===========================================================
  * БЛОК 3: SNAPSHOT НА ТЕКУЩОТО МЕНЮ (CATALOG/ORDER/THUMBS)
