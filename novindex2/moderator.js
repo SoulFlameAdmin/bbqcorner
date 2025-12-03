@@ -3,6 +3,8 @@
  * БЛОК 1: ИНИЦИАЛИЗАЦИЯ НА MODERATOR MODE И РЕЖИМ ФЛАГ
  * (START)
  * =========================================================== */
+
+
 document.addEventListener("DOMContentLoaded", () => {
   // Флаг в localStorage, който пази дали сме в MOD режим
   const LS_MODE_FLAG = "bbq_mode_flag";
@@ -189,21 +191,31 @@ const snapshotRuntime = () => {
   ORDER.forEach((key) => {
     const cat = CATALOG[key] || {};
 
-    const normalizeItem = (it = {}) => {
-      const base = {
-        name:  it.name  || "Продукт",
-        desc:  it.desc  || "",
-        price: Number(it.price) || 0,
-        img:   it.img   || ""
-      };
-
-      // 🧩 ВАЖНО: пазим и добавките
-      if (Array.isArray(it.addons) && it.addons.length) {
-        base.addons = it.addons.map(a => ({ ...a }));
-      }
-
-      return base;
+const normalizeItem = (it) => {
+  // 🛡️ Фикс за null / undefined / невалиден продукт
+  if (!it || typeof it !== "object") {
+    return {
+      name: "Продукт",
+      desc: "",
+      price: 0,
+      img: ""
     };
+  }
+
+  const base = {
+    name: it.name || "Продукт",
+    desc: it.desc || "",
+    price: Number(it.price) || 0,
+    img: it.img || ""
+  };
+
+  if (Array.isArray(it.addons) && it.addons.length) {
+    base.addons = it.addons.map(a => ({ ...a }));
+  }
+
+  return base;
+};
+
 
     snap.catalog[key] = {
       title:     cat.title || key.toUpperCase(),
