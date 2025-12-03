@@ -1705,15 +1705,38 @@ addBtn("➕ Добави продукт", 260, () => {
 
   const cat = CATALOG[key];
 
-    // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery') – създаваме нова плочка
+  // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery') – създаваме нова плочка
   if (cat.view === "gallery" && Array.isArray(cat.groups) && cat.groups.length) {
-    const defaultImg   = "snimki/produkti/hell/default.jpg"; // смени ако искаш
+    const defaultImg   = "snimki/produkti/hell/default.jpg";  // по твой вкус
     const defaultPrice = cat.hellPrice ?? 0;
+    const defaultName  = "Default";
 
-    // 1) основна група – HELL -250мл (обикновено е първата)
+    // помощник – добавя плочка в дадена група
+    const addTileToGroup = (g) => {
+      if (!g) return;
+
+      if (!Array.isArray(g.images)) g.images = [];
+      if (!Array.isArray(g.prices)) g.prices = [];
+      if (!Array.isArray(g.items))  g.items  = [];
+      if (!Array.isArray(g.labels)) g.labels = [];
+
+      const idx = g.images.length;
+
+      g.images[idx] = defaultImg;
+      g.prices[idx] = defaultPrice;
+      g.labels[idx] = defaultName;
+      g.items[idx]  = {
+        name: defaultName,
+        desc: "",
+        price: defaultPrice,
+        img: defaultImg
+      };
+    };
+
+    // 1) основната секция – HELL -250мл (обикновено е първата група)
     const mainGroup = cat.groups[0];
 
-    // 2) втората група – търсим тази, която е ICE COFFE HELL -250 мл
+    // 2) ICE COFFE HELL -250 мл – търсим по heading
     const coffeeGroup = cat.groups.find(
       (g, idx) =>
         idx !== 0 &&
@@ -1721,29 +1744,14 @@ addBtn("➕ Добави продукт", 260, () => {
         g.heading.toLowerCase().includes("ice coffe")
     );
 
-    // правим списък с групите, в които ще добавим плочката
-    const targets = [];
-    if (mainGroup) targets.push(mainGroup);
-    if (coffeeGroup && coffeeGroup !== mainGroup) targets.push(coffeeGroup);
-
-    targets.forEach((g) => {
-      if (!Array.isArray(g.images)) g.images = [];
-      if (!Array.isArray(g.prices)) g.prices = [];
-      if (!Array.isArray(g.items))  g.items  = [];
-
-      g.images.push(defaultImg);
-      g.prices.push(defaultPrice);
-      g.items.push({
-        name: "Нов продукт",
-        desc: "",
-        price: defaultPrice,
-        img: defaultImg
-      });
-    });
+    addTileToGroup(mainGroup);
+    if (coffeeGroup && coffeeGroup !== mainGroup) {
+      addTileToGroup(coffeeGroup);
+    }
 
     persistDraft();
     activate(key, { replace: true });
-    toast("Нов HELL продукт добавен в двете секции");
+    toast("Нов HELL продукт добавен");
     return;
   }
 
