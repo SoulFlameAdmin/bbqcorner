@@ -2275,9 +2275,10 @@ async function saveToCloud() {
   const snap = snapshotRuntime();
   const mem  = getMemory();
 
-  // 🔥 ВАЖНО: backend-ът очаква малки букви: catalog / order
+  // 🔥 ЯСЕН payload към бекенда
   let payload = {
-    catalog: snap.catalog,
+    // малки букви – това очаква /api/save-menu и BBQ_STORE.save()
+    catalog: snap.catalog,            // тук е hell + groups + labels + prices
     order: snap.order,
     addons: window.ADDONS || {},
     cat_thumbs: snap.cat_thumbs,
@@ -2285,15 +2286,19 @@ async function saveToCloud() {
     savedAt: new Date().toISOString()
   };
 
-  // по желание – дублираме и в главни, ако някъде се ползват:
-  payload.CATALOG = payload.catalog;
-  payload.ORDER   = payload.order;
-  payload.ADDONS  = payload.addons;
+  // по желание – дублираме в главни букви, ако някъде още се ползват
+  payload.CATALOG       = payload.catalog;
+  payload.ORDER         = payload.order;
+  payload.ADDONS        = payload.addons;
+  payload.CAT_THUMBS    = payload.cat_thumbs;
+  payload.ADDONS_LABELS = payload.addons_labels;
 
-  // 🧹 махаме undefined – иначе Firestore понякога гърми
+  // 🧹 махаме undefined, за да не гърми Firestore
   payload = cleanUndefined(payload);
 
   try {
+    console.log("BBQ SAVE PAYLOAD:", payload); // 👁 да видиш в DevTools > Console
+
     const res = await window.BBQ_STORE.save(payload);
 
     if (!res || !res.ok) {
@@ -2301,6 +2306,9 @@ async function saveToCloud() {
       toast("❌ Грешка при записа в облака");
       return;
     }
+
+    // записваме и локално като „официален“ snapshot
+    save(LS_MOD_DATA, snap);
 
     toast("✔ Записано в основния сайт (" + res.via + ")");
   } catch (e) {
