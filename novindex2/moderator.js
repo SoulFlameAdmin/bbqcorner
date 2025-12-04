@@ -1041,9 +1041,9 @@ const enableInlineEditing = () => {
       });
     });
 
-  // 🔠 Заглавия на секциите при HELL (sec-title)
-  const keyForGallery = currentCat();
-  if (CATALOG[keyForGallery] && CATALOG[keyForGallery].view === "gallery") {
+  // 🔠 Заглавия на секциите (sec-title) – за всички категории с groups
+  const keyForGroups = currentCat();
+  if (CATALOG[keyForGroups] && Array.isArray(CATALOG[keyForGroups].groups)) {
     document.querySelectorAll(".sec-title").forEach((titleEl, idx) => {
       titleEl.contentEditable = "true";
       titleEl.setAttribute("data-mod", "1");
@@ -1059,6 +1059,7 @@ const enableInlineEditing = () => {
       });
     });
   }
+
 
   // Смяна на снимки (Vercel + GitHub upload)
   document
@@ -1510,6 +1511,46 @@ const injectHellDeleteButtons = () => {
  * =========================================================== */
 
 
+// Рендер на подзаглавията (groups) за НЕ-gallery категории
+//podzaglaviq buton 
+
+function renderSubheadingsForModerator(catKey) {
+  const key = catKey || currentCat();
+  const cat = CATALOG[key];
+  if (!cat) return;
+  if (!grid) return;
+
+  // HELL (view:'gallery') си има собствен layout → не пипаме там
+  if (cat.view === "gallery") return;
+
+  const container = grid.parentElement;
+  if (!container) return;
+
+  // махаме стари подзаглавия, ако има
+  container.querySelectorAll(".sec-title").forEach(el => el.remove());
+
+  if (!Array.isArray(cat.groups) || !cat.groups.length) return;
+
+  cat.groups.forEach((g, idx) => {
+    const h = document.createElement("div");
+    h.className = "sec-title";
+    h.textContent = g.heading || `Подзаглавие ${idx + 1}`;
+    h.dataset.groupIndex = idx;
+
+    // малко стил, за да стои точно под заглавието
+    Object.assign(h.style, {
+      margin: "12px 0 6px",
+      fontWeight: "900",
+      fontSize: "20px",
+      color: "#ff7a00"
+    });
+
+    // вкарваме подзаглавието ПРЕДИ grid-а с продуктите
+    container.insertBefore(h, grid);
+  });
+}
+
+
   /* ===========================================================
    * БЛОК 9: HOOK КЪМ activate() + КОНВЕРСИЯ BGN → EUR
    * (START)
@@ -1520,6 +1561,9 @@ activate = function (cat, opts) {
   _activate(cat, opts);
 
   const key = cat || currentCat();
+
+// 🧩 ново – рисуваме подзаглавията за текущата категория
+  renderSubheadingsForModerator(key);
 
   applyAddonsLabelsToDOM(key);
   enableInlineEditing();
