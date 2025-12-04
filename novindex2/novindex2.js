@@ -5,6 +5,42 @@
 /* E:\BBQ_SITE\novindex2\novindex2.js */
 "use strict";
 
+// ============================
+// 🟠 MODERATOR MODE INIT FIX
+// ============================
+
+(function initModeratorMode() {
+  const url = new URL(location.href);
+  const mode = url.searchParams.get("mode");
+
+  // Ако URL казва moderator → включваме флага
+  if (mode === "moderator") {
+    localStorage.setItem("bbq_mode_flag", "true");
+  }
+
+  // Ако флагът е активен → пускаме МОДЕРАЦИЯТА
+  const isMod = localStorage.getItem("bbq_mode_flag") === "true";
+
+  if (isMod) {
+    console.log("🟠 MODERATOR MODE ACTIVATED");
+    document.body.classList.add("is-mod");
+
+    // показваме банера
+    if (typeof window.showModeratorBanner === "function") {
+      window.showModeratorBanner();
+    }
+
+    // пускаме редакторските инструменти
+    setTimeout(() => {
+      window.enableInlineEditing?.();
+      window.enableProductDnd?.();
+      window.injectDeleteButtons?.();
+      window.fixEditLayers?.();
+    }, 100);
+  }
+})();
+
+
 // Флаг: дали сме в MODERATOR MODE
 const IS_MOD = localStorage.getItem("bbq_mode_flag") === "true";
 
