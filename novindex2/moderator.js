@@ -228,61 +228,65 @@ const snapshotRuntime = () => {
 
       // 🟧 groups – за HELL / вода / газирани и др.
       // ВАЖНО: НЕ режем полетата, а стъпваме върху g и обновяваме само нужните
-      groups: Array.isArray(cat.groups)
-        ? cat.groups.map((g) => {
-            const count = (g?.images?.length || 0);
+groups: Array.isArray(cat.groups)
+  ? cat.groups.map((g) => {
+      const count = (g?.images?.length || 0);
 
-            // копираме всички оригинални полета (pair, type и т.н.)
-            const base = { ...g };
+      // копираме ВСИЧКО (важно за вода/газирана)
+      const base = { ...g };
 
-            // заглавие
-            base.heading = g.heading || "";
+      // 🛡 пазим pair
+      base.pair = Array.isArray(g.pair)
+        ? g.pair.map((p) => ({ ...p }))
+        : [];
 
-            // снимките винаги са масив
-            base.images = Array.isArray(g.images) ? [...g.images] : [];
+      // снимките винаги са масив
+      base.images = Array.isArray(g.images) ? [...g.images] : [];
 
-            // 🟡 items – пазим старите полета + гарантираме name
-            base.items = Array.from({ length: count }).map((_, i) => {
-              const oldItem = (Array.isArray(g.items) && g.items[i]) || {};
-              return {
-                ...oldItem,
-                name:
-                  oldItem.name ??
-                  g.labels?.[i] ??
-                  `Продукт ${i + 1}`
-              };
-            });
+      // items
+      base.items = Array.from({ length: count }).map((_, i) => {
+        const oldItem = g.items?.[i] || {};
+        return {
+          ...oldItem,
+          name:
+            oldItem.name ??
+            g.labels?.[i] ??
+            `Продукт ${i + 1}`
+        };
+      });
 
-            // 🟡 labels – винаги масив
-            base.labels = Array.from({ length: count }).map((_, i) =>
-              g.labels?.[i] ??
-              g.items?.[i]?.name ??
-              `Продукт ${i + 1}`
-            );
+      // labels
+      base.labels = Array.from({ length: count }).map(
+        (_, i) =>
+          g.labels?.[i] ??
+          g.items?.[i]?.name ??
+          `Продукт ${i + 1}`
+      );
 
-            // 🟡 prices – индивидуални цени, fallback към item.price или hellPrice
-            base.prices = Array.from({ length: count }).map((_, i) => {
-              const fromGroup =
-                Array.isArray(g.prices) && typeof g.prices[i] !== "undefined"
-                  ? g.prices[i]
-                  : undefined;
-              const fromItem =
-                Array.isArray(g.items) && typeof g.items[i]?.price === "number"
-                  ? g.items[i].price
-                  : undefined;
+      // prices
+      base.prices = Array.from({ length: count }).map((_, i) => {
+        const fromGroup =
+          Array.isArray(g.prices) && g.prices[i] !== undefined
+            ? g.prices[i]
+            : undefined;
 
-              return Number(
-                fromGroup ??
-                fromItem ??
-                cat.hellPrice ??
-                2
-              );
-            });
+        const fromItem =
+          g.items?.[i] && typeof g.items[i].price === "number"
+            ? g.items[i].price
+            : undefined;
 
-            return base;
-          })
-        : []
-    };
+        return Number(
+          fromGroup ??
+          fromItem ??
+          cat.hellPrice ??
+          2
+        );
+      });
+
+      return base;
+    })
+  : []
+ };
 
     // миниатюри
     snap.cat_thumbs[key] = CAT_THUMBS[key] || DEFAULT_CAT_THUMB;
