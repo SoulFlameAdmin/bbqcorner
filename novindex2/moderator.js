@@ -2573,7 +2573,7 @@ async function saveToCloud() {
  * (START)
  * =========================================================== */
 
-function showModeratorBanner() {
+window.showModeratorBanner = function () {
   if (document.querySelector("#moderator-banner")) return;
 
   const banner = document.createElement("div");
@@ -2612,17 +2612,21 @@ function showModeratorBanner() {
 
   document.body.appendChild(banner);
 
-  document.querySelector("#exitModeratorBtn").addEventListener("click", () => {
-    localStorage.removeItem("bbq_mode_flag");
+  const exitBtn = document.querySelector("#exitModeratorBtn");
 
-    const url = new URL(location.href);
-    url.searchParams.delete("mode");
-    location.href = url.toString();
+  if (exitBtn) {
+    exitBtn.addEventListener("click", () => {
+      console.log("EXIT CLICKED");
 
-    setTimeout(() => location.reload(), 150);
-  });
-}
+      localStorage.removeItem("bbq_mode_flag");
 
+      const cleanUrl = location.origin + location.pathname;
+      location.href = cleanUrl;
+
+      setTimeout(() => location.reload(), 150);
+    });
+  }
+};
 
 // BOOT: при стартиране прилагаме запазените данни и активираме текущата категория
 applySaved(read(LS_MOD_DATA, null));
