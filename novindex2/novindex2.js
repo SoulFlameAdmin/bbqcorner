@@ -1636,28 +1636,32 @@ if (data.view === "gallery") {
     Array.isArray(data.groups) &&
     data.groups.some(g => Array.isArray(g.items) && g.items.length);
 
-  if (hasGroupedItems) {
-    // рендер по групи: Подзаглавие → продуктите от тази група
-    grid.innerHTML = (data.groups || [])
-      .map((g, gIdx) => {
-        const gItems = Array.isArray(g.items) ? g.items : [];
-        if (!gItems.length) return "";
+if (hasGroupedItems) {
+  grid.innerHTML = (data.groups || [])
+    .map((g, gIdx) => {
+      const gItems = Array.isArray(g.items) ? g.items : [];
+      if (!gItems.length) return "";
 
-        return `
-          <section class="group-block">
-            <h2 class="sec-title">
-              ${esc(g.heading || `Подзаглавие ${gIdx + 1}`)}
-            </h2>
-            <div class="grid-products">
-              ${gItems
-                .map((it, i) => productCardHTML(it, i, catHasAddons(current)))
-                .join("")}
-            </div>
-          </section>
-        `;
-      })
-      .join("");
-  } else {
+      const headingHTML = !IS_MOD
+        ? `<h2 class="sec-title">
+             ${esc(g.heading || `Подзаглавие ${gIdx + 1}`)}
+           </h2>`
+        : "";
+
+      return `
+        <section class="group-block">
+          ${headingHTML}
+          <div class="grid-products">
+            ${gItems
+              .map((it, i) => productCardHTML(it, i, catHasAddons(current)))
+              .join("")}
+          </div>
+        </section>
+      `;
+    })
+    .join("");
+} else {
+
     // 2) стандартна категория: продукти са в data.items,
     //    а groups са само текстови подзаглавия (ГИРОС, БУРГЕРИ и т.н.)
     const items = data?.items || [];
@@ -1670,16 +1674,17 @@ if (data.view === "gallery") {
     }
 
     // блок с подзаглавията – ще стоят над всички продукти
-    let subHeadingsHTML = "";
-    if (Array.isArray(data.groups) && data.groups.length) {
-      subHeadingsHTML = data.groups
-        .map((g, idx) => `
-          <h2 class="sec-title">
-            ${esc(g.heading || `Подзаглавие ${idx + 1}`)}
-          </h2>
-        `)
-        .join("");
-    }
+let subHeadingsHTML = "";
+if (!IS_MOD && Array.isArray(data.groups) && data.groups.length) {
+  subHeadingsHTML = data.groups
+    .map((g, idx) => `
+      <h2 class="sec-title">
+        ${esc(g.heading || `Подзаглавие ${idx + 1}`)}
+      </h2>
+    `)
+    .join("");
+}
+
 
     grid.innerHTML = `
       <div class="grid-products">
