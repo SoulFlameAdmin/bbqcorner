@@ -5,42 +5,6 @@
 /* E:\BBQ_SITE\novindex2\novindex2.js */
 "use strict";
 
-// ============================
-// 🟠 MODERATOR MODE INIT FIX
-// ============================
-
-(function initModeratorMode() {
-  const url = new URL(location.href);
-  const mode = url.searchParams.get("mode");
-
-  // Ако URL казва moderator → включваме флага
-  if (mode === "moderator") {
-    localStorage.setItem("bbq_mode_flag", "true");
-  }
-
-  // Ако флагът е активен → пускаме МОДЕРАЦИЯТА
-  const isMod = localStorage.getItem("bbq_mode_flag") === "true";
-
-  if (isMod) {
-    console.log("🟠 MODERATOR MODE ACTIVATED");
-    document.body.classList.add("is-mod");
-
-    // показваме банера
-    if (typeof window.showModeratorBanner === "function") {
-      window.showModeratorBanner();
-    }
-
-    // пускаме редакторските инструменти
-    setTimeout(() => {
-      window.enableInlineEditing?.();
-      window.enableProductDnd?.();
-      window.injectDeleteButtons?.();
-      window.fixEditLayers?.();
-    }, 100);
-  }
-})();
-
-
 // Флаг: дали сме в MODERATOR MODE
 const IS_MOD = localStorage.getItem("bbq_mode_flag") === "true";
 
@@ -1672,32 +1636,28 @@ if (data.view === "gallery") {
     Array.isArray(data.groups) &&
     data.groups.some(g => Array.isArray(g.items) && g.items.length);
 
-if (hasGroupedItems) {
-  grid.innerHTML = (data.groups || [])
-    .map((g, gIdx) => {
-      const gItems = Array.isArray(g.items) ? g.items : [];
-      if (!gItems.length) return "";
+  if (hasGroupedItems) {
+    // рендер по групи: Подзаглавие → продуктите от тази група
+    grid.innerHTML = (data.groups || [])
+      .map((g, gIdx) => {
+        const gItems = Array.isArray(g.items) ? g.items : [];
+        if (!gItems.length) return "";
 
-      const headingHTML = !IS_MOD
-        ? `<h2 class="sec-title">
-             ${esc(g.heading || `Подзаглавие ${gIdx + 1}`)}
-           </h2>`
-        : "";
-
-      return `
-        <section class="group-block">
-          ${headingHTML}
-          <div class="grid-products">
-            ${gItems
-              .map((it, i) => productCardHTML(it, i, catHasAddons(current)))
-              .join("")}
-          </div>
-        </section>
-      `;
-    })
-    .join("");
-} else {
-
+        return `
+          <section class="group-block">
+            <h2 class="sec-title">
+              ${esc(g.heading || `Подзаглавие ${gIdx + 1}`)}
+            </h2>
+            <div class="grid-products">
+              ${gItems
+                .map((it, i) => productCardHTML(it, i, catHasAddons(current)))
+                .join("")}
+            </div>
+          </section>
+        `;
+      })
+      .join("");
+  } else {
     // 2) стандартна категория: продукти са в data.items,
     //    а groups са само текстови подзаглавия (ГИРОС, БУРГЕРИ и т.н.)
     const items = data?.items || [];
@@ -1710,17 +1670,16 @@ if (hasGroupedItems) {
     }
 
     // блок с подзаглавията – ще стоят над всички продукти
-let subHeadingsHTML = "";
-if (!IS_MOD && Array.isArray(data.groups) && data.groups.length) {
-  subHeadingsHTML = data.groups
-    .map((g, idx) => `
-      <h2 class="sec-title">
-        ${esc(g.heading || `Подзаглавие ${idx + 1}`)}
-      </h2>
-    `)
-    .join("");
-}
-
+    let subHeadingsHTML = "";
+    if (Array.isArray(data.groups) && data.groups.length) {
+      subHeadingsHTML = data.groups
+        .map((g, idx) => `
+          <h2 class="sec-title">
+            ${esc(g.heading || `Подзаглавие ${idx + 1}`)}
+          </h2>
+        `)
+        .join("");
+    }
 
     grid.innerHTML = `
       <div class="grid-products">
@@ -1932,3 +1891,7 @@ if (sidebar) {
     popThenActivate(catEl, key);
   });
 }
+
+
+
+

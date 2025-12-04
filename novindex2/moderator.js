@@ -1,3 +1,5 @@
+suhto da imat koshche da se triqt i sushto da moje da se zapazva kogato go mestq s drag and drop pod boxove zashtoto go mestq pod box i sedi no pri zapazvane v osnovniqt sait pak e nad boxa 
+
 
 
 /* ===========================================================
@@ -59,10 +61,6 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ===========================================================
    * БЛОК 1 (END)
    * =========================================================== */
-// 🔥 Показваме банера САМО ако сме модератор
-if (isModerator) {
-  showModeratorBanner();
-}
 
 
    /* ===========================================================
@@ -178,7 +176,7 @@ if (isModerator) {
 /* ===========================================================
  * БЛОК 3: SNAPSHOT НА ТЕКУЩОТО МЕНЮ (CATALOG / ORDER / THUMBS)
  * Този snapshot се пази локално и се ползва при SAVE към Firestore.
- * ВАЖНО: включва и groups (подзаглавията) + position (before/after grid).
+ * ВАЖНО: вече включва и groups (подзаглавията).
  * =========================================================== */
 
 function snapshotRuntime() {
@@ -232,16 +230,14 @@ function snapshotRuntime() {
       out.items = cat.items.map(normalizeItem);
     }
 
-    // 🔥 ПОДЗАГЛАВИЯ (groups) + POSITION
+    // 🔥 ТУК ВЕЧЕ ПАЗИМ И ПОДЗАГЛАВИЯТА (groups)
     if (Array.isArray(cat.groups)) {
       out.groups = cat.groups.map((g) => {
         const gOut = {
-          heading: g.heading || "",
-          // позиция: before (по подразбиране) или after – под box-овете
-          position: g.position === "after" ? "after" : "before"
+          heading: g.heading || ""
         };
 
-        // групи с вътрешни продукти (палачинки, айрян)
+        // групи с вътрешни продукти (палчинки, айрян)
         if (Array.isArray(g.items)) {
           gOut.items = g.items.map(normalizeItem);
         }
@@ -262,11 +258,6 @@ function snapshotRuntime() {
         // индивидуални цени за снимките (ако има)
         if (Array.isArray(g.prices)) {
           gOut.prices = g.prices.map((pr) => Number(pr) || 0);
-        }
-
-        // labels за HELL
-        if (Array.isArray(g.labels)) {
-          gOut.labels = [...g.labels];
         }
 
         return gOut;
@@ -313,11 +304,10 @@ const applySaved = (data) => {
         }));
       }
 
-      // 🔥 ВРЪЩАМЕ И GROUPS (подзаглавията) + position
+      // 🔥 ВРЪЩАМЕ И GROUPS (подзаглавията)
       if (Array.isArray(val.groups)) {
         CATALOG[key].groups = val.groups.map((g) => ({
           heading: g.heading || "",
-          position: g.position === "after" ? "after" : "before",
           items:   Array.isArray(g.items)   ? g.items.map((it) => ({
             ...it,
             addons: Array.isArray(it.addons) ? it.addons : []
@@ -327,8 +317,7 @@ const applySaved = (data) => {
             ...p,
             price: Number(p.price) || 0
           })) : undefined,
-          prices:  Array.isArray(g.prices)  ? g.prices.map((pr) => Number(pr) || 0) : undefined,
-          labels:  Array.isArray(g.labels)  ? [...g.labels] : undefined
+          prices:  Array.isArray(g.prices)  ? g.prices.map((pr) => Number(pr) || 0) : undefined
         }));
       }
     });
@@ -361,7 +350,6 @@ const savePermanent = () => {
 /* ===========================================================
  * БЛОК 3 (END)
  * =========================================================== */
-
 
 
   /* ===========================================================
@@ -1542,11 +1530,11 @@ const injectHellDeleteButtons = () => {
  * =========================================================== */
 
 
+// Рендер на подзаглавията (groups) за НЕ-gallery категории
+//podzaglaviq buton 
 
-
-// Рендер на подзаглавията (groups) за MOD – с кошче + position before/after grid
-let draggedSub = null;
-
+// Рендер на подзаглавията (groups) – винаги веднага под заглавието
+// Рендер на подзаглавията (groups) – около продуктите
 function renderSubheadingsForModerator(catKey) {
   const key = catKey || currentCat();
   const cat = CATALOG[key];
@@ -1555,105 +1543,35 @@ function renderSubheadingsForModerator(catKey) {
   if (typeof titleEl === "undefined" || !titleEl) return;
 
   const parent = titleEl.parentElement || document.body;
-  const gridEl = typeof grid !== "undefined" ? grid : parent.querySelector(".grid");
 
   // махаме стари подзаглавия, добавени от модератора
   parent
     .querySelectorAll(".sec-title[data-from='mod']")
     .forEach((el) => el.remove());
 
-  // разделяме groups: before и after grid
-  const before = [];
-  const after  = [];
+  let ref = titleEl;
 
   cat.groups.forEach((g, idx) => {
-    if (!g) return;
-    if (g.position === "after") after.push({ g, idx });
-    else before.push({ g, idx });
-  });
-
-  const makeHeading = ({ g, idx }) => {
     const h = document.createElement("div");
     h.className = "sec-title";
     h.dataset.from = "mod";          // за чистене
     h.dataset.groupIndex = idx;      // индекс в cat.groups
-
-    const labelSpan = document.createElement("span");
-    labelSpan.textContent = g.heading || `Подзаглавие ${idx + 1}`;
-    h.appendChild(labelSpan);
-
-    // 🗑 бутон за триене
-    const delBtn = document.createElement("button");
-    delBtn.type = "button";
-    delBtn.className = "subheading-del-btn";
-    delBtn.textContent = "🗑";
-    delBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-
-      const k = currentCat();
-      const c = CATALOG[k];
-      if (!c || !Array.isArray(c.groups)) return;
-
-      const realIndex = Number(h.dataset.groupIndex);
-      if (realIndex < 0 || !c.groups[realIndex]) return;
-
-      c.groups.splice(realIndex, 1);
-      persistDraft();
-      renderSubheadingsForModerator(k);
-      enableSubheadingDnd();
-      activate(k, { replace: true });
-      toast("Подзаглавието е изтрито");
-    });
-    h.appendChild(delBtn);
+    h.textContent = g.heading || `Подзаглавие ${idx + 1}`;
 
     Object.assign(h.style, {
       margin: "10px 0 6px",
       fontWeight: "900",
       fontSize: "20px",
-      color: "#ff7a00",
-      position: "relative",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "8px"
+      color: "#ff7a00"
     });
 
-    return h;
-  };
-
-  let refBefore = titleEl;
-
-  // BEFORE: веднага след заглавието
-  before.forEach((obj) => {
-    const h = makeHeading(obj);
-    parent.insertBefore(h, refBefore.nextSibling);
-    refBefore = h;
+    // по подразбиране – под заглавието, над box-овете
+    parent.insertBefore(h, ref.nextSibling);
+    ref = h;
   });
-
-  // AFTER: под grid-а (под box-овете)
-  if (gridEl) {
-    let refAfter = gridEl;
-    after.forEach((obj) => {
-      const h = makeHeading(obj);
-      if (refAfter.nextSibling) {
-        parent.insertBefore(h, refAfter.nextSibling);
-      } else {
-        parent.appendChild(h);
-      }
-      refAfter = h;
-    });
-  } else {
-    // ако няма grid, слагаме ги след последното before
-    let ref = refBefore;
-    after.forEach((obj) => {
-      const h = makeHeading(obj);
-      parent.insertBefore(h, ref.nextSibling);
-      ref = h;
-    });
-  }
 }
+let draggedSub = null;
 
-// синхронизация на order + position (before / after grid) от DOM към CATALOG
 function syncSubheadingOrder() {
   const key = currentCat();
   const cat = CATALOG[key];
@@ -1661,40 +1579,18 @@ function syncSubheadingOrder() {
   if (typeof titleEl === "undefined" || !titleEl) return;
 
   const parent = titleEl.parentElement || document.body;
-  const gridEl = typeof grid !== "undefined" ? grid : parent.querySelector(".grid");
-
   const els = [...parent.querySelectorAll(".sec-title[data-from='mod']")];
+
   const old = cat.groups.slice();
+  const reordered = [];
 
-  const beforeArr = [];
-  const afterArr  = [];
-
-  els.forEach((el) => {
+  els.forEach((el, idx) => {
     const oldIdx = Number(el.dataset.groupIndex);
-    const gOld = old[oldIdx];
-    if (!gOld) return;
-
-    let isAfter = false;
-    if (gridEl && gridEl.compareDocumentPosition) {
-      // ако заглавието е след grid в DOM
-      const rel = gridEl.compareDocumentPosition(el);
-      isAfter = !!(rel & Node.DOCUMENT_POSITION_FOLLOWING);
-    } else if (gridEl) {
-      isAfter = el.offsetTop > gridEl.offsetTop;
-    }
-
-    const clone = { ...gOld, position: isAfter ? "after" : "before" };
-    (isAfter ? afterArr : beforeArr).push(clone);
+    if (old[oldIdx]) reordered.push(old[oldIdx]);
+    el.dataset.groupIndex = idx;
   });
 
-  cat.groups = [...beforeArr, ...afterArr];
-
-  // обновяваме data-groupIndex в DOM според новия ред
-  const allEls = [...parent.querySelectorAll(".sec-title[data-from='mod']")];
-  allEls.forEach((el, idx) => {
-    el.dataset.groupIndex = String(idx);
-  });
-
+  cat.groups = reordered;
   persistDraft();
 }
 
@@ -1743,22 +1639,18 @@ function enableSubheadingDnd() {
       const rect = grid.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
 
-      const parent = titleEl.parentElement || document.body;
-
+      // ако пуснеш в горната половина на grid-а → подзаглавието отива над box-овете
       if (e.clientY < midY) {
-        // горна половина на grid-а → подзаглавието отива НАД box-овете
         parent.insertBefore(draggedSub, grid);
       } else {
-        // долна половина → ПОД box-овете
+        // долна половина → подзаглавието отива под box-овете
         if (grid.nextSibling) parent.insertBefore(draggedSub, grid.nextSibling);
         else parent.appendChild(draggedSub);
       }
-
       syncSubheadingOrder();
     });
   }
 }
-
 
   /* ===========================================================
    * БЛОК 9: HOOK КЪМ activate() + КОНВЕРСИЯ BGN → EUR
@@ -1766,17 +1658,13 @@ function enableSubheadingDnd() {
    * =========================================================== */
 
 const _activate = activate;
-
 activate = function (cat, opts) {
   _activate(cat, opts);
 
   const key = cat || currentCat();
 
-  // 🔥 ИЗЧАКВАМЕ grid + titleEl да се появят
-  setTimeout(() => {
-    renderSubheadingsForModerator(key);
-    enableSubheadingDnd();
-  }, 50);
+  renderSubheadingsForModerator(key); // рисуване
+  enableSubheadingDnd();              // 👉 drag & drop за тях
 
   applyAddonsLabelsToDOM(key);
   enableInlineEditing();
@@ -1785,12 +1673,13 @@ activate = function (cat, opts) {
   injectHellDeleteButtons();
   renderAddonsSidePanels(key);
 
-  if (typeof ensurePlusRightUniversal === "function") ensurePlusRightUniversal();
-  if (typeof ensureMobilePlusRight === "function") ensureMobilePlusRight();
+  if (typeof ensurePlusRightUniversal === "function")
+    ensurePlusRightUniversal();
+  if (typeof ensureMobilePlusRight === "function")
+    ensureMobilePlusRight();
 
   applyEuroConversion();
 };
-
 
 
 
@@ -1965,10 +1854,13 @@ addBtn("➕ Добави продукт", 260, () => {
 
 
 
+
+
 // ➕ – Ново подзаглавие (group) за всяка категория
 addBtn("➕ Добави подзаглавие", 230, () => {
   const key = currentCat();
 
+  // ако няма категорията – създаваме я
   if (!CATALOG[key]) {
     CATALOG[key] = { title: key.toUpperCase(), items: [] };
   }
@@ -1978,11 +1870,12 @@ addBtn("➕ Добави подзаглавие", 230, () => {
   let heading = prompt("Име на подзаглавие (например 'Ice Coffee Hell'):", "");
   if (!heading) return;
 
+  // гарантираме, че има масив groups
   cat.groups = Array.isArray(cat.groups) ? cat.groups : [];
 
+  // създаваме нов group (празен box, в който после ще добавяш продукти)
   cat.groups.push({
     heading: heading.trim(),
-    position: "before",   // 🔥 по подразбиране – над box-овете
     images: [],
     prices: [],
     items: [],
@@ -1997,7 +1890,6 @@ addBtn("➕ Добави подзаглавие", 230, () => {
   background: "#ff7a00",
   color: "#fff"
 });
-
 
 
   // ➕ – Добави добавка (само за храни)
@@ -2511,39 +2403,32 @@ function cleanUndefined(obj) {
   }
 }
 
-
 async function saveToCloud() {
-  // 1) проверка за snapshotRuntime
-  if (typeof snapshotRuntime !== "function") {
-    console.error("❌ snapshotRuntime() липсва.");
-    toast("⚠ Вътрешен проблем: липсва snapshotRuntime");
-    return;
-  }
+  const snap = snapshotRuntime(); // 🔥 вече включва groups вътре
+  const mem  = getMemory();
 
-  // 2) проверка за BBQ_STORE
-  if (!window.BBQ_STORE || typeof window.BBQ_STORE.save !== "function") {
-    console.error("❌ BBQ_STORE.save липсва или не е функция:", window.BBQ_STORE);
-    toast("⚠ Няма връзка с облака (BBQ_STORE)");
-    return;
-  }
+  // --- Целият payload, който качваме онлайн ---
+  let payload = {
+    // lowercase основни полета – това чете BBQ_STORE.load()
+    catalog: snap.catalog,            // ВКЛЮЧВА groups/подзаглавията
+    order: snap.order,
+    addons: window.ADDONS || {},
+    cat_thumbs: snap.cat_thumbs,
+    addons_labels: mem.addons_labels || {},
+    savedAt: new Date().toISOString(),
+
+    // uppercase копия – нужно за стари функции / съвместимост
+    CATALOG: snap.catalog,
+    ORDER: snap.order,
+    ADDONS: window.ADDONS || {},
+    CAT_THUMBS: snap.cat_thumbs,
+    ADDONS_LABELS: mem.addons_labels || {}
+  };
+
+  payload = cleanUndefined(payload);
 
   try {
-    const snap = snapshotRuntime();
-
-    if (!snap || !snap.order || !snap.catalog) {
-      console.error("❌ Невалиден snapshot:", snap);
-      toast("⚠ Невалидни данни за запис");
-      return;
-    }
-
-    const payload = {
-      order: snap.order,
-      catalog: snap.catalog,
-      cat_thumbs: snap.cat_thumbs || {},
-      addons_labels: snap.addons_labels || {}
-    };
-
-    console.log("🌩 Изпращам към BBQ_STORE.save:", payload);
+    console.log("🚀 BBQ SAVE PAYLOAD →", payload);
 
     const res = await window.BBQ_STORE.save(payload);
 
@@ -2553,8 +2438,7 @@ async function saveToCloud() {
       return;
     }
 
-    // официален snapshot локално
-    save(LS_MOD_DATA, snap);
+    save(LS_MOD_DATA, snap); // запазваме и локален официален snapshot
     toast("✔ Записано в основния сайт (via " + res.via + ")");
 
   } catch (err) {
@@ -2563,100 +2447,88 @@ async function saveToCloud() {
   }
 }
 
-
 /* ===========================================================
  * БЛОК 11 (END)
  * =========================================================== */
 
-/* ===========================================================
- * БЛОК 12: ВИЗУАЛЕН БАНЕР "MODERATOR MODE" + BOOT
- * (START)
- * =========================================================== */
+  /* ===========================================================
+   * БЛОК 12: ВИЗУАЛЕН БАНЕР "MODERATOR MODE" + BOOT
+   * (START)
+   * =========================================================== */
 
-window.showModeratorBanner = function () {
-  if (document.querySelector("#moderator-banner")) return;
+  (function showModeratorBanner() {
+    if (document.querySelector("#moderator-banner")) return;
 
-  const banner = document.createElement("div");
-  banner.id = "moderator-banner";
-  banner.innerHTML = `
-    <span>🟠 MODERATOR MODE</span>
-    <button id="exitModeratorBtn" style="
-      margin-left:15px;
-      background:#fff;
-      color:#ff7a00;
-      font-weight:700;
-      border:none;
-      border-radius:8px;
-      padding:4px 10px;
-      cursor:pointer;
-    ">Изход</button>
-  `;
+    const banner = document.createElement("div");
+    banner.id = "moderator-banner";
+    banner.innerHTML = `
+      <span>🟠 MODERATOR MODE</span>
+      <button id="exitModeratorBtn" style="
+        margin-left:15px;
+        background:#fff;
+        color:#ff7a00;
+        font-weight:700;
+        border:none;
+        border-radius:8px;
+        padding:4px 10px;
+        cursor:pointer;
+      ">Изход</button>
+    `;
 
-  Object.assign(banner.style, {
-    position: "fixed",
-    top: "0",
-    left: "50%",
-    transform: "translateX(-50%)",
-    background: "linear-gradient(90deg, #ff7a00, #ffb300)",
-    color: "#fff",
-    fontWeight: "900",
-    fontSize: "18px",
-    padding: "10px 30px",
-    borderRadius: "0 0 14px 14px",
-    zIndex: "1000000",
-    textShadow: "0 2px 5px rgba(0,0,0,0.3)",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
-    letterSpacing: "1px",
-    userSelect: "none"
-  });
-
-  document.body.appendChild(banner);
-
-  const exitBtn = document.querySelector("#exitModeratorBtn");
-
-  if (exitBtn) {
-    exitBtn.addEventListener("click", () => {
-      console.log("EXIT CLICKED");
-
-      localStorage.removeItem("bbq_mode_flag");
-
-      const cleanUrl = location.origin + location.pathname;
-      location.href = cleanUrl;
-
-      setTimeout(() => location.reload(), 150);
+    Object.assign(banner.style, {
+      position: "fixed",
+      top: "0",
+      left: "50%",
+      transform: "translateX(-50%)",
+      background: "linear-gradient(90deg, #ff7a00, #ffb300)",
+      color: "#fff",
+      fontWeight: "900",
+      fontSize: "18px",
+      padding: "10px 30px",
+      borderRadius: "0 0 14px 14px",
+      zIndex: "1000000",
+      textShadow: "0 2px 5px rgba(0,0,0,0.3)",
+      boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+      letterSpacing: "1px",
+      userSelect: "none"
     });
-  }
-};
 
-// BOOT: при стартиране прилагаме запазените данни и активираме текущата категория
-applySaved(read(LS_MOD_DATA, null));
-applySaved(read(LS_MOD_DRAFT, null));
-rebuildSidebar();
+    document.body.appendChild(banner);
 
-// безопасно намираме текущата категория
-let cur = null;
-if (typeof currentCat === "function") {
-  try {
-    cur = currentCat();
-  } catch (e) {
-    console.warn("currentCat() даде грешка:", e);
-  }
-}
+    document.getElementById("exitModeratorBtn").onclick = exitModeratorMode;
+  })();
 
-// fallback – ако няма currentCat(), взимаме първата от ORDER
-if (!cur && Array.isArray(ORDER) && ORDER.length > 0) {
-  cur = ORDER[0];
-}
+  // BOOT: при стартиране прилагаме запазените данни и активираме текущата категория
+  applySaved(read(LS_MOD_DATA, null));
+  applySaved(read(LS_MOD_DRAFT, null));
+  rebuildSidebar();
 
-// активираме само ако всичко е налично
-if (cur && typeof activate === "function") {
+  const cur = currentCat();
   if (typeof titleEl !== "undefined" && titleEl && CATALOG[cur]?.title) {
     titleEl.textContent = CATALOG[cur].title;
   }
+
   activate(cur, { replace: true });
-}
+
+  /* ===========================================================
+   * БЛОК 12 (END)
+   * =========================================================== */
 
 
-/* ===========================================================
- * БЛОК 12 (END)
- * =========================================================== */
+
+
+
+// ==========================================================
+// 🔥 СИНХРОНИЗАЦИЯ НА МОДЕРАТОРА С FIRESTORE
+// Изпраща snapshotRuntime() към Firestore чрез BBQ_STORE.save()
+// ==========================================================
+
+// 🔄 Свързваме бутона #mod-save с нашия глобален saveToCloud()
+document.addEventListener("click", (e) => {
+  const saveBtn = e.target.closest("#mod-save");
+  if (!saveBtn) return;
+  saveToCloud();   // използваме вече готовия payload { CATALOG, ORDER, ... }
+});
+
+
+});
