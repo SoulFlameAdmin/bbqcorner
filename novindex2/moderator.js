@@ -171,15 +171,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* ===========================================================
  * БЛОК 3: SNAPSHOT НА ТЕКУЩОТО МЕНЮ (CATALOG/ORDER/THUMBS)
- * (START)
  * =========================================================== */
-
-// Тук предполагаме, че глобално имаме:
-//   CATALOG, ORDER, CAT_THUMBS
-//   (дефинирани в novindex2.js)
 
 const snapshotRuntime = () => {
   const mem = getMemory();
+
   const snap = {
     order: [...ORDER],
     catalog: {},
@@ -190,105 +186,87 @@ const snapshotRuntime = () => {
   ORDER.forEach((key) => {
     const cat = CATALOG[key] || {};
 
-    // 🟡 normalizeItem – безопасен за null/undefined
+    // --- безопасен normalize ---
     const normalizeItem = (it) => {
       if (!it || typeof it !== "object") {
-        return {
-          name: "Продукт",
-          desc: "",
-          price: 0,
-          img: ""
-        };
+        return { name: "Продукт", desc: "", price: 0, img: "" };
       }
-
       const base = {
         name: it.name || "Продукт",
         desc: it.desc || "",
         price: Number(it.price) || 0,
         img: it.img || ""
       };
-
-      if (Array.isArray(it.addons) && it.addons.length) {
+      if (Array.isArray(it.addons)) {
         base.addons = it.addons.map((a) => ({ ...a }));
       }
-
       return base;
     };
 
-    // 🟧 ПЪЛЕН SNAPSHOT ЗА ВСЯКА КАТЕГОРИЯ
+    // --- записваме категорията ---
     snap.catalog[key] = {
-      title:     cat.title || key.toUpperCase(),
-      view:      cat.view ?? undefined,
+      title: cat.title || key.toUpperCase(),
+      view: cat.view ?? undefined,
       hellPrice: cat.hellPrice ?? undefined,
 
-      // нормални продукти
       items: Array.isArray(cat.items)
         ? cat.items.map(normalizeItem)
         : [],
 
-      // 🟧 groups – за HELL / вода / газирани и др.
-      // ВАЖНО: НЕ режем полетата, а стъпваме върху g и обновяваме само нужните
-groups: Array.isArray(cat.groups)
-  ? cat.groups.map((g) => {
-      const count = (g?.images?.length || 0);
+      groups: Array.isArray(cat.groups)
+        ? cat.groups.map((g) => {
+            const count = g?.images?.length || 0;
+            const base = { ...g };
 
-      // копираме ВСИЧКО (важно за вода/газирана)
-      const base = { ...g };
+            // pair: винаги масив
+            base.pair = Array.isArray(g.pair)
+              ? g.pair.map((p) => ({ ...p }))
+              : [];
 
-      // 🛡 пазим pair
-      base.pair = Array.isArray(g.pair)
-        ? g.pair.map((p) => ({ ...p }))
-        : [];
+            // images: винаги масив
+            base.images = Array.isArray(g.images)
+              ? [...g.images]
+              : [];
 
-      // снимките винаги са масив
-      base.images = Array.isArray(g.images) ? [...g.images] : [];
+            // items: винаги count дължина
+            base.items = Array.from({ length: count }).map((_, i) => {
+              const oldItem = g.items?.[i] || {};
+              return {
+                ...oldItem,
+                name:
+                  oldItem.name ??
+                  g.labels?.[i] ??
+                  `Продукт ${i + 1}`
+              };
+            });
 
-      // items
-      base.items = Array.from({ length: count }).map((_, i) => {
-        const oldItem = g.items?.[i] || {};
-        return {
-          ...oldItem,
-          name:
-            oldItem.name ??
-            g.labels?.[i] ??
-            `Продукт ${i + 1}`
-        };
-      });
+            // labels: винаги count дължина
+            base.labels = Array.from({ length: count }).map((_, i) =>
+              g.labels?.[i] ??
+              g.items?.[i]?.name ??
+              `Продукт ${i + 1}`
+            );
 
-      // labels
-      base.labels = Array.from({ length: count }).map(
-        (_, i) =>
-          g.labels?.[i] ??
-          g.items?.[i]?.name ??
-          `Продукт ${i + 1}`
-      );
+            // prices: винаги count дължина
+            base.prices = Array.from({ length: count }).map((_, i) => {
+              const fromGroup =
+                Array.isArray(g.prices) && g.prices[i] !== undefined
+                  ? g.prices[i]
+                  : undefined;
 
-      // prices
-      base.prices = Array.from({ length: count }).map((_, i) => {
-        const fromGroup =
-          Array.isArray(g.prices) && g.prices[i] !== undefined
-            ? g.prices[i]
-            : undefined;
+              const fromItem =
+                g.items?.[i] && typeof g.items[i].price === "number"
+                  ? g.items[i].price
+                  : undefined;
 
-        const fromItem =
-          g.items?.[i] && typeof g.items[i].price === "number"
-            ? g.items[i].price
-            : undefined;
+              return Number(fromGroup ?? fromItem ?? cat.hellPrice ?? 2);
+            });
 
-        return Number(
-          fromGroup ??
-          fromItem ??
-          cat.hellPrice ??
-          2
-        );
-      });
+            return base;
+          })
+        : []
+    };
 
-      return base;
-    })
-  : []
- };
-
-    // миниатюри
     snap.cat_thumbs[key] = CAT_THUMBS[key] || DEFAULT_CAT_THUMB;
   });
 
@@ -296,32 +274,28 @@ groups: Array.isArray(cat.groups)
 };
 
 
-// ===========================================================
-// APPLY SAVED — FIX ЗА ORDER + ADDONS
-// (НЕ ПИПАМЕ groups → Firestore е истината за HELL / вода)
-// ===========================================================
+/* ===========================================================
+ * APPLY SAVED
+ * =========================================================== */
 
 const applySaved = (data) => {
   if (!data || typeof data !== "object") return;
 
-  // 1) ORDER – snapshot-ът е истината за подредбата
-  if (Array.isArray(data.order) && data.order.length) {
+  // ORDER
+  if (Array.isArray(data.order)) {
     ORDER.length = 0;
     data.order.forEach((k) => ORDER.push(k));
   }
 
-  // 2) CATALOG – заглавия, items (с addons), view, hellPrice
+  // CATALOG
   if (data.catalog && typeof data.catalog === "object") {
     Object.entries(data.catalog).forEach(([key, val]) => {
-      if (!CATALOG[key]) {
-        CATALOG[key] = { title: val.title || key.toUpperCase(), items: [] };
-      }
+      if (!CATALOG[key]) CATALOG[key] = { title: val.title, items: [] };
 
       CATALOG[key].title     = val.title     || CATALOG[key].title;
       CATALOG[key].view      = val.view      ?? CATALOG[key].view;
       CATALOG[key].hellPrice = val.hellPrice ?? CATALOG[key].hellPrice;
 
-      // 🔥 Връщаме items + addons
       if (Array.isArray(val.items)) {
         CATALOG[key].items = val.items.map((it) => ({
           ...it,
@@ -329,36 +303,31 @@ const applySaved = (data) => {
         }));
       }
 
-      // ❗ НЕ пипаме CATALOG[key].groups тук!
-      // Това идва от Firestore / оригиналния код и пази:
-      // - HELL плочки
-      // - вода / газирана вода / други специални layouts
+      // ❗ НЕ пипаме groups → Firestore е истината
     });
   }
 
-  // 3) THUMBS – миниатюри по категории
-  if (data.cat_thumbs && typeof data.cat_thumbs === "object") {
+  // THUMBS
+  if (data.cat_thumbs) {
     Object.assign(CAT_THUMBS, data.cat_thumbs);
   }
 
-  // 4) ADDONS LABELS – записваме ги в черновата памет
-  if (data.addons_labels && typeof data.addons_labels === "object") {
+  // ADDONS LABELS
+  if (data.addons_labels) {
     const mem = getMemory();
     mem.addons_labels = data.addons_labels;
     setMemory(mem);
   }
 };
 
-
-// Чернова – snapshot + addons_labels
+// === чернови ===
 const persistDraft = () => {
   const snap = snapshotRuntime();
-  const mem  = getMemory();
+  const mem = getMemory();
   snap.addons_labels = mem.addons_labels || {};
   save(LS_MOD_DRAFT, snap);
 };
 
-// Перманентно (за по-сигурен save)
 const savePermanent = () => {
   save(LS_MOD_DATA, snapshotRuntime());
 };
@@ -366,6 +335,7 @@ const savePermanent = () => {
 /* ===========================================================
  * БЛОК 3 (END)
  * =========================================================== */
+
 
 
 
