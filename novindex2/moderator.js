@@ -170,108 +170,113 @@ document.addEventListener("DOMContentLoaded", () => {
    * =========================================================== */
 
 /* ===========================================================
- * БЛОК 3: SNAPSHOT НА ТЕКУЩОТО МЕНЮ (CATALOG/ORDER/THUMBS)
+ * БЛОК 3: SNAPSHOT НА ТЕКУЩОТО МЕНЮ (CATALOG / ORDER / THUMBS)
+ * Този snapshot се праща към BBQ_STORE.save() → Firestore
+ * ВАЖНО: пазим ВСИЧКО, включително groups (подзаглавия)
  * =========================================================== */
 
-const snapshotRuntime = () => {
-  const mem = getMemory();
+function snapshotRuntime() {
+  const mem = typeof getMemory === "function" ? getMemory() : {};
 
-  const snap = {
-    order: [...ORDER],
-    catalog: {},
-    cat_thumbs: {},
-    addons_labels: mem.addons_labels || {}
+  // помощна функция за нормализиране на един продукт
+  const normalizeItem = (it) => {
+    if (!it || typeof it !== "object") {
+      return { name: "Продукт", desc: "", price: 0, img: "" };
+    }
+
+    const base = {
+      name: it.name || "Продукт",
+      desc: it.desc || "",
+      price: Number(it.price) || 0,
+      img: it.img || ""
+    };
+
+    // пазим addons (със всичките полета – price, label, checked и т.н.)
+    if (Array.isArray(it.addons)) {
+      base.addons = it.addons.map((a) => ({ ...a }));
+    }
+
+    return base;
   };
 
+  const snapCatalog = {};
+  const snapThumbs  = {};
+
+  // минаваме по подредбата на категориите
   ORDER.forEach((key) => {
-    const cat = CATALOG[key] || {};
+    const cat = CATALOG[key];
+    if (!cat) return;
 
-    const normalizeItem = (it) => {
-      if (!it || typeof it !== "object") {
-        return { name: "Продукт", desc: "", price: 0, img: "" };
-      }
-      const base = {
-        name: it.name || "Продукт",
-        desc: it.desc || "",
-        price: Number(it.price) || 0,
-        img: it.img || ""
-      };
-      if (Array.isArray(it.addons)) {
-        base.addons = it.addons.map((a) => ({ ...a }));
-      }
-      return base;
-    };
+    const out = {};
 
-    // ===================================
-    // ВАЖНО: groups – НИКОГА НЕ ИЗЧЕЗВАТ
-    // ===================================
-    snap.catalog[key] = {
-      title: cat.title || key.toUpperCase(),
-      view: cat.view ?? undefined,
-      hellPrice: cat.hellPrice ?? undefined,
+    // заглавие на категорията
+    if (cat.title) out.title = cat.title;
 
-      items: Array.isArray(cat.items)
-        ? cat.items.map(normalizeItem)
-        : [],
+    // специални режими (HELL, ВОДА)
+    if (cat.view) out.view = cat.view;
+    if (typeof cat.hellPrice === "number") {
+      out.hellPrice = Number(cat.hellPrice) || 0;
+    }
 
-      groups: Array.isArray(cat.groups)
-        ? cat.groups.map((g) => {
-            const count = g?.images?.length || 0;
+    // стандартни продукти
+    if (Array.isArray(cat.items)) {
+      out.items = cat.items.map(normalizeItem);
+    }
 
-            return {
-              heading: g.heading ?? "",
+    // 🔥 GROUPS = подзаглавия + вътрешни структури
+    if (Array.isArray(cat.groups)) {
+      out.groups = cat.groups.map((g) => {
+        const gOut = {
+          heading: g.heading || ""
+        };
 
-              // ПРАВИЛНО: винаги масив
-              images: Array.isArray(g.images) ? g.images : [],
+        // групи с вътрешни ITEMS (напр. палачинки, айрян)
+        if (Array.isArray(g.items)) {
+          gOut.items = g.items.map(normalizeItem);
+        }
 
-              // ПРАВИЛНО: items винаги count
-              items: Array.from({ length: count }).map((_, i) => {
-                const oldItem = g.items?.[i] || {};
-                return {
-                  ...oldItem,
-                  name:
-                    oldItem.name ??
-                    g.labels?.[i] ??
-                    `Продукт ${i + 1}`
-                };
-              }),
+        // галерия (HELL) – списък от снимки
+        if (Array.isArray(g.images)) {
+          gOut.images = [...g.images];
+        }
 
-              // labels винаги count
-              labels: Array.from({ length: count }).map((_, i) =>
-                g.labels?.[i] ??
-                g.items?.[i]?.name ??
-                `Продукт ${i + 1}`
-              ),
+        // вода / gasirana_voda – pair (лява/дясна карта)
+        if (Array.isArray(g.pair)) {
+          gOut.pair = g.pair.map((p) => ({
+            ...p,
+            price: Number(p.price) || 0
+          }));
+        }
 
-              // prices винаги count
-              prices: Array.from({ length: count }).map((_, i) => {
-                const fromGroup =
-                  Array.isArray(g.prices) && g.prices[i] !== undefined
-                    ? g.prices[i]
-                    : undefined;
+        // индивидуални цени за снимките (ако ги има)
+        if (Array.isArray(g.prices)) {
+          gOut.prices = g.prices.map((pr) => Number(pr) || 0);
+        }
 
-                const fromItem =
-                  g.items?.[i] && typeof g.items[i].price === "number"
-                    ? g.items[i].price
-                    : undefined;
+        return gOut;
+      });
+    }
 
-                return Number(fromGroup ?? fromItem ?? cat.hellPrice ?? 2);
-              }),
+    snapCatalog[key] = out;
 
-              // pair винаги масив (за water2)
-              pair: Array.isArray(g.pair)
-                ? g.pair.map((p) => ({ ...p }))
-                : []
-            };
-          })
-        : []
-    };
-
-    snap.cat_thumbs[key] = CAT_THUMBS[key] || DEFAULT_CAT_THUMB;
+    // миниатюра за сайдбара
+    if (CAT_THUMBS[key]) {
+      snapThumbs[key] = CAT_THUMBS[key];
+    }
   });
 
+  // финален payload – това отива в Firestore / localStorage
+  const snap = {
+    CATALOG: snapCatalog,
+    ORDER:   [...ORDER],
+    ADDONS:  { ...ADDONS },
+    cat_thumbs: snapThumbs,
+    addons_labels: mem.addons_labels || {},
+    savedAt: new Date().toISOString()
+  };
+
   return snap;
-};
+}
 
 
 /* ===========================================================
