@@ -1708,21 +1708,28 @@ addBtn("➕ Добави продукт", 260, () => {
   activate(key, { replace: true });
 });
 
-// ➕ – Ново подзаглавие (group) за HELL / gallery категории
+
+
+
+
+// ➕ – Ново подзаглавие (group) за всяка категория
 addBtn("➕ Добави подзаглавие", 230, () => {
   const key = currentCat();
-  const cat = CATALOG[key] || {};
 
-  if (cat.view !== "gallery") {
-    toast("❌ Подзаглавия има само за HELL / gallery категории");
-    return;
+  // ако няма категорията – създаваме я
+  if (!CATALOG[key]) {
+    CATALOG[key] = { title: key.toUpperCase(), items: [] };
   }
+
+  const cat = CATALOG[key];
 
   let heading = prompt("Име на подзаглавие (например 'Ice Coffee Hell'):", "");
   if (!heading) return;
 
+  // гарантираме, че има масив groups
   cat.groups = Array.isArray(cat.groups) ? cat.groups : [];
 
+  // създаваме нов group (празен box, в който после ще добавяш продукти)
   cat.groups.push({
     heading: heading.trim(),
     images: [],
