@@ -171,14 +171,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* ===========================================================
  * БЛОК 3: SNAPSHOT НА ТЕКУЩОТО МЕНЮ (CATALOG / ORDER / THUMBS)
- * Този snapshot се праща към BBQ_STORE.save() → Firestore
- * ВАЖНО: пазим ВСИЧКО, включително groups (подзаглавия)
+ * Този snapshot се пази локално и се ползва при SAVE към Firestore.
+ * ВАЖНО: вече включва и groups (подзаглавията).
  * =========================================================== */
 
 function snapshotRuntime() {
-  const mem = typeof getMemory === "function" ? getMemory() : {};
+  const mem = (typeof getMemory === "function" ? getMemory() : {}) || {};
 
-  // помощна функция за нормализиране на един продукт
+  // нормализира един продукт
   const normalizeItem = (it) => {
     if (!it || typeof it !== "object") {
       return { name: "Продукт", desc: "", price: 0, img: "" };
@@ -191,7 +191,7 @@ function snapshotRuntime() {
       img: it.img || ""
     };
 
-    // пазим addons (със всичките полета – price, label, checked и т.н.)
+    // пазим addons (каквото и да има вътре)
     if (Array.isArray(it.addons)) {
       base.addons = it.addons.map((a) => ({ ...a }));
     }
@@ -199,48 +199,51 @@ function snapshotRuntime() {
     return base;
   };
 
-  const snapCatalog = {};
-  const snapThumbs  = {};
+  const snap = {
+    order: [...ORDER],      // подредбата на категориите
+    catalog: {},            // всички категории + продукти
+    cat_thumbs: {},         // thumbnails за сайдбара
+    addons_labels: mem.addons_labels || {}
+  };
 
-  // минаваме по подредбата на категориите
   ORDER.forEach((key) => {
     const cat = CATALOG[key];
     if (!cat) return;
 
     const out = {};
 
-    // заглавие на категорията
+    // име на категорията
     if (cat.title) out.title = cat.title;
 
-    // специални режими (HELL, ВОДА)
+    // специални полета (hell / вода)
     if (cat.view) out.view = cat.view;
     if (typeof cat.hellPrice === "number") {
       out.hellPrice = Number(cat.hellPrice) || 0;
     }
 
-    // стандартни продукти
+    // стандартни items
     if (Array.isArray(cat.items)) {
       out.items = cat.items.map(normalizeItem);
     }
 
-    // 🔥 GROUPS = подзаглавия + вътрешни структури
+    // 🔥 ТУК ВЕЧЕ ПАЗИМ И ПОДЗАГЛАВИЯТА (groups)
     if (Array.isArray(cat.groups)) {
       out.groups = cat.groups.map((g) => {
         const gOut = {
           heading: g.heading || ""
         };
 
-        // групи с вътрешни ITEMS (напр. палачинки, айрян)
+        // групи с вътрешни продукти (палчинки, айрян)
         if (Array.isArray(g.items)) {
           gOut.items = g.items.map(normalizeItem);
         }
 
-        // галерия (HELL) – списък от снимки
+        // галерия (HELL) – списък със снимки
         if (Array.isArray(g.images)) {
           gOut.images = [...g.images];
         }
 
-        // вода / gasirana_voda – pair (лява/дясна карта)
+        // вода / газирана – pair (ляво/дясно)
         if (Array.isArray(g.pair)) {
           gOut.pair = g.pair.map((p) => ({
             ...p,
@@ -248,7 +251,7 @@ function snapshotRuntime() {
           }));
         }
 
-        // индивидуални цени за снимките (ако ги има)
+        // индивидуални цени за снимките (ако има)
         if (Array.isArray(g.prices)) {
           gOut.prices = g.prices.map((pr) => Number(pr) || 0);
         }
@@ -257,43 +260,34 @@ function snapshotRuntime() {
       });
     }
 
-    snapCatalog[key] = out;
+    snap.catalog[key] = out;
 
-    // миниатюра за сайдбара
     if (CAT_THUMBS[key]) {
-      snapThumbs[key] = CAT_THUMBS[key];
+      snap.cat_thumbs[key] = CAT_THUMBS[key];
     }
   });
-
-  // финален payload – това отива в Firestore / localStorage
-  const snap = {
-    CATALOG: snapCatalog,
-    ORDER:   [...ORDER],
-    ADDONS:  { ...ADDONS },
-    cat_thumbs: snapThumbs,
-    addons_labels: mem.addons_labels || {},
-    savedAt: new Date().toISOString()
-  };
 
   return snap;
 }
 
-
 /* ===========================================================
- * APPLY SAVED
+ * APPLY SAVED – използва се когато зареждаме draft/backup
+ * от LocalStorage в модератора.
  * =========================================================== */
 
 const applySaved = (data) => {
   if (!data || typeof data !== "object") return;
 
+  // order
   if (Array.isArray(data.order)) {
     ORDER.length = 0;
     data.order.forEach((k) => ORDER.push(k));
   }
 
+  // catalog (включително groups)
   if (data.catalog && typeof data.catalog === "object") {
     Object.entries(data.catalog).forEach(([key, val]) => {
-      if (!CATALOG[key]) CATALOG[key] = { title: val.title, items: [] };
+      if (!CATALOG[key]) CATALOG[key] = { title: val.title || "", items: [] };
 
       CATALOG[key].title     = val.title     || CATALOG[key].title;
       CATALOG[key].view      = val.view      ?? CATALOG[key].view;
@@ -306,7 +300,22 @@ const applySaved = (data) => {
         }));
       }
 
-      // ❗ НЕ пипаме groups – те идват директно от Firestore
+      // 🔥 ВРЪЩАМЕ И GROUPS (подзаглавията)
+      if (Array.isArray(val.groups)) {
+        CATALOG[key].groups = val.groups.map((g) => ({
+          heading: g.heading || "",
+          items:   Array.isArray(g.items)   ? g.items.map((it) => ({
+            ...it,
+            addons: Array.isArray(it.addons) ? it.addons : []
+          })) : undefined,
+          images:  Array.isArray(g.images)  ? [...g.images]  : undefined,
+          pair:    Array.isArray(g.pair)    ? g.pair.map((p) => ({
+            ...p,
+            price: Number(p.price) || 0
+          })) : undefined,
+          prices:  Array.isArray(g.prices)  ? g.prices.map((pr) => Number(pr) || 0) : undefined
+        }));
+      }
     });
   }
 
@@ -321,6 +330,7 @@ const applySaved = (data) => {
   }
 };
 
+/* draft в LocalStorage – за авто-възстановяване в модератора */
 const persistDraft = () => {
   const snap = snapshotRuntime();
   const mem = getMemory();
@@ -328,6 +338,7 @@ const persistDraft = () => {
   save(LS_MOD_DRAFT, snap);
 };
 
+/* permanent backup в LocalStorage */
 const savePermanent = () => {
   save(LS_MOD_DATA, snapshotRuntime());
 };
@@ -335,7 +346,6 @@ const savePermanent = () => {
 /* ===========================================================
  * БЛОК 3 (END)
  * =========================================================== */
-
 
 
   /* ===========================================================
@@ -2374,59 +2384,68 @@ persistDraft();
     document.head.appendChild(style);
   })();
 
-  /* ===========================================================
-   * БЛОК 11 (END)
-   * =========================================================== */
+/* ===========================================================
+ * БЛОК 11: SAVE към FIRESTORE + локален бекъп
+ * Този блок изпраща snapshotRuntime() → Firestore чрез BBQ_STORE.save()
+ * Поддържа groups, подкатегории, галерии, двойни продукти (pair) и всичко останало.
+ * =========================================================== */
+
 function cleanUndefined(obj) {
-  return JSON.parse(JSON.stringify(obj));
+  try {
+    return JSON.parse(JSON.stringify(obj)); // премахва undefined safely
+  } catch (e) {
+    console.warn("cleanUndefined failed:", e);
+    return obj;
+  }
 }
 
 async function saveToCloud() {
-  const snap = snapshotRuntime();
+  const snap = snapshotRuntime(); // 🔥 вече включва groups вътре
   const mem  = getMemory();
 
-  // 🔥 ЯСЕН payload към бекенда
+  // --- Целият payload, който качваме онлайн ---
   let payload = {
-    // малки букви – това очаква /api/save-menu и BBQ_STORE.save()
-    catalog: snap.catalog,            // тук е hell + groups + labels + prices
+    // lowercase основни полета – това чете BBQ_STORE.load()
+    catalog: snap.catalog,            // ВКЛЮЧВА groups/подзаглавията
     order: snap.order,
     addons: window.ADDONS || {},
     cat_thumbs: snap.cat_thumbs,
     addons_labels: mem.addons_labels || {},
-    savedAt: new Date().toISOString()
+    savedAt: new Date().toISOString(),
+
+    // uppercase копия – нужно за стари функции / съвместимост
+    CATALOG: snap.catalog,
+    ORDER: snap.order,
+    ADDONS: window.ADDONS || {},
+    CAT_THUMBS: snap.cat_thumbs,
+    ADDONS_LABELS: mem.addons_labels || {}
   };
 
-  // по желание – дублираме в главни букви, ако някъде още се ползват
-  payload.CATALOG       = payload.catalog;
-  payload.ORDER         = payload.order;
-  payload.ADDONS        = payload.addons;
-  payload.CAT_THUMBS    = payload.cat_thumbs;
-  payload.ADDONS_LABELS = payload.addons_labels;
-
-  // 🧹 махаме undefined, за да не гърми Firestore
   payload = cleanUndefined(payload);
 
   try {
-    console.log("BBQ SAVE PAYLOAD:", payload); // 👁 да видиш в DevTools > Console
+    console.log("🚀 BBQ SAVE PAYLOAD →", payload);
 
     const res = await window.BBQ_STORE.save(payload);
 
     if (!res || !res.ok) {
-      console.error("Save error:", res);
+      console.error("🔥 Save error:", res);
       toast("❌ Грешка при записа в облака");
       return;
     }
 
-    // записваме и локално като „официален“ snapshot
-    save(LS_MOD_DATA, snap);
+    save(LS_MOD_DATA, snap); // запазваме и локален официален snapshot
+    toast("✔ Записано в основния сайт (via " + res.via + ")");
 
-    toast("✔ Записано в основния сайт (" + res.via + ")");
-  } catch (e) {
-    console.error("Save error:", e);
-    toast("❌ Проблем при запис");
+  } catch (err) {
+    console.error("❌ SaveToCloud Error:", err);
+    toast("⚠ Проблем при записването");
   }
 }
 
+/* ===========================================================
+ * БЛОК 11 (END)
+ * =========================================================== */
 
   /* ===========================================================
    * БЛОК 12: ВИЗУАЛЕН БАНЕР "MODERATOR MODE" + BOOT
