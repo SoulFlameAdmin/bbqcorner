@@ -1766,13 +1766,17 @@ function enableSubheadingDnd() {
    * =========================================================== */
 
 const _activate = activate;
+
 activate = function (cat, opts) {
   _activate(cat, opts);
 
   const key = cat || currentCat();
 
-  renderSubheadingsForModerator(key); // рисуване
-  enableSubheadingDnd();              // 👉 drag & drop за тях
+  // 🔥 ИЗЧАКВАМЕ grid + titleEl да се появят
+  setTimeout(() => {
+    renderSubheadingsForModerator(key);
+    enableSubheadingDnd();
+  }, 50);
 
   applyAddonsLabelsToDOM(key);
   enableInlineEditing();
@@ -1781,13 +1785,12 @@ activate = function (cat, opts) {
   injectHellDeleteButtons();
   renderAddonsSidePanels(key);
 
-  if (typeof ensurePlusRightUniversal === "function")
-    ensurePlusRightUniversal();
-  if (typeof ensureMobilePlusRight === "function")
-    ensureMobilePlusRight();
+  if (typeof ensurePlusRightUniversal === "function") ensurePlusRightUniversal();
+  if (typeof ensureMobilePlusRight === "function") ensureMobilePlusRight();
 
   applyEuroConversion();
 };
+
 
 
 
