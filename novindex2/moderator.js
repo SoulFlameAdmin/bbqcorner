@@ -60,6 +60,10 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ===========================================================
    * БЛОК 1 (END)
    * =========================================================== */
+// 🔥 Показваме банера САМО ако сме модератор
+if (isModerator) {
+  showModeratorBanner();
+}
 
 
    /* ===========================================================
@@ -2599,7 +2603,7 @@ async function saveToCloud() {
  * (START)
  * =========================================================== */
 
-(function showModeratorBanner() {
+function showModeratorBanner() {
   if (document.querySelector("#moderator-banner")) return;
 
   const banner = document.createElement("div");
@@ -2638,26 +2642,16 @@ async function saveToCloud() {
 
   document.body.appendChild(banner);
 
-  // 🟠 САМО ЕДИН LISTENER — ГАРАНТИРАНО РАБОТЕЩ
-  const exitBtn = document.querySelector("#exitModeratorBtn");
+  document.querySelector("#exitModeratorBtn").addEventListener("click", () => {
+    localStorage.removeItem("bbq_mode_flag");
 
-  if (exitBtn) {
-    exitBtn.addEventListener("click", () => {
-      console.log("EXIT CLICKED"); // за тест
+    const url = new URL(location.href);
+    url.searchParams.delete("mode");
+    location.href = url.toString();
 
-      // премахваме флага
-      localStorage.removeItem("bbq_mode_flag");
-
-      // премахваме ВСИЧКИ query параметри, за да не се връща mode=moderator
-      const cleanUrl = location.origin + location.pathname;
-      location.href = cleanUrl;
-
-      // презареждаме след пренасочването
-      setTimeout(() => location.reload(), 150);
-    });
-  }
-
-})();
+    setTimeout(() => location.reload(), 150);
+  });
+}
 
 // BOOT: при стартиране прилагаме запазените данни и активираме текущата категория
 applySaved(read(LS_MOD_DATA, null));
