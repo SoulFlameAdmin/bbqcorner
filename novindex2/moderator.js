@@ -1515,6 +1515,7 @@ const injectHellDeleteButtons = () => {
 //podzaglaviq buton 
 
 // Рендер на подзаглавията (groups) – винаги веднага под заглавието
+// Рендер на подзаглавията (groups) – около продуктите
 function renderSubheadingsForModerator(catKey) {
   const key = catKey || currentCat();
   const cat = CATALOG[key];
@@ -1534,7 +1535,8 @@ function renderSubheadingsForModerator(catKey) {
   cat.groups.forEach((g, idx) => {
     const h = document.createElement("div");
     h.className = "sec-title";
-    h.dataset.from = "mod";          // за да знаем кои да чистим
+    h.dataset.from = "mod";          // за чистене
+    h.dataset.groupIndex = idx;      // индекс в cat.groups
     h.textContent = g.heading || `Подзаглавие ${idx + 1}`;
 
     Object.assign(h.style, {
@@ -1544,10 +1546,91 @@ function renderSubheadingsForModerator(catKey) {
       color: "#ff7a00"
     });
 
-    // вкарваме го непосредствено след предишния елемент (title или предно подзаглавие)
+    // по подразбиране – под заглавието, над box-овете
     parent.insertBefore(h, ref.nextSibling);
     ref = h;
   });
+}
+let draggedSub = null;
+
+function syncSubheadingOrder() {
+  const key = currentCat();
+  const cat = CATALOG[key];
+  if (!cat || !Array.isArray(cat.groups)) return;
+  if (typeof titleEl === "undefined" || !titleEl) return;
+
+  const parent = titleEl.parentElement || document.body;
+  const els = [...parent.querySelectorAll(".sec-title[data-from='mod']")];
+
+  const old = cat.groups.slice();
+  const reordered = [];
+
+  els.forEach((el, idx) => {
+    const oldIdx = Number(el.dataset.groupIndex);
+    if (old[oldIdx]) reordered.push(old[oldIdx]);
+    el.dataset.groupIndex = idx;
+  });
+
+  cat.groups = reordered;
+  persistDraft();
+}
+
+// позволява да местиш подзаглавията над/под box-овете
+function enableSubheadingDnd() {
+  if (typeof titleEl === "undefined" || !titleEl) return;
+
+  const parent = titleEl.parentElement || document.body;
+  const headings = [...parent.querySelectorAll(".sec-title[data-from='mod']")];
+
+  headings.forEach((h) => {
+    h.draggable = true;
+
+    h.addEventListener("dragstart", () => {
+      draggedSub = h;
+      h.style.opacity = ".4";
+    });
+
+    h.addEventListener("dragend", () => {
+      if (draggedSub) draggedSub.style.opacity = "1";
+      draggedSub = null;
+    });
+
+    h.addEventListener("dragover", (e) => e.preventDefault());
+
+    // drop върху друго подзаглавие → разместване между тях
+    h.addEventListener("drop", (e) => {
+      e.preventDefault();
+      if (!draggedSub || draggedSub === h) return;
+      parent.insertBefore(draggedSub, h.nextSibling);
+      syncSubheadingOrder();
+    });
+  });
+
+  // drop върху grid-а с продукти → над или под box-овете
+  if (grid) {
+    grid.addEventListener("dragover", (e) => {
+      if (!draggedSub) return;
+      e.preventDefault();
+    });
+
+    grid.addEventListener("drop", (e) => {
+      if (!draggedSub) return;
+      e.preventDefault();
+
+      const rect = grid.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+
+      // ако пуснеш в горната половина на grid-а → подзаглавието отива над box-овете
+      if (e.clientY < midY) {
+        parent.insertBefore(draggedSub, grid);
+      } else {
+        // долна половина → подзаглавието отива под box-овете
+        if (grid.nextSibling) parent.insertBefore(draggedSub, grid.nextSibling);
+        else parent.appendChild(draggedSub);
+      }
+      syncSubheadingOrder();
+    });
+  }
 }
 
   /* ===========================================================
@@ -1561,15 +1644,14 @@ activate = function (cat, opts) {
 
   const key = cat || currentCat();
 
-// 🧩 ново – рисуваме подзаглавията за текущата категория
-  renderSubheadingsForModerator(key);
+  renderSubheadingsForModerator(key); // рисуване
+  enableSubheadingDnd();              // 👉 drag & drop за тях
 
   applyAddonsLabelsToDOM(key);
   enableInlineEditing();
   enableProductDnd();
   injectDeleteButtons();
-  injectHellDeleteButtons();   // 🧨 delete бутони за HELL плочките
-
+  injectHellDeleteButtons();
   renderAddonsSidePanels(key);
 
   if (typeof ensurePlusRightUniversal === "function")
