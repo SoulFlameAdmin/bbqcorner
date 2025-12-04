@@ -1645,6 +1645,47 @@ addBtn("➕ Добави продукт", 260, () => {
 
   const cat = CATALOG[key];
 
+
+
+
+
+// ➕ – Ново подзаглавие (group) за HELL / gallery категории
+addBtn("➕ Добави подзаглавие", 230, () => {
+  const key = currentCat();
+  const cat = CATALOG[key] || {};
+
+  // работим само с категории тип gallery (HELL, ICE COFFEE HELL и подобни)
+  if (cat.view !== "gallery") {
+    toast("❌ Подзаглавия има само за HELL / gallery категории");
+    return;
+  }
+
+  let heading = prompt("Име на подзаглавие (например 'Ice Coffee Hell'):", "");
+  if (!heading) return;
+
+  // гарантираме, че има масив groups
+  cat.groups = Array.isArray(cat.groups) ? cat.groups : [];
+
+  // създаваме нов group (празен box, в който после ще добавяш плочки)
+  cat.groups.push({
+    heading: heading.trim(),
+    images: [],
+    prices: [],
+    items: [],
+    labels: [],
+    pair: []   // за вода, ако някога го ползваш
+  });
+
+  // записваме в черновата и презареждаме категорията
+  persistDraft();
+  activate(key, { replace: true });
+  toast("✅ Ново подзаглавие е добавено");
+}, {
+  background: "#ff7a00",
+  color: "#fff"
+});
+
+
   // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery') – създаваме нова плочка
   if (cat.view === "gallery" && Array.isArray(cat.groups) && cat.groups.length) {
     const defaultImg   = "snimki/produkti/hell/default.jpg";  // по твой вкус
