@@ -1,25 +1,23 @@
 /* ===========================================================
  * E:\BBQ_SITE\novindex2\moderator.js
- * БЛОК 1: ИНИЦИАЛИЗАЦИЯ НА MODERATOR MODE И РЕЖИМ ФЛАГ
- * (START)
+ * MODERATOR MODE – управление на режима и бутона "Изход"
  * =========================================================== */
 
+"use strict";
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Флаг в localStorage, който пази дали сме в MOD режим
-  const LS_MODE_FLAG = "bbq_mode_flag";
+  const LS_MODE_FLAG = "bbq_mode_flag"; // ключ в localStorage
+  const urlParams    = new URLSearchParams(window.location.search);
 
-  // Параметрите в URL – използваме ?mode=moderator
-  const urlParams = new URLSearchParams(window.location.search);
-
-  // Локална променлива – в този момент още не знаем дали сме MOD
   let isModerator = false;
 
-  // 1) Ако има записан флаг в localStorage – означава, че сме били в MOD преди рефреш
+  /* -------------------------------------------
+   * 1) Проверка за предишен MOD флаг (localStorage)
+   * ------------------------------------------- */
   if (localStorage.getItem(LS_MODE_FLAG) === "true") {
     isModerator = true;
 
-    // Ако в URL няма ?mode=moderator – добавяме го за стабилност
+    // ако в URL няма mode=moderator – добавяме го
     if (!urlParams.get("mode")) {
       urlParams.set("mode", "moderator");
       const newUrl = `${location.pathname}?${urlParams.toString()}`;
@@ -27,36 +25,75 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 2) Ако в URL ИМА mode=moderator → маркираме като MOD и записваме флаг
+  /* -------------------------------------------
+   * 2) Проверка за ?mode=moderator в URL
+   * ------------------------------------------- */
   if (urlParams.get("mode") === "moderator") {
     isModerator = true;
     localStorage.setItem(LS_MODE_FLAG, "true");
   }
 
-  // 3) Ако НЕ сме в MOD режим → чистим флага (да не остава боклук)
+  /* -------------------------------------------
+   * 3) Ако НЕ сме в MOD – чистим флага
+   * ------------------------------------------- */
   if (!isModerator) {
     localStorage.removeItem(LS_MODE_FLAG);
   }
 
-  // Функция за излизане от MOD режим – чисти флаг и параметър от URL
+  /* -------------------------------------------
+   * Функция за изход от MOD режим
+   * ------------------------------------------- */
   function exitModeratorMode() {
-    // чистим флага за режима
+    // чистим флага
     localStorage.removeItem(LS_MODE_FLAG);
 
+    // махаме mode=moderator от URL, но оставяме cat=...
     const url = new URL(location.href);
-    url.searchParams.delete("mode");   // махаме ?mode=moderator, но оставяме ?cat=...
-    location.href = url.toString();    // прехвърляме към нормалния изглед
+    url.searchParams.delete("mode");
 
-    // важна част – след смяната презареждаме, за да се хване новото меню
-    setTimeout(() => location.reload(), 150);
+    // пренасочваме към нормалния изглед
+    window.location.href = url.toString();
   }
 
+  // правим я глобална, ако искаш да я викаш от HTML (onclick="exitModeratorMode()")
+  window.exitModeratorMode = exitModeratorMode;
 
-  // Ако НЕ сме модератор – спираме целия файл тук
+  /* -------------------------------------------
+   * 4) Ако НЕ сме модератор – спираме дотук
+   * ------------------------------------------- */
   if (!isModerator) return;
-  /* ===========================================================
-   * БЛОК 1 (END)
-   * =========================================================== */
+
+  /* -------------------------------------------
+   * 5) Маркираме тялото като MOD (CSS: .is-mod ...)
+   * ------------------------------------------- */
+  document.body.classList.add("is-mod");
+
+  /* -------------------------------------------
+   * 6) Закачаме бутона "Изход" в лентата
+   *    (поддържаме и id, и data-атрибут)
+   * ------------------------------------------- */
+  const exitBtn =
+    document.querySelector("#modExitBtn") ||
+    document.querySelector("[data-action='mod-exit']");
+
+  if (exitBtn) {
+    exitBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      exitModeratorMode();
+    });
+  }
+
+  /* -------------------------------------------
+   * 7) Тук могат да се добавят само MOD инструменти
+   *    (inline редакция, drag&drop и т.н.)
+   *    Ако вече имаш такъв код – постави го след този коментар.
+   * ------------------------------------------- */
+
+  // пример: ако по-надолу имаш enableInlineEditing / enableProductDnd и т.н.
+  // window.enableInlineEditing?.();
+  // window.enableProductDnd?.();
+});
+
 
 
    /* ===========================================================
