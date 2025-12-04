@@ -1433,9 +1433,9 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
           <section class="water-block">
             <h2>${g.heading}</h2>
             <div class="water-grid">
-              ${g.pair
-                .map(
-                  (p) => `
+              ${(g.pair || [])
+                 .map(
+                   (p) => `
                 <div class="water-card">
                   <img src="${p.src}" alt="${esc(p.label)}">
                   <div class="water-name">${esc(p.label)}</div>
