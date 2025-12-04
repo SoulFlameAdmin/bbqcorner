@@ -176,7 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* ===========================================================
  * БЛОК 3: SNAPSHOT НА ТЕКУЩОТО МЕНЮ (CATALOG / ORDER / THUMBS)
  * Този snapshot се пази локално и се ползва при SAVE към Firestore.
- * ВАЖНО: вече включва и groups (подзаглавията).
+ * ВАЖНО: включва и groups (подзаглавията) + position (before/after grid).
  * =========================================================== */
 
 function snapshotRuntime() {
@@ -230,14 +230,16 @@ function snapshotRuntime() {
       out.items = cat.items.map(normalizeItem);
     }
 
-    // 🔥 ТУК ВЕЧЕ ПАЗИМ И ПОДЗАГЛАВИЯТА (groups)
+    // 🔥 ПОДЗАГЛАВИЯ (groups) + POSITION
     if (Array.isArray(cat.groups)) {
       out.groups = cat.groups.map((g) => {
         const gOut = {
-          heading: g.heading || ""
+          heading: g.heading || "",
+          // позиция: before (по подразбиране) или after – под box-овете
+          position: g.position === "after" ? "after" : "before"
         };
 
-        // групи с вътрешни продукти (палчинки, айрян)
+        // групи с вътрешни продукти (палачинки, айрян)
         if (Array.isArray(g.items)) {
           gOut.items = g.items.map(normalizeItem);
         }
@@ -258,6 +260,11 @@ function snapshotRuntime() {
         // индивидуални цени за снимките (ако има)
         if (Array.isArray(g.prices)) {
           gOut.prices = g.prices.map((pr) => Number(pr) || 0);
+        }
+
+        // labels за HELL
+        if (Array.isArray(g.labels)) {
+          gOut.labels = [...g.labels];
         }
 
         return gOut;
@@ -304,10 +311,11 @@ const applySaved = (data) => {
         }));
       }
 
-      // 🔥 ВРЪЩАМЕ И GROUPS (подзаглавията)
+      // 🔥 ВРЪЩАМЕ И GROUPS (подзаглавията) + position
       if (Array.isArray(val.groups)) {
         CATALOG[key].groups = val.groups.map((g) => ({
           heading: g.heading || "",
+          position: g.position === "after" ? "after" : "before",
           items:   Array.isArray(g.items)   ? g.items.map((it) => ({
             ...it,
             addons: Array.isArray(it.addons) ? it.addons : []
@@ -317,7 +325,8 @@ const applySaved = (data) => {
             ...p,
             price: Number(p.price) || 0
           })) : undefined,
-          prices:  Array.isArray(g.prices)  ? g.prices.map((pr) => Number(pr) || 0) : undefined
+          prices:  Array.isArray(g.prices)  ? g.prices.map((pr) => Number(pr) || 0) : undefined,
+          labels:  Array.isArray(g.labels)  ? [...g.labels] : undefined
         }));
       }
     });
