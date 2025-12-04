@@ -806,14 +806,13 @@ function clearPublicSubheadings() {
   if (!titleEl || !titleEl.parentElement) return;
   titleEl.parentElement
     .querySelectorAll(".sec-title[data-from='public']")
-    .forEach(el => el.remove());
+    .forEach((el) => el.remove());
 }
 
 function renderPublicSubheadings(catKey) {
-  const key = catKey || (current || "burgeri");
+  const key = catKey || (typeof current !== "undefined" ? current : "burgeri");
   const cat = CATALOG[key];
 
-  // ако няма groups → чистим стари и излизаме
   if (!cat || !Array.isArray(cat.groups) || !cat.groups.length) {
     clearPublicSubheadings();
     return;
@@ -821,31 +820,67 @@ function renderPublicSubheadings(catKey) {
   if (!titleEl) return;
 
   const parent = titleEl.parentElement || document.body;
+  const gridEl = typeof grid !== "undefined" ? grid : parent.querySelector(".grid");
 
-  // махаме стари публични подзаглавия
+  // чистим стари
   parent
     .querySelectorAll(".sec-title[data-from='public']")
-    .forEach(el => el.remove());
+    .forEach((el) => el.remove());
 
-  let ref = titleEl;
+  const before = [];
+  const after  = [];
 
   cat.groups.forEach((g, idx) => {
+    if (!g) return;
+    if (g.position === "after") after.push({ g, idx });
+    else before.push({ g, idx });
+  });
+
+  const makeHeading = ({ g, idx }) => {
     const h = document.createElement("div");
     h.className = "sec-title";
-    h.dataset.from = "public";          // за да различаваме от модераторските
+    h.dataset.from = "public";
+    h.dataset.gIndex = String(idx);
     h.textContent = g.heading || `Подзаглавие ${idx + 1}`;
-
     Object.assign(h.style, {
       margin: "10px 0 6px",
       fontWeight: "900",
       fontSize: "20px",
       color: "#ff7a00"
     });
+    return h;
+  };
 
-    // винаги веднага под заглавието, една под друга
-    parent.insertBefore(h, ref.nextSibling);
-    ref = h;
+  let refBefore = titleEl;
+
+  // BEFORE – над box-овете
+  before.forEach((obj) => {
+    const h = makeHeading(obj);
+    parent.insertBefore(h, refBefore.nextSibling);
+    refBefore = h;
   });
+
+  // AFTER – под box-овете
+  if (gridEl) {
+    let refAfter = gridEl;
+    after.forEach((obj) => {
+      const h = makeHeading(obj);
+      if (refAfter.nextSibling) {
+        parent.insertBefore(h, refAfter.nextSibling);
+      } else {
+        parent.appendChild(h);
+      }
+      refAfter = h;
+    });
+  } else {
+    // fallback ако няма grid
+    let ref = refBefore;
+    after.forEach((obj) => {
+      const h = makeHeading(obj);
+      parent.insertBefore(h, ref.nextSibling);
+      ref = h;
+    });
+  }
 }
 
 function showPromosIframe(show){
