@@ -2511,32 +2511,39 @@ function cleanUndefined(obj) {
   }
 }
 
+
 async function saveToCloud() {
-  const snap = snapshotRuntime(); // 🔥 вече включва groups вътре
-  const mem  = getMemory();
+  // 1) проверка за snapshotRuntime
+  if (typeof snapshotRuntime !== "function") {
+    console.error("❌ snapshotRuntime() липсва.");
+    toast("⚠ Вътрешен проблем: липсва snapshotRuntime");
+    return;
+  }
 
-  // --- Целият payload, който качваме онлайн ---
-  let payload = {
-    // lowercase основни полета – това чете BBQ_STORE.load()
-    catalog: snap.catalog,            // ВКЛЮЧВА groups/подзаглавията
-    order: snap.order,
-    addons: window.ADDONS || {},
-    cat_thumbs: snap.cat_thumbs,
-    addons_labels: mem.addons_labels || {},
-    savedAt: new Date().toISOString(),
-
-    // uppercase копия – нужно за стари функции / съвместимост
-    CATALOG: snap.catalog,
-    ORDER: snap.order,
-    ADDONS: window.ADDONS || {},
-    CAT_THUMBS: snap.cat_thumbs,
-    ADDONS_LABELS: mem.addons_labels || {}
-  };
-
-  payload = cleanUndefined(payload);
+  // 2) проверка за BBQ_STORE
+  if (!window.BBQ_STORE || typeof window.BBQ_STORE.save !== "function") {
+    console.error("❌ BBQ_STORE.save липсва или не е функция:", window.BBQ_STORE);
+    toast("⚠ Няма връзка с облака (BBQ_STORE)");
+    return;
+  }
 
   try {
-    console.log("🚀 BBQ SAVE PAYLOAD →", payload);
+    const snap = snapshotRuntime();
+
+    if (!snap || !snap.order || !snap.catalog) {
+      console.error("❌ Невалиден snapshot:", snap);
+      toast("⚠ Невалидни данни за запис");
+      return;
+    }
+
+    const payload = {
+      order: snap.order,
+      catalog: snap.catalog,
+      cat_thumbs: snap.cat_thumbs || {},
+      addons_labels: snap.addons_labels || {}
+    };
+
+    console.log("🌩 Изпращам към BBQ_STORE.save:", payload);
 
     const res = await window.BBQ_STORE.save(payload);
 
@@ -2546,7 +2553,8 @@ async function saveToCloud() {
       return;
     }
 
-    save(LS_MOD_DATA, snap); // запазваме и локален официален snapshot
+    // официален snapshot локално
+    save(LS_MOD_DATA, snap);
     toast("✔ Записано в основния сайт (via " + res.via + ")");
 
   } catch (err) {
@@ -2554,6 +2562,7 @@ async function saveToCloud() {
     toast("⚠ Проблем при записването");
   }
 }
+
 
 /* ===========================================================
  * БЛОК 11 (END)
@@ -2614,17 +2623,35 @@ function showModeratorBanner() {
   });
 }
 
+
 // BOOT: при стартиране прилагаме запазените данни и активираме текущата категория
 applySaved(read(LS_MOD_DATA, null));
 applySaved(read(LS_MOD_DRAFT, null));
 rebuildSidebar();
 
-const cur = currentCat();
-if (typeof titleEl !== "undefined" && titleEl && CATALOG[cur]?.title) {
-  titleEl.textContent = CATALOG[cur].title;
+// безопасно намираме текущата категория
+let cur = null;
+if (typeof currentCat === "function") {
+  try {
+    cur = currentCat();
+  } catch (e) {
+    console.warn("currentCat() даде грешка:", e);
+  }
 }
 
-activate(cur, { replace: true });
+// fallback – ако няма currentCat(), взимаме първата от ORDER
+if (!cur && Array.isArray(ORDER) && ORDER.length > 0) {
+  cur = ORDER[0];
+}
+
+// активираме само ако всичко е налично
+if (cur && typeof activate === "function") {
+  if (typeof titleEl !== "undefined" && titleEl && CATALOG[cur]?.title) {
+    titleEl.textContent = CATALOG[cur].title;
+  }
+  activate(cur, { replace: true });
+}
+
 
 /* ===========================================================
  * БЛОК 12 (END)
