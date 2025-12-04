@@ -186,7 +186,6 @@ const snapshotRuntime = () => {
   ORDER.forEach((key) => {
     const cat = CATALOG[key] || {};
 
-    // --- безопасен normalize ---
     const normalizeItem = (it) => {
       if (!it || typeof it !== "object") {
         return { name: "Продукт", desc: "", price: 0, img: "" };
@@ -203,7 +202,9 @@ const snapshotRuntime = () => {
       return base;
     };
 
-    // --- записваме категорията ---
+    // ===================================
+    // ВАЖНО: groups – НИКОГА НЕ ИЗЧЕЗВАТ
+    // ===================================
     snap.catalog[key] = {
       title: cat.title || key.toUpperCase(),
       view: cat.view ?? undefined,
@@ -216,53 +217,52 @@ const snapshotRuntime = () => {
       groups: Array.isArray(cat.groups)
         ? cat.groups.map((g) => {
             const count = g?.images?.length || 0;
-            const base = { ...g };
 
-            // pair: винаги масив
-            base.pair = Array.isArray(g.pair)
-              ? g.pair.map((p) => ({ ...p }))
-              : [];
+            return {
+              heading: g.heading ?? "",
 
-            // images: винаги масив
-            base.images = Array.isArray(g.images)
-              ? [...g.images]
-              : [];
+              // ПРАВИЛНО: винаги масив
+              images: Array.isArray(g.images) ? g.images : [],
 
-            // items: винаги count дължина
-            base.items = Array.from({ length: count }).map((_, i) => {
-              const oldItem = g.items?.[i] || {};
-              return {
-                ...oldItem,
-                name:
-                  oldItem.name ??
-                  g.labels?.[i] ??
-                  `Продукт ${i + 1}`
-              };
-            });
+              // ПРАВИЛНО: items винаги count
+              items: Array.from({ length: count }).map((_, i) => {
+                const oldItem = g.items?.[i] || {};
+                return {
+                  ...oldItem,
+                  name:
+                    oldItem.name ??
+                    g.labels?.[i] ??
+                    `Продукт ${i + 1}`
+                };
+              }),
 
-            // labels: винаги count дължина
-            base.labels = Array.from({ length: count }).map((_, i) =>
-              g.labels?.[i] ??
-              g.items?.[i]?.name ??
-              `Продукт ${i + 1}`
-            );
+              // labels винаги count
+              labels: Array.from({ length: count }).map((_, i) =>
+                g.labels?.[i] ??
+                g.items?.[i]?.name ??
+                `Продукт ${i + 1}`
+              ),
 
-            // prices: винаги count дължина
-            base.prices = Array.from({ length: count }).map((_, i) => {
-              const fromGroup =
-                Array.isArray(g.prices) && g.prices[i] !== undefined
-                  ? g.prices[i]
-                  : undefined;
+              // prices винаги count
+              prices: Array.from({ length: count }).map((_, i) => {
+                const fromGroup =
+                  Array.isArray(g.prices) && g.prices[i] !== undefined
+                    ? g.prices[i]
+                    : undefined;
 
-              const fromItem =
-                g.items?.[i] && typeof g.items[i].price === "number"
-                  ? g.items[i].price
-                  : undefined;
+                const fromItem =
+                  g.items?.[i] && typeof g.items[i].price === "number"
+                    ? g.items[i].price
+                    : undefined;
 
-              return Number(fromGroup ?? fromItem ?? cat.hellPrice ?? 2);
-            });
+                return Number(fromGroup ?? fromItem ?? cat.hellPrice ?? 2);
+              }),
 
-            return base;
+              // pair винаги масив (за water2)
+              pair: Array.isArray(g.pair)
+                ? g.pair.map((p) => ({ ...p }))
+                : []
+            };
           })
         : []
     };
@@ -281,13 +281,11 @@ const snapshotRuntime = () => {
 const applySaved = (data) => {
   if (!data || typeof data !== "object") return;
 
-  // ORDER
   if (Array.isArray(data.order)) {
     ORDER.length = 0;
     data.order.forEach((k) => ORDER.push(k));
   }
 
-  // CATALOG
   if (data.catalog && typeof data.catalog === "object") {
     Object.entries(data.catalog).forEach(([key, val]) => {
       if (!CATALOG[key]) CATALOG[key] = { title: val.title, items: [] };
@@ -303,16 +301,14 @@ const applySaved = (data) => {
         }));
       }
 
-      // ❗ НЕ пипаме groups → Firestore е истината
+      // ❗ НЕ пипаме groups – те идват директно от Firestore
     });
   }
 
-  // THUMBS
   if (data.cat_thumbs) {
     Object.assign(CAT_THUMBS, data.cat_thumbs);
   }
 
-  // ADDONS LABELS
   if (data.addons_labels) {
     const mem = getMemory();
     mem.addons_labels = data.addons_labels;
@@ -320,7 +316,6 @@ const applySaved = (data) => {
   }
 };
 
-// === чернови ===
 const persistDraft = () => {
   const snap = snapshotRuntime();
   const mem = getMemory();
@@ -335,8 +330,6 @@ const savePermanent = () => {
 /* ===========================================================
  * БЛОК 3 (END)
  * =========================================================== */
-
-
 
 
 
