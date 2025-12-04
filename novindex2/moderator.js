@@ -2632,11 +2632,13 @@ async function saveToCloud() {
       letterSpacing: "1px",
       userSelect: "none"
     });
+ document.body.appendChild(banner);
 
-    document.body.appendChild(banner);
-
-    document.getElementById("exitModeratorBtn").onclick = exitModeratorMode;
-  })();
+  // 🟠 ЕТО ТОВА ПРАВИ ИЗХОДА ДА РАБОТИ
+  document.querySelector("#exitModeratorBtn").addEventListener("click", () => {
+    exitModeratorMode();
+  });
+})();
 
   // BOOT: при стартиране прилагаме запазените данни и активираме текущата категория
   applySaved(read(LS_MOD_DATA, null));
