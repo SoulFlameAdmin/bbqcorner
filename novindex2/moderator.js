@@ -1,4 +1,4 @@
-suhto da imat koshche da se triqt i sushto da moje da se zapazva kogato go mestq s drag and drop pod boxove zashtoto go mestq pod box i sedi no pri zapazvane v osnovniqt sait pak e nad boxa 
+
 
 
 
