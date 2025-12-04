@@ -226,38 +226,60 @@ const snapshotRuntime = () => {
         ? cat.items.map(normalizeItem)
         : [],
 
-      // 🟧 HELL групи – безопасни, пълни, без undefined
+      // 🟧 groups – за HELL / вода / газирани и др.
+      // ВАЖНО: НЕ режем полетата, а стъпваме върху g и обновяваме само нужните
       groups: Array.isArray(cat.groups)
         ? cat.groups.map((g) => {
-            const count = (g.images?.length || 0);
+            const count = (g?.images?.length || 0);
 
-            return {
-              heading: g.heading || "",
+            // копираме всички оригинални полета (pair, type и т.н.)
+            const base = { ...g };
 
-              // снимките винаги са масив
-              images: Array.isArray(g.images) ? [...g.images] : [],
+            // заглавие
+            base.heading = g.heading || "";
 
-              // 🟡 винаги създаваме items
-              items: Array.from({ length: count }).map((_, i) => ({
+            // снимките винаги са масив
+            base.images = Array.isArray(g.images) ? [...g.images] : [];
+
+            // 🟡 items – пазим старите полета + гарантираме name
+            base.items = Array.from({ length: count }).map((_, i) => {
+              const oldItem = (Array.isArray(g.items) && g.items[i]) || {};
+              return {
+                ...oldItem,
                 name:
-                  g.items?.[i]?.name ??
+                  oldItem.name ??
                   g.labels?.[i] ??
                   `Продукт ${i + 1}`
-              })),
+              };
+            });
 
-              // 🟡 винаги създаваме labels
-              labels: Array.from({ length: count }).map(
-                (_, i) =>
-                  g.labels?.[i] ??
-                  g.items?.[i]?.name ??
-                  `Продукт ${i + 1}`
-              ),
+            // 🟡 labels – винаги масив
+            base.labels = Array.from({ length: count }).map((_, i) =>
+              g.labels?.[i] ??
+              g.items?.[i]?.name ??
+              `Продукт ${i + 1}`
+            );
 
-              // 🟡 винаги създаваме prices
-              prices: Array.from({ length: count }).map(
-                (_, i) => Number(g.prices?.[i] ?? cat.hellPrice ?? 2)
-              )
-            };
+            // 🟡 prices – индивидуални цени, fallback към item.price или hellPrice
+            base.prices = Array.from({ length: count }).map((_, i) => {
+              const fromGroup =
+                Array.isArray(g.prices) && typeof g.prices[i] !== "undefined"
+                  ? g.prices[i]
+                  : undefined;
+              const fromItem =
+                Array.isArray(g.items) && typeof g.items[i]?.price === "number"
+                  ? g.items[i].price
+                  : undefined;
+
+              return Number(
+                fromGroup ??
+                fromItem ??
+                cat.hellPrice ??
+                2
+              );
+            });
+
+            return base;
           })
         : []
     };
@@ -271,19 +293,20 @@ const snapshotRuntime = () => {
 
 
 // ===========================================================
-// APPLY SAVED — FIX ЗА ORDER + ADDONS + HELL GROUPS
+// APPLY SAVED — FIX ЗА ORDER + ADDONS
+// (НЕ ПИПАМЕ groups → Firestore е истината за HELL / вода)
 // ===========================================================
 
 const applySaved = (data) => {
   if (!data || typeof data !== "object") return;
 
-  // 1) ORDER – snapshot-ът е истината (НЕ връщаме стари категории)
+  // 1) ORDER – snapshot-ът е истината за подредбата
   if (Array.isArray(data.order) && data.order.length) {
     ORDER.length = 0;
     data.order.forEach((k) => ORDER.push(k));
   }
 
-  // 2) CATALOG – заглавия, items (с addons), groups (HELL)
+  // 2) CATALOG – заглавия, items (с addons), view, hellPrice
   if (data.catalog && typeof data.catalog === "object") {
     Object.entries(data.catalog).forEach(([key, val]) => {
       if (!CATALOG[key]) {
@@ -302,10 +325,10 @@ const applySaved = (data) => {
         }));
       }
 
-      // 🔥 HELL / gallery групи – пазим ги 1:1 от snapshot-а
-      if (Array.isArray(val.groups)) {
-        CATALOG[key].groups = val.groups;
-      }
+      // ❗ НЕ пипаме CATALOG[key].groups тук!
+      // Това идва от Firestore / оригиналния код и пази:
+      // - HELL плочки
+      // - вода / газирана вода / други специални layouts
     });
   }
 
@@ -339,6 +362,7 @@ const savePermanent = () => {
 /* ===========================================================
  * БЛОК 3 (END)
  * =========================================================== */
+
 
 
 
