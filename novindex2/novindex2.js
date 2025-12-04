@@ -1532,24 +1532,68 @@ if (data.view === "gallery") {
 
 
 
-  // === стандартен списък с продукти ===
-  const items = data?.items || [];
-  if (items.length === 0) {
-    grid.innerHTML =
-      `<p style="padding:16px;font-weight:700">Няма продукти в тази категория.</p>`;
-    recalcMobileOffsets();
-    return;
+  // === стандартен списък с продукти + подзаглавия ===
+
+  // 1) има ли групи с вътрешни items (палчинки, айрян и т.н.)
+  const hasGroupedItems =
+    Array.isArray(data.groups) &&
+    data.groups.some(g => Array.isArray(g.items) && g.items.length);
+
+  if (hasGroupedItems) {
+    // рендер по групи: Подзаглавие → продуктите от тази група
+    grid.innerHTML = (data.groups || [])
+      .map((g, gIdx) => {
+        const gItems = Array.isArray(g.items) ? g.items : [];
+        if (!gItems.length) return "";
+
+        return `
+          <section class="group-block">
+            <h2 class="sec-title">
+              ${esc(g.heading || `Подзаглавие ${gIdx + 1}`)}
+            </h2>
+            <div class="grid-products">
+              ${gItems
+                .map((it, i) => productCardHTML(it, i, catHasAddons(current)))
+                .join("")}
+            </div>
+          </section>
+        `;
+      })
+      .join("");
+  } else {
+    // 2) стандартна категория: продукти са в data.items,
+    //    а groups са само текстови подзаглавия (ГИРОС, БУРГЕРИ и т.н.)
+    const items = data?.items || [];
+
+    if (items.length === 0) {
+      grid.innerHTML =
+        `<p style="padding:16px;font-weight:700">Няма продукти в тази категория.</p>`;
+      recalcMobileOffsets();
+      return;
+    }
+
+    // блок с подзаглавията – ще стоят над всички продукти
+    let subHeadingsHTML = "";
+    if (Array.isArray(data.groups) && data.groups.length) {
+      subHeadingsHTML = data.groups
+        .map((g, idx) => `
+          <h2 class="sec-title">
+            ${esc(g.heading || `Подзаглавие ${idx + 1}`)}
+          </h2>
+        `)
+        .join("");
+    }
+
+    grid.innerHTML = `
+      <div class="grid-products">
+        ${subHeadingsHTML}
+        ${items
+          .map((it, i) => productCardHTML(it, i, catHasAddons(current)))
+          .join("")}
+      </div>
+    `;
   }
 
-  grid.innerHTML = `
-    <div class="grid-products">
-      ${items
-        .map((it, i) =>
-          productCardHTML(it, i, catHasAddons(current))
-        )
-        .join("")}
-    </div>
-  `;
   bindAddButtons();
   recalcMobileOffsets();
   ensureMobilePlusRight();
