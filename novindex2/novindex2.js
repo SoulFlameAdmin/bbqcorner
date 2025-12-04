@@ -799,6 +799,55 @@ const sidebar = document.getElementById("sidebar");
 const grid    = document.getElementById("productGrid");
 const titleEl = document.getElementById("catTitle");
 
+
+
+// 🔸 Публични подзаглавия (видими извън MOD) – текстови, без drag&drop
+function clearPublicSubheadings() {
+  if (!titleEl || !titleEl.parentElement) return;
+  titleEl.parentElement
+    .querySelectorAll(".sec-title[data-from='public']")
+    .forEach(el => el.remove());
+}
+
+function renderPublicSubheadings(catKey) {
+  const key = catKey || (current || "burgeri");
+  const cat = CATALOG[key];
+
+  // ако няма groups → чистим стари и излизаме
+  if (!cat || !Array.isArray(cat.groups) || !cat.groups.length) {
+    clearPublicSubheadings();
+    return;
+  }
+  if (!titleEl) return;
+
+  const parent = titleEl.parentElement || document.body;
+
+  // махаме стари публични подзаглавия
+  parent
+    .querySelectorAll(".sec-title[data-from='public']")
+    .forEach(el => el.remove());
+
+  let ref = titleEl;
+
+  cat.groups.forEach((g, idx) => {
+    const h = document.createElement("div");
+    h.className = "sec-title";
+    h.dataset.from = "public";          // за да различаваме от модераторските
+    h.textContent = g.heading || `Подзаглавие ${idx + 1}`;
+
+    Object.assign(h.style, {
+      margin: "10px 0 6px",
+      fontWeight: "900",
+      fontSize: "20px",
+      color: "#ff7a00"
+    });
+
+    // винаги веднага под заглавието, една под друга
+    parent.insertBefore(h, ref.nextSibling);
+    ref = h;
+  });
+}
+
 function showPromosIframe(show){
   // винаги махаме/слагаме класа САМО тук
   if (show) {
@@ -1400,6 +1449,19 @@ function activate(cat, { fromNav = false, replace = false } = {}) {
   if (titleEl)
     titleEl.textContent =
       CATALOG[realCat]?.title || realCat.toUpperCase();
+
+
+  // 🔸 Публични подзаглавия (извън MOD)
+  if (!IS_MOD) {
+    const catData = CATALOG[realCat];
+    // за gallery / water2 си имаме отделен layout, там не слагаме допълнителни заглавия
+    if (!catData || catData.view === "gallery" || catData.view === "water2") {
+      clearPublicSubheadings();
+    } else {
+      renderPublicSubheadings(realCat);
+    }
+  }
+
 
   const url2 = new URL(location.href);
   if (url2.searchParams.get("cat") !== cat) {
