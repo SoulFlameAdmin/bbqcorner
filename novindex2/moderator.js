@@ -1514,42 +1514,41 @@ const injectHellDeleteButtons = () => {
 // Рендер на подзаглавията (groups) за НЕ-gallery категории
 //podzaglaviq buton 
 
+// Рендер на подзаглавията (groups) – винаги веднага под заглавието
 function renderSubheadingsForModerator(catKey) {
   const key = catKey || currentCat();
   const cat = CATALOG[key];
   if (!cat) return;
-  if (!grid) return;
-
-  // HELL (view:'gallery') си има собствен layout → не пипаме там
-  if (cat.view === "gallery") return;
-
-  const container = grid.parentElement;
-  if (!container) return;
-
-  // махаме стари подзаглавия, ако има
-  container.querySelectorAll(".sec-title").forEach(el => el.remove());
-
   if (!Array.isArray(cat.groups) || !cat.groups.length) return;
+  if (typeof titleEl === "undefined" || !titleEl) return;
+
+  const parent = titleEl.parentElement || document.body;
+
+  // махаме стари подзаглавия, добавени от модератора
+  parent
+    .querySelectorAll(".sec-title[data-from='mod']")
+    .forEach((el) => el.remove());
+
+  let ref = titleEl;
 
   cat.groups.forEach((g, idx) => {
     const h = document.createElement("div");
     h.className = "sec-title";
+    h.dataset.from = "mod";          // за да знаем кои да чистим
     h.textContent = g.heading || `Подзаглавие ${idx + 1}`;
-    h.dataset.groupIndex = idx;
 
-    // малко стил, за да стои точно под заглавието
     Object.assign(h.style, {
-      margin: "12px 0 6px",
+      margin: "10px 0 6px",
       fontWeight: "900",
       fontSize: "20px",
       color: "#ff7a00"
     });
 
-    // вкарваме подзаглавието ПРЕДИ grid-а с продуктите
-    container.insertBefore(h, grid);
+    // вкарваме го непосредствено след предишния елемент (title или предно подзаглавие)
+    parent.insertBefore(h, ref.nextSibling);
+    ref = h;
   });
 }
-
 
   /* ===========================================================
    * БЛОК 9: HOOK КЪМ activate() + КОНВЕРСИЯ BGN → EUR
