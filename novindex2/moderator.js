@@ -1,4 +1,3 @@
-ok sega da vidim zashto podzaglaviqta ne sa ok 
 
 
 /* ===========================================================
@@ -1542,47 +1541,6 @@ const injectHellDeleteButtons = () => {
  * БЛОК 8 (END)
  * =========================================================== */
 
-
-// Рендер на подзаглавията (groups) за НЕ-gallery категории
-//podzaglaviq buton 
-
-// Рендер на подзаглавията (groups) – винаги веднага под заглавието
-// Рендер на подзаглавията (groups) – около продуктите
-function renderSubheadingsForModerator(catKey) {
-  const key = catKey || currentCat();
-  const cat = CATALOG[key];
-  if (!cat) return;
-  if (!Array.isArray(cat.groups) || !cat.groups.length) return;
-  if (typeof titleEl === "undefined" || !titleEl) return;
-
-  const parent = titleEl.parentElement || document.body;
-
-  // махаме стари подзаглавия, добавени от модератора
-  parent
-    .querySelectorAll(".sec-title[data-from='mod']")
-    .forEach((el) => el.remove());
-
-  let ref = titleEl;
-
-  cat.groups.forEach((g, idx) => {
-    const h = document.createElement("div");
-    h.className = "sec-title";
-    h.dataset.from = "mod";          // за чистене
-    h.dataset.groupIndex = idx;      // индекс в cat.groups
-    h.textContent = g.heading || `Подзаглавие ${idx + 1}`;
-
-    Object.assign(h.style, {
-      margin: "10px 0 6px",
-      fontWeight: "900",
-      fontSize: "20px",
-      color: "#ff7a00"
-    });
-
-    // по подразбиране – под заглавието, над box-овете
-    parent.insertBefore(h, ref.nextSibling);
-    ref = h;
-  });
-}
 
 
 
