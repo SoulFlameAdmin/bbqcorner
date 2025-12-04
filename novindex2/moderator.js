@@ -2591,73 +2591,86 @@ async function saveToCloud() {
  * БЛОК 11 (END)
  * =========================================================== */
 
-  /* ===========================================================
-   * БЛОК 12: ВИЗУАЛЕН БАНЕР "MODERATOR MODE" + BOOT
-   * (START)
-   * =========================================================== */
+/* ===========================================================
+ * БЛОК 12: ВИЗУАЛЕН БАНЕР "MODERATOR MODE" + BOOT
+ * (START)
+ * =========================================================== */
 
-  (function showModeratorBanner() {
-    if (document.querySelector("#moderator-banner")) return;
+(function showModeratorBanner() {
+  if (document.querySelector("#moderator-banner")) return;
 
-    const banner = document.createElement("div");
-    banner.id = "moderator-banner";
-    banner.innerHTML = `
-      <span>🟠 MODERATOR MODE</span>
-      <button id="exitModeratorBtn" style="
-        margin-left:15px;
-        background:#fff;
-        color:#ff7a00;
-        font-weight:700;
-        border:none;
-        border-radius:8px;
-        padding:4px 10px;
-        cursor:pointer;
-      ">Изход</button>
-    `;
+  const banner = document.createElement("div");
+  banner.id = "moderator-banner";
+  banner.innerHTML = `
+    <span>🟠 MODERATOR MODE</span>
+    <button id="exitModeratorBtn" style="
+      margin-left:15px;
+      background:#fff;
+      color:#ff7a00;
+      font-weight:700;
+      border:none;
+      border-radius:8px;
+      padding:4px 10px;
+      cursor:pointer;
+    ">Изход</button>
+  `;
 
-    Object.assign(banner.style, {
-      position: "fixed",
-      top: "0",
-      left: "50%",
-      transform: "translateX(-50%)",
-      background: "linear-gradient(90deg, #ff7a00, #ffb300)",
-      color: "#fff",
-      fontWeight: "900",
-      fontSize: "18px",
-      padding: "10px 30px",
-      borderRadius: "0 0 14px 14px",
-      zIndex: "1000000",
-      textShadow: "0 2px 5px rgba(0,0,0,0.3)",
-      boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
-      letterSpacing: "1px",
-      userSelect: "none"
-    });
- document.body.appendChild(banner);
-
-  // 🟠 ЕТО ТОВА ПРАВИ ИЗХОДА ДА РАБОТИ
-  document.querySelector("#exitModeratorBtn").addEventListener("click", () => {
-    exitModeratorMode();
+  Object.assign(banner.style, {
+    position: "fixed",
+    top: "0",
+    left: "50%",
+    transform: "translateX(-50%)",
+    background: "linear-gradient(90deg, #ff7a00, #ffb300)",
+    color: "#fff",
+    fontWeight: "900",
+    fontSize: "18px",
+    padding: "10px 30px",
+    borderRadius: "0 0 14px 14px",
+    zIndex: "1000000",
+    textShadow: "0 2px 5px rgba(0,0,0,0.3)",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+    letterSpacing: "1px",
+    userSelect: "none"
   });
-})();
 
-  // BOOT: при стартиране прилагаме запазените данни и активираме текущата категория
-  applySaved(read(LS_MOD_DATA, null));
-  applySaved(read(LS_MOD_DRAFT, null));
-  rebuildSidebar();
+  document.body.appendChild(banner);
 
-  const cur = currentCat();
-  if (typeof titleEl !== "undefined" && titleEl && CATALOG[cur]?.title) {
-    titleEl.textContent = CATALOG[cur].title;
+  // 🟠 САМО ЕДИН LISTENER — ГАРАНТИРАНО РАБОТЕЩ
+  const exitBtn = document.querySelector("#exitModeratorBtn");
+
+  if (exitBtn) {
+    exitBtn.addEventListener("click", () => {
+      console.log("EXIT CLICKED"); // за тест
+
+      // премахваме флага
+      localStorage.removeItem("bbq_mode_flag");
+
+      // премахваме ВСИЧКИ query параметри, за да не се връща mode=moderator
+      const cleanUrl = location.origin + location.pathname;
+      location.href = cleanUrl;
+
+      // презареждаме след пренасочването
+      setTimeout(() => location.reload(), 150);
+    });
   }
 
-  activate(cur, { replace: true });
+})();
 
-  /* ===========================================================
-   * БЛОК 12 (END)
-   * =========================================================== */
+// BOOT: при стартиране прилагаме запазените данни и активираме текущата категория
+applySaved(read(LS_MOD_DATA, null));
+applySaved(read(LS_MOD_DRAFT, null));
+rebuildSidebar();
 
+const cur = currentCat();
+if (typeof titleEl !== "undefined" && titleEl && CATALOG[cur]?.title) {
+  titleEl.textContent = CATALOG[cur].title;
+}
 
+activate(cur, { replace: true });
 
+/* ===========================================================
+ * БЛОК 12 (END)
+ * =========================================================== */
 
 
 // ==========================================================
@@ -2665,12 +2678,8 @@ async function saveToCloud() {
 // Изпраща snapshotRuntime() към Firestore чрез BBQ_STORE.save()
 // ==========================================================
 
-// 🔄 Свързваме бутона #mod-save с нашия глобален saveToCloud()
 document.addEventListener("click", (e) => {
   const saveBtn = e.target.closest("#mod-save");
   if (!saveBtn) return;
-  saveToCloud();   // използваме вече готовия payload { CATALOG, ORDER, ... }
-});
-
-
+  saveToCloud();
 });
