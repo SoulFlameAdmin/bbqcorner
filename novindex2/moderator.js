@@ -1557,52 +1557,25 @@ function renderSubheadingsForModerator(catKey) {
 
   let ref = titleEl;
 
-cat.groups.forEach((g, idx) => {
-  // ❗ ПРОПУСКАМЕ празни подзаглавия
-  if (!g.heading || g.heading.trim() === "") return;
+  cat.groups.forEach((g, idx) => {
+    const h = document.createElement("div");
+    h.className = "sec-title";
+    h.dataset.from = "mod";          // за чистене
+    h.dataset.groupIndex = idx;      // индекс в cat.groups
+    h.textContent = g.heading || `Подзаглавие ${idx + 1}`;
 
-  const h = document.createElement("div");
-  h.className = "sec-title";
-  h.dataset.from = "mod";
-  h.dataset.groupIndex = idx;
+    Object.assign(h.style, {
+      margin: "10px 0 6px",
+      fontWeight: "900",
+      fontSize: "20px",
+      color: "#ff7a00"
+    });
 
-  const labelSpan = document.createElement("span");
-  labelSpan.textContent = g.heading.trim();
-  h.appendChild(labelSpan);
-
-  // бутон кошче
-  const delBtn = document.createElement("button");
-  delBtn.type = "button";
-  delBtn.className = "subheading-del-btn";
-  delBtn.textContent = "🗑";
-  delBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-
-    cat.groups.splice(idx, 1);
-    persistDraft();
-    renderSubheadingsForModerator(key);
-    enableSubheadingDnd();
-    activate(key, { replace: true });
-    toast("Подзаглавието е изтрито");
+    // по подразбиране – под заглавието, над box-овете
+    parent.insertBefore(h, ref.nextSibling);
+    ref = h;
   });
-  h.appendChild(delBtn);
-
-  Object.assign(h.style, {
-    margin: "10px 0 6px",
-    fontWeight: "900",
-    fontSize: "20px",
-    color: "#ff7a00",
-    position: "relative",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "8px"
-  });
-
-  // Вмъкваме
-  parent.insertBefore(h, ref.nextSibling);
-  ref = h;
-});
+}
 
 
 
