@@ -1542,20 +1542,27 @@ const injectHellDeleteButtons = () => {
 /* ===========================================================
  * БЛОК 8 (END)
  * =========================================================== */
-// =====================================================
-// Рендер на подзаглавията (groups) – с кошче + DnD
-// =====================================================
+
+
+// Рендер на подзаглавията (groups) за НЕ-gallery категории
+//podzaglaviq buton 
+
+// -------------------------------------------
+// Рендер на подзаглавията (groups) с кошче + DnD
+// -------------------------------------------
 function renderSubheadingsForModerator(catKey) {
   const key = catKey || currentCat();
   const cat = CATALOG[key];
   if (!cat) return;
   if (!Array.isArray(cat.groups) || !cat.groups.length) return;
-  if (!titleEl) return;
+  if (typeof titleEl === "undefined" || !titleEl) return;
 
   const parent = titleEl.parentElement || document.body;
 
-  // ❗ Махаме всички стари мод подзаглавия, за да няма дублиране
-  parent.querySelectorAll(".sec-title[data-from='mod']").forEach((el) => el.remove());
+  // премахваме стари подзаглавия
+  parent
+    .querySelectorAll(".sec-title[data-from='mod']")
+    .forEach((el) => el.remove());
 
   let ref = titleEl;
 
@@ -1565,17 +1572,17 @@ function renderSubheadingsForModerator(catKey) {
     h.dataset.from = "mod";
     h.dataset.groupIndex = idx;
 
-    // Текст
+    // вътрешен текст
     const textSpan = document.createElement("span");
     textSpan.className = "sec-title-text";
     textSpan.textContent = g.heading || `Подзаглавие ${idx + 1}`;
 
-    // 🗑 Кошче
+    // 🗑 бутон
     const delBtn = document.createElement("button");
     delBtn.className = "sec-title-del";
     delBtn.innerHTML = "🗑";
 
-    // Стилове
+    // стил на подзаглавието
     Object.assign(h.style, {
       margin: "10px 0 6px",
       fontWeight: "900",
@@ -1586,6 +1593,7 @@ function renderSubheadingsForModerator(catKey) {
       display: "inline-block"
     });
 
+    // стил на кошчето
     Object.assign(delBtn.style, {
       position: "absolute",
       top: "-4px",
@@ -1603,28 +1611,27 @@ function renderSubheadingsForModerator(catKey) {
       boxShadow: "0 2px 6px rgba(0,0,0,.3)",
       fontSize: "14px",
       padding: "0",
-      zIndex: 99999
+      zIndex: "99999"
     });
 
-    // ❌ Триене
+    // триене на подзаглавие
     delBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       const keyNow = currentCat();
       const catNow = CATALOG[keyNow];
       if (!catNow) return;
-
       if (!confirm("Да изтрия ли това подзаглавие?")) return;
 
       catNow.groups.splice(idx, 1);
       persistDraft();
-      activate(keyNow, { replace: true }); // ❗ това винаги рисува само веднъж
+      activate(keyNow, { replace: true });
     });
 
-    // Сглобяване
+    // сглобяване
     h.appendChild(textSpan);
     h.appendChild(delBtn);
 
-    // Вмъкване под заглавието
+    // добавяме подзаглавието под основното заглавие
     parent.insertBefore(h, ref.nextSibling);
     ref = h;
   });
@@ -1632,9 +1639,9 @@ function renderSubheadingsForModerator(catKey) {
 
 
 
-// =====================================================
-// Подреждане на групите след drag & drop
-// =====================================================
+// -------------------------------------------
+// Синхронизация на подредбата след влачене
+// -------------------------------------------
 let draggedSub = null;
 
 function syncSubheadingOrder() {
@@ -1650,7 +1657,7 @@ function syncSubheadingOrder() {
 
   els.forEach((el, idx) => {
     const oldIdx = Number(el.dataset.groupIndex);
-    reordered.push(old[oldIdx]);
+    if (old[oldIdx]) reordered.push(old[oldIdx]);
     el.dataset.groupIndex = idx;
   });
 
@@ -1660,9 +1667,9 @@ function syncSubheadingOrder() {
 
 
 
-// =====================================================
-// Drag & Drop на подзаглавията
-// =====================================================
+// -------------------------------------------
+// Drag & Drop за подзаглавията
+// -------------------------------------------
 function enableSubheadingDnd() {
   if (!titleEl) return;
 
@@ -1684,7 +1691,7 @@ function enableSubheadingDnd() {
 
     h.addEventListener("dragover", (e) => e.preventDefault());
 
-    // Drop върху друго подзаглавие
+    // drop върху друго подзаглавие
     h.addEventListener("drop", (e) => {
       e.preventDefault();
       if (!draggedSub || draggedSub === h) return;
@@ -1694,7 +1701,8 @@ function enableSubheadingDnd() {
     });
   });
 
-  // Drop върху grid (над/под продуктите)
+
+  // drop върху grid-а с продуктите
   if (grid) {
     grid.addEventListener("dragover", (e) => {
       if (!draggedSub) return;
@@ -1708,9 +1716,11 @@ function enableSubheadingDnd() {
       const rect = grid.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
 
+      // горна част → сложи подзаглавието над продуктите
       if (e.clientY < midY) {
         parent.insertBefore(draggedSub, grid);
       } else {
+        // долна част → под продуктите
         if (grid.nextSibling)
           parent.insertBefore(draggedSub, grid.nextSibling);
         else
@@ -1721,7 +1731,6 @@ function enableSubheadingDnd() {
     });
   }
 }
-
 
   /* ===========================================================
    * БЛОК 9: HOOK КЪМ activate() + КОНВЕРСИЯ BGN → EUR
