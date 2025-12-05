@@ -1671,15 +1671,21 @@ if (data.view === "gallery") {
 
     // блок с подзаглавията – ще стоят над всички продукти
     let subHeadingsHTML = "";
-    if (Array.isArray(data.groups) && data.groups.length) {
-      subHeadingsHTML = data.groups
-        .map((g, idx) => `
-          <h2 class="sec-title">
-            ${esc(g.heading || `Подзаглавие ${idx + 1}`)}
-          </h2>
-        `)
-        .join("");
-    }
+let subHeadingsHTML = "";
+if (!IS_MOD) {
+  if (Array.isArray(data.groups) && data.groups.length) {
+    subHeadingsHTML = data.groups
+      .map((g, idx) => `
+        <h2 class="sec-title">
+          ${esc(g.heading || `Подзаглавие ${idx + 1}`)}
+        </h2>
+      `)
+      .join("");
+  }
+}
+
+
+
 
     grid.innerHTML = `
       <div class="grid-products">
