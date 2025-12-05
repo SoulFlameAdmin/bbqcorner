@@ -1,3 +1,6 @@
+vij 
+
+
 
 
 
@@ -1544,7 +1547,6 @@ const injectHellDeleteButtons = () => {
  * =========================================================== */
 // =====================================================
 // Рендер на подзаглавията (groups) – с кошче + DnD
-// FIX: никога не се дублират, винаги се създават само веднъж
 // =====================================================
 function renderSubheadingsForModerator(catKey) {
   const key = catKey || currentCat();
@@ -1555,20 +1557,18 @@ function renderSubheadingsForModerator(catKey) {
 
   const parent = titleEl.parentElement || document.body;
 
-  // ❗ 1) Изчистваме абсолютно всички мод подзаглавия, за да няма дублиране
+  // ❗ Махаме всички стари мод подзаглавия, за да няма дублиране
   parent.querySelectorAll(".sec-title[data-from='mod']").forEach((el) => el.remove());
 
-  // ❗ 2) Никога не пипаме оригиналните подзаглавия на сайта → само модераторските
   let ref = titleEl;
 
-  // ❗ 3) Създаваме подзаглавията само веднъж
   cat.groups.forEach((g, idx) => {
     const h = document.createElement("div");
     h.className = "sec-title";
-    h.dataset.from = "mod";           // ← важно: за да ги трияме при rerender
+    h.dataset.from = "mod";
     h.dataset.groupIndex = idx;
 
-    // Текст на групата
+    // Текст
     const textSpan = document.createElement("span");
     textSpan.className = "sec-title-text";
     textSpan.textContent = g.heading || `Подзаглавие ${idx + 1}`;
@@ -1609,23 +1609,25 @@ function renderSubheadingsForModerator(catKey) {
       zIndex: 99999
     });
 
-    // ❌ Триене на група
+    // ❌ Триене
     delBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const catNow = CATALOG[currentCat()];
+      const keyNow = currentCat();
+      const catNow = CATALOG[keyNow];
       if (!catNow) return;
 
       if (!confirm("Да изтрия ли това подзаглавие?")) return;
 
       catNow.groups.splice(idx, 1);
       persistDraft();
-      activate(currentCat(), { replace: true });
+      activate(keyNow, { replace: true }); // ❗ това винаги рисува само веднъж
     });
 
+    // Сглобяване
     h.appendChild(textSpan);
     h.appendChild(delBtn);
 
-    // ❗ Вмъкваме подзаглавието САМО веднъж.
+    // Вмъкване под заглавието
     parent.insertBefore(h, ref.nextSibling);
     ref = h;
   });
