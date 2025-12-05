@@ -1,10 +1,3 @@
-v moderator.js
-tarsim podzaglaviqta kude sa tochno i vsuchko svurzano s tqh i butona 
-
-
-izvadi mi gi 1:1 s // obqsneniq na vseki red 
-
-
 
 
 /* ===========================================================
