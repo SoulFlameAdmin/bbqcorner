@@ -1682,15 +1682,6 @@ if (Array.isArray(data.groups) && data.groups.length) {
 }
 
 
-    grid.innerHTML = `
-      <div class="grid-products">
-        ${subHeadingsHTML}
-        ${items
-          .map((it, i) => productCardHTML(it, i, catHasAddons(current)))
-          .join("")}
-      </div>
-    `;
-  }
 
   bindAddButtons();
   recalcMobileOffsets();
