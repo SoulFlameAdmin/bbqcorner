@@ -1,12 +1,3 @@
-kude da postavq tova 
-
-window.IS_MODERATOR =
-  new URLSearchParams(location.search).get("mode") === "moderator";
-
-
-
-
-
 
 
 
