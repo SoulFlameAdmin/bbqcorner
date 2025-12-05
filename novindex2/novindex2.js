@@ -1717,32 +1717,7 @@ function enableSubheadingDnd() {
   }
 }
 
-  // drop върху grid-а с продукти → над или под box-овете
-  if (grid) {
-    grid.addEventListener("dragover", (e) => {
-      if (!draggedSub) return;
-      e.preventDefault();
-    });
 
-    grid.addEventListener("drop", (e) => {
-      if (!draggedSub) return;
-      e.preventDefault();
-
-      const rect = grid.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-
-      // ако пуснеш в горната половина на grid-а → подзаглавието отива над box-овете
-      if (e.clientY < midY) {
-        parent.insertBefore(draggedSub, grid);
-      } else {
-        // долна половина → подзаглавието отива под box-овете
-        if (grid.nextSibling) parent.insertBefore(draggedSub, grid.nextSibling);
-        else parent.appendChild(draggedSub);
-      }
-      syncSubheadingOrder();
-    });
-  }
-}
 
   /* ===========================================================
    * БЛОК 9: HOOK КЪМ activate() + КОНВЕРСИЯ BGN → EUR
