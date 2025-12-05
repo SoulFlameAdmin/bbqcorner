@@ -1,7 +1,8 @@
 // novindex2/storage.js
 // ===========================================
-// 📦 Firebase Storage за снимки
-// Път: products/{category}/{productId}/{filename}.jpg
+// 📦 Firebase Storage Upload Manager
+// Работи 100% във Vercel и локално.
+// Качва снимки → връща URL + path
 // ===========================================
 
 import {
@@ -11,55 +12,77 @@ import {
   getDownloadURL
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
 
-// използваме app-а, който сложихме на window във firebase-config.js
+// Взимаме инстанцията от firebase-config.js
 const app = window.firebaseApp;
 const storage = getStorage(app);
 
-// лека чистка на името на файла
+// ===========================================
+// 🧹 sanitizeName(name)
+// Чисти името на файла → само букви, цифри и - _ .
+// ===========================================
 function sanitizeName(name) {
   return name.replace(/[^a-z0-9.\-_]/gi, "_");
 }
 
-/**
- * Качва снимка за ПРОДУКТ:
- * products/{categoryKey}/{productKey}/{timestamp_safeName}
- */
+// ===========================================
+// 📌 uploadProductImage(file, categoryKey, productKey)
+// Път: products/{categoryKey}/{productKey}/{timestamp}_{filename}
+// ===========================================
 async function uploadProductImage(file, categoryKey, productKey) {
-  const safeName = sanitizeName(file.name);
-  const path = `products/${categoryKey}/${productKey}/${Date.now()}_${safeName}`;
+  try {
+    const safeName = sanitizeName(file.name);
+    const timestamp = Date.now();
+    const path = `products/${categoryKey}/${productKey}/${timestamp}_${safeName}`;
 
-  const storageRef = ref(storage, path);
-  const snapshot   = await uploadBytes(storageRef, file);
-  const url        = await getDownloadURL(snapshot.ref);
+    const fileRef = ref(storage, path);
 
-  return { url, path }; // url -> за img, path -> инфо ако ти трябва
+    // качваме файла
+    const snap = await uploadBytes(fileRef, file);
+
+    // взимаме публичния URL
+    const url = await getDownloadURL(snap.ref);
+
+    return { url, path };
+  } catch (err) {
+    console.error("❌ uploadProductImage error:", err);
+    throw err;
+  }
 }
 
-/**
- * (за следващ етап) – качва thumbnail за категория:
- * categories/{categoryKey}/{timestamp_safeName}
- */
+// ===========================================
+// 📌 uploadCategoryThumb(file, categoryKey)
+// Път: categories/{categoryKey}/{timestamp}_{filename}
+// ===========================================
 async function uploadCategoryThumb(file, categoryKey) {
-  const safeName = sanitizeName(file.name);
-  const path = `categories/${categoryKey}/${Date.now()}_${safeName}`;
+  try {
+    const safeName = sanitizeName(file.name);
+    const timestamp = Date.now();
+    const path = `categories/${categoryKey}/${timestamp}_${safeName}`;
 
-  const storageRef = ref(storage, path);
-  const snapshot   = await uploadBytes(storageRef, file);
-  const url        = await getDownloadURL(snapshot.ref);
+    const fileRef = ref(storage, path);
+    const snap = await uploadBytes(fileRef, file);
+    const url = await getDownloadURL(snap.ref);
 
-  return { url, path };
+    return { url, path };
+  } catch (err) {
+    console.error("❌ uploadCategoryThumb error:", err);
+    throw err;
+  }
 }
 
-// Правим функциите достъпни за moderator.js (който НЕ е module)
+// ===========================================
+// 🌐 Изнасяме uploader-а глобално,
+// за да работи от moderator.js, който не е module
+// ===========================================
 window.BBQ_UPLOAD = {
   uploadProductImage,
   uploadCategoryThumb,
 
-  // удобен alias, ако искаш просто URL
+  // универсална кратка функция: upload(file, cat, prod)
   async upload(file, categoryKey, productKey) {
     const { url } = await uploadProductImage(file, categoryKey, productKey);
     return url;
   }
 };
 
-console.log("🔥 storage.js готов (BBQ_UPLOAD е на window).");
+console.log("🔥 storage.js зареден — BBQ_UPLOAD е достъпен глобално.");
