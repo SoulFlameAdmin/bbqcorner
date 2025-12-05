@@ -2,1731 +2,2123 @@
 
 
 
+/* ===========================================================
+ * E:\BBQ_SITE\novindex2\moderator.js
+ * БЛОК 1: ИНИЦИАЛИЗАЦИЯ НА MODERATOR MODE И РЕЖИМ ФЛАГ
+ * (START)
+ * =========================================================== */
 
 
+document.addEventListener("DOMContentLoaded", () => {
+  // Флаг в localStorage, който пази дали сме в MOD режим
+  const LS_MODE_FLAG = "bbq_mode_flag";
 
+  // Параметрите в URL – използваме ?mode=moderator
+  const urlParams = new URLSearchParams(window.location.search);
 
+  // Локална променлива – в този момент още не знаем дали сме MOD
+  let isModerator = false;
 
+  // 1) Ако има записан флаг в localStorage – означава, че сме били в MOD преди рефреш
+  if (localStorage.getItem(LS_MODE_FLAG) === "true") {
+    isModerator = true;
 
-
-
-/* E:\BBQ_SITE\novindex2\novindex2.js */
-"use strict";
-
-// Флаг: дали сме в MODERATOR MODE
-const IS_MOD = localStorage.getItem("bbq_mode_flag") === "true";
-
-if (IS_MOD) {
-  document.addEventListener("DOMContentLoaded", () => {
-    document.body.classList.add("is-mod");
-  });
-}
-
-
-/* ===========================
-   🧭 ПЪТИЩА И ПОМОЩНИ НЕЩА
-   =========================== */
-
-/* 🔶 Промоции: лого и линкове (само за миниатюрата в сайдбара) */
-const PROMO_IMG = (location.protocol === "file:")
-  ? "file:///E:/BBQ_SITE/promociqlogo.jpg"
-  : "promociqlogo.jpg";
-const PROMO_LINK_LOCAL = "file:///E:/BBQ_SITE/index7.html";
-const PROMO_LINK_WEB   = "index7.html";
-
-/* малък helper за безопасен текст в HTML */
-const esc = (s) => String(s)
-  .replace(/&/g,"&amp;")
-  .replace(/</g,"&lt;")
-  .replace(/>/g,"&gt;")
-  .replace(/"/g,"&quot;");
-
-/* Цени – конвертор */
-const BGN_PER_EUR = 1.95583;
-const fmtLv  = v => (Number(v)||0).toFixed(2).replace(".",",") + " лв.";
-const fmtEur = v => ((Number(v)||0) / BGN_PER_EUR).toFixed(2).replace(".",",") + " €";
-
-/* Лека помощна функция за мобилни отмествания */
-function recalcMobileOffsets(){
-  ensureMobilePlusRight();
-  ensurePlusRightUniversal();
-}
-/* ➜ На телефон мести бутона точно вдясно от цената — без да чупи кръглата форма */
-function ensureMobilePlusRight() {
-  const isPhone = window.matchMedia("(max-width:900px)").matches;
-  if (!isPhone) return;
-
-  document.querySelectorAll(".product .pad").forEach(pad => {
-    const price = pad.querySelector(".price-badge");
-    const btn   = pad.querySelector(".add-btn");
-    if (!price || !btn) return;
-
-    // намираме или създаваме контейнера price-plus
-    let row = pad.querySelector(".price-plus");
-    if (!row) {
-      row = document.createElement("div");
-      row.className = "price-plus";
-      price.replaceWith(row);
-      row.appendChild(price);
+    // Ако в URL няма ?mode=moderator – добавяме го за стабилност
+    if (!urlParams.get("mode")) {
+      urlParams.set("mode", "moderator");
+      const newUrl = `${location.pathname}?${urlParams.toString()}`;
+      history.replaceState({}, "", newUrl);
     }
-
-    // местим бутона до цената
-    row.appendChild(btn);
-
-    // НУЛИРАМЕ вредните inline стилове от стария код
-    btn.style.width   = "";
-    btn.style.height  = "";
-    btn.style.margin  = "";
-    btn.style.display = "";
-  });
-}
-
-window.addEventListener("load",  ensureMobilePlusRight);
-window.addEventListener("resize", ensureMobilePlusRight);
-
-
-/* ➜ Универсално: само преместваме съществуващия “+” след цената. НЕ създаваме нов! */
-function ensurePlusRightUniversal() {
-  const hosts = document.querySelectorAll('.product, .tile, .water-card');
-
-  hosts.forEach(card => {
-    const pad   = card.querySelector('.pad') || card;
-    const price = pad.querySelector('.price-badge') || card.querySelector('.price-badge');
-    if (!price) return;
-
-    // чистим дублирани + бутони
-    const allPlus = pad.querySelectorAll('.add-btn');
-    if (allPlus.length > 1) {
-      allPlus.forEach((b, i) => { if (i > 0) b.remove(); });
-    }
-
-    const plus = pad.querySelector('.add-btn') || card.querySelector('.add-btn');
-    if (!plus) return;
-
-    plus.classList.add('add-btn');
-    plus.classList.remove('mobile-add-btn');
-
-    // поставяме бутона след цената
-    if (plus !== price.nextElementSibling) {
-      price.insertAdjacentElement('afterend', plus);
-    }
-  });
-}
-
-
-/* ===========================
-   📦 КОЛИЧКА
-   =========================== */
-
-const CART = [];
-const cartBtn      = document.getElementById("cartBtn");
-const cartCount    = document.getElementById("cartCount");
-const cartOverlay  = document.getElementById("cartOverlay");
-const cartItemsEl  = document.getElementById("cartItems");
-const cartTotalRow = document.getElementById("cartTotalRow");
-const cartTotal    = document.getElementById("cartTotal");
-const orderNowBtn  = document.getElementById("orderNow");
-
-/* ====== LS ключове ====== */
-const LS_CART_ITEMS = "bbq_cart_items";
-const LS_CART_TOTAL = "bbq_cart_total";
-const LS_ORDER_NOTE = "bbq_order_note";
-const noteWrapper   = document.getElementById("noteWrapper");
-const orderNoteEl   = document.getElementById("orderNote");
-
-/* Добавяне към количката */
-function addToCart(item){
-  // гард срещу празни артикули
-  if (!item || !item.baseName || !(item.price >= 0)) return;
-  CART.push(item);
-  updateCartUI();
-}
-
-/* Основен рендер на количката */
-function updateCartUI(){
-  if (!cartItemsEl) return;
-
-  if (cartCount) cartCount.textContent = CART.length;
-
-  if (CART.length === 0){
-    cartItemsEl.innerHTML = `<div class="cart-empty">Количката е празна.</div>`;
-    if (cartTotalRow) cartTotalRow.style.display = "none";
-    if (orderNowBtn) orderNowBtn.disabled = true;
-    if (noteWrapper) noteWrapper.style.display = "none";
-    persistCartSnapshot();
-    return;
   }
 
-  cartItemsEl.innerHTML = CART.map(it => {
-    const addonsLine = it.addons?.length
-      ? `<div style="font-size:12px; opacity:.8; margin-top:2px">
-           + ${it.addons.map(a=>`${esc(a.label)} (${fmtLv(a.price)})`).join(", ")}
-         </div>` : "";
-    return `
-      <div class="cart-item">
-        <img src="${esc(it.img||"")}" alt="${esc(it.baseName || it.name)}">
-        <div>
-          <div class="name">${esc(it.baseName || it.name)}</div>
-          ${addonsLine}
-          <div class="price" style="margin-top:4px">
-            ${fmtLv(it.price)} <span style="opacity:.75">(${fmtEur(it.price)})</span>
-          </div>
-        </div>
-        <div><button class="add-btn" data-remove="${it._id}">✕</button></div>
-      </div>`;
-  }).join("");
+  // 2) Ако в URL ИМА mode=moderator → маркираме като MOD и записваме флаг
+  if (urlParams.get("mode") === "moderator") {
+    isModerator = true;
+    localStorage.setItem(LS_MODE_FLAG, "true");
+  }
 
-  cartItemsEl.querySelectorAll("[data-remove]").forEach((btn)=>{
-    btn.addEventListener("click", ()=>{
-      const id = btn.getAttribute("data-remove");
-      const i = CART.findIndex(x => String(x._id) === id);
-      if (i>=0){ CART.splice(i,1); updateCartUI(); }
+  // 3) Ако НЕ сме в MOD режим → чистим флага (да не остава боклук)
+  if (!isModerator) {
+    localStorage.removeItem(LS_MODE_FLAG);
+  }
+
+  // Функция за излизане от MOD режим – чисти флаг и параметър от URL
+  function exitModeratorMode() {
+    // чистим флага за режима
+    localStorage.removeItem(LS_MODE_FLAG);
+
+    const url = new URL(location.href);
+    url.searchParams.delete("mode");   // махаме ?mode=moderator, но оставяме ?cat=...
+    location.href = url.toString();    // прехвърляме към нормалния изглед
+
+    // важна част – след смяната презареждаме, за да се хване новото меню
+    setTimeout(() => location.reload(), 150);
+  }
+
+
+  // Ако НЕ сме модератор – спираме целия файл тук
+  if (!isModerator) return;
+  /* ===========================================================
+   * БЛОК 1 (END)
+   * =========================================================== */
+
+
+   /* ===========================================================
+   * БЛОК 2: НАСТРОЙКИ, УТИЛИТИ ФУНКЦИИ И ПОЛЕЗНИ ПОМОЩНИЦИ
+   * (START)
+   * =========================================================== */
+
+  // ГЛАВНА парола за модератора (смени я!)
+  const MOD_PASSWORD = "0000";
+
+  // Ключове за localStorage – отделяме чернови, перманентни и кошче
+  const LS_MOD_DATA   = "bbq_mod_data_v3";   // перманентно запазени данни
+  const LS_MOD_DRAFT  = "bbq_mod_draft_v3";  // чернова / autosave
+  const LS_MOD_TRASH  = "bbq_mod_trash_v2";  // кошче
+
+  // Дефолтна снимка за категория, ако няма друга
+  const DEFAULT_CAT_THUMB = "snimki/produkti/1menu/default.jpg";
+
+  // Глобален флаг – дали сме в режим "избирам продукт за добавки"
+  let isAddonsEditMode = false;
+
+  // Запис в localStorage
+  const save = (key, value) => {
+    localStorage.setItem(key, JSON.stringify(value));
+  };
+
+  // Четене от localStorage с безопасен parse и дефолтна стойност
+  const read = (key, fallback = null) => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw);
+      return parsed ?? fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  // Escape за HTML – за да не чупим DOM
+  const esc = (s) =>
+    String(s).replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
+
+  // Превръщане на "12,50 лв." → 12.5
+  const lvParse = (text) => {
+    const normalized = String(text || "")
+      .replace(/\s*лв\.?\s*$/i, "")
+      .replace(",", ".");
+    const v = parseFloat(normalized);
+    return Number.isFinite(v) ? v : 0;
+  };
+
+  // Превръщане на число → "12,50 лв."
+  const lvFormat = (n) =>
+    (Number(n) || 0).toFixed(2).replace(".", ",") + " лв.";
+
+  // Малка функция за парола
+  const askPass = (msg = "Парола") => prompt(msg, "") === MOD_PASSWORD;
+
+  // Тост нотификация в долната част на екрана
+  const toast = (message = "Готово") => {
+    const box = document.createElement("div");
+    box.textContent = message;
+
+    Object.assign(box.style, {
+      position: "fixed",
+      left: "50%",
+      transform: "translateX(-50%)",
+      bottom: "22px",
+      background: "#111",
+      color: "#fff",
+      padding: "10px 14px",
+      borderRadius: "12px",
+      zIndex: "99999",
+      fontWeight: "800",
+      boxShadow: "0 8px 28px rgba(0,0,0,.35)",
+      opacity: "0",
+      transition: "opacity 0.15s"
     });
-  });
 
-  const total = CART.reduce((s, x)=> s + (Number(x.price)||0), 0);
-  if (cartTotal) cartTotal.textContent = `${fmtLv(total)}  (${fmtEur(total)})`;
-  if (cartTotalRow) cartTotalRow.style.display = "";
-  if (orderNowBtn) orderNowBtn.disabled = false;
-  if (noteWrapper) noteWrapper.style.display = "block";
-
-  persistCartSnapshot();
-
-  if (orderNoteEl && !orderNoteEl.dataset.bound) {
-    orderNoteEl.addEventListener("input", () => {
-      localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
+    document.body.appendChild(box);
+    requestAnimationFrame(() => {
+      box.style.opacity = "1";
     });
-    orderNoteEl.dataset.bound = "1";
+
+    setTimeout(() => {
+      box.style.opacity = "0";
+      setTimeout(() => box.remove(), 180);
+    }, 1300);
+  };
+
+  // Памет за добавките по категории (в LS_MOD_DRAFT)
+  const getMemory = () => read(LS_MOD_DRAFT, {});
+  const setMemory = (obj) => save(LS_MOD_DRAFT, obj);
+
+  // ============================
+  // 🧩 UPLOAD НА СНИМКИ ЧРЕЗ Firebase Storage (storage.js)
+  // ============================
+  async function uploadImageViaApi(file, categoryKey, productKey) {
+    if (!window.BBQ_UPLOAD || typeof window.BBQ_UPLOAD.upload !== "function") {
+      console.error("[moderator] BBQ_UPLOAD.upload липсва – увери се, че novindex2/storage.js е зареден преди moderator.js");
+      throw new Error("BBQ_UPLOAD.upload is not available");
+    }
+
+    // връща директно публичния URL от Firebase Storage
+    const url = await window.BBQ_UPLOAD.upload(file, categoryKey, productKey);
+    return url;
   }
-}
 
-function restoreOrderNote(){
-  if (orderNoteEl){
-    orderNoteEl.value = localStorage.getItem(LS_ORDER_NOTE) || "";
-  }
-}
+  /* ===========================================================
+   * БЛОК 2 (END)
+   * =========================================================== */
 
-function persistCartSnapshot(){
-  try{
-    const itemsSnapshot = CART.map(({_id, name, baseName, price, basePrice, img, addons}) => ({
-      _id, name, baseName, price, basePrice, img, addons: addons || []
-    }));
-    const total = CART.reduce((s, x)=> s + (Number(x.price)||0), 0);
-    localStorage.setItem(LS_CART_ITEMS, JSON.stringify(itemsSnapshot));
-    localStorage.setItem(LS_CART_TOTAL, String(total));
-    if (orderNoteEl) localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value || "");
-  }catch(e){ console.warn("LS error:", e); }
-}
+/* ===========================================================
+ * БЛОК 3: SNAPSHOT НА ТЕКУЩОТО МЕНЮ (CATALOG / ORDER / THUMBS)
+ * Този snapshot се пази локално и се ползва при SAVE към Firestore.
+ * ВАЖНО: включва и groups (подзаглавията) + position (before/after grid).
+ * =========================================================== */
 
-function restoreCartFromLS() {
-  try {
-    const raw = localStorage.getItem(LS_CART_ITEMS);
-    const items = JSON.parse(raw || "[]");
+function snapshotRuntime() {
+  const mem = (typeof getMemory === "function" ? getMemory() : {}) || {};
 
-    if (Array.isArray(items) && items.length > 0) {
-      items.forEach(it => {
-        const price = Number(it.price ?? it.basePrice ?? 0);
-        const baseName = it.baseName || it.name || "";
-        if (!baseName) return; // пропускаме счупени записи
-        CART.push({
-          _id: it._id || (Date.now() + "" + Math.random()),
-          name: it.name || baseName,
-          baseName,
-          price,
-          basePrice: Number(it.basePrice ?? price),
-          img: it.img || "",
-          addons: Array.isArray(it.addons) ? it.addons : []
-        });
+  // нормализира един продукт
+  const normalizeItem = (it) => {
+    if (!it || typeof it !== "object") {
+      return { name: "Продукт", desc: "", price: 0, img: "" };
+    }
+
+    const base = {
+      name: it.name || "Продукт",
+      desc: it.desc || "",
+      price: Number(it.price) || 0,
+      img: it.img || ""
+    };
+
+    // пазим addons (каквото и да има вътре)
+    if (Array.isArray(it.addons)) {
+      base.addons = it.addons.map((a) => ({ ...a }));
+    }
+
+    return base;
+  };
+
+  const snap = {
+    order: [...ORDER],      // подредбата на категориите
+    catalog: {},            // всички категории + продукти
+    cat_thumbs: {},         // thumbnails за сайдбара
+    addons_labels: mem.addons_labels || {}
+  };
+
+  ORDER.forEach((key) => {
+    const cat = CATALOG[key];
+    if (!cat) return;
+
+    const out = {};
+
+    // име на категорията
+    if (cat.title) out.title = cat.title;
+
+    // специални полета (hell / вода)
+    if (cat.view) out.view = cat.view;
+    if (typeof cat.hellPrice === "number") {
+      out.hellPrice = Number(cat.hellPrice) || 0;
+    }
+
+    // стандартни items
+    if (Array.isArray(cat.items)) {
+      out.items = cat.items.map(normalizeItem);
+    }
+
+    // 🔥 ПОДЗАГЛАВИЯ (groups) + POSITION
+    if (Array.isArray(cat.groups)) {
+      out.groups = cat.groups.map((g) => {
+        const gOut = {
+          heading: g.heading || "",
+          // позиция: before (по подразбиране) или after – под box-овете
+          position: g.position === "after" ? "after" : "before"
+        };
+
+        // групи с вътрешни продукти (палачинки, айрян)
+        if (Array.isArray(g.items)) {
+          gOut.items = g.items.map(normalizeItem);
+        }
+
+        // галерия (HELL) – списък със снимки
+        if (Array.isArray(g.images)) {
+          gOut.images = [...g.images];
+        }
+
+        // вода / газирана – pair (ляво/дясно)
+        if (Array.isArray(g.pair)) {
+          gOut.pair = g.pair.map((p) => ({
+            ...p,
+            price: Number(p.price) || 0
+          }));
+        }
+
+        // индивидуални цени за снимките (ако има)
+        if (Array.isArray(g.prices)) {
+          gOut.prices = g.prices.map((pr) => Number(pr) || 0);
+        }
+
+        // labels за HELL
+        if (Array.isArray(g.labels)) {
+          gOut.labels = [...g.labels];
+        }
+
+        return gOut;
       });
     }
 
-    updateCartUI();
-    restoreOrderNote();
-  } catch (e) {
-    console.warn("⚠️ Грешка при възстановяване на количката от LocalStorage:", e);
-  }
-}
+    snap.catalog[key] = out;
 
-/* Отваряне/затваряне на модала */
-function openCart(){
-  if (!cartOverlay || !cartBtn) return;
-  updateCartUI();
-  cartOverlay.style.display = "flex";
-  cartOverlay.setAttribute("aria-hidden","false");
-  cartBtn.setAttribute("aria-expanded","true");
-}
-function closeCart(){
-  if (!cartOverlay || !cartBtn) return;
-  cartOverlay.style.display = "none";
-  cartOverlay.setAttribute("aria-hidden","true");
-  cartBtn.setAttribute("aria-expanded","false");
-}
-const cartCloseBtn = document.getElementById("cartClose");
-if (cartCloseBtn) cartCloseBtn.addEventListener("click", closeCart);
-if (cartOverlay) {
-  cartOverlay.addEventListener("click", (e)=>{ if(e.target === cartOverlay) closeCart(); });
-}
-if (cartBtn) cartBtn.addEventListener("click", openCart);
-document.addEventListener("keydown", (e)=>{ if (e.key === "Escape" && cartOverlay && cartOverlay.style.display === "flex") closeCart(); });
-
-/* Поръчай сега → index3.html (локално или уеб) */
-if (orderNowBtn){
-  orderNowBtn.addEventListener("click", ()=>{
-    if (CART.length === 0) return;
-    persistCartSnapshot();
-    const target = (location.protocol === "file:") ? "file:///E:/BBQ_SITE/index3.html" : "index3.html";
-    window.location.href = target;
+    if (CAT_THUMBS[key]) {
+      snap.cat_thumbs[key] = CAT_THUMBS[key];
+    }
   });
+
+  return snap;
 }
 
-/* ===========================
-   🖼️ КАТЕГОРИИ/КАТАЛОГ
-   =========================== */
+/* ===========================================================
+ * APPLY SAVED – използва се когато зареждаме draft/backup
+ * от LocalStorage в модератора.
+ * =========================================================== */
 
-/* Миниатюри (сайдбар) */
-const CAT_THUMBS = {
-  promocii: PROMO_IMG,
-  burgeri:"snimki/produkti/1menu/burger.jpg",
-  palachinki:"snimki/produkti/1menu/palachinki.jpg",
-  strandzhanki:"snimki/produkti/1menu/strandjanka.jpg",
-  kartofi:"snimki/produkti/1menu/kartofi.jpg",
-  salati:"snimki/produkti/1menu/salata.jpg",
-  portsii:"snimki/produkti/1menu/porciq.jpg",
-  sosove:"snimki/produkti/1menu/sosove.jpg",
-  dobavki:"snimki/produkti/1menu/dobavki.jpg",
-  deserti:"snimki/produkti/1menu/desert.jpg",
-  bezalkoholni:"snimki/produkti/1menu/bezalkoholno.jpg",
-  bira:"snimki/produkti/1menu/bira.jpg",
-  hell:"snimki/produkti/1menu/hell.jpg",
-  voda:"snimki/produkti/ВОДА/voda_snimka.jpg",
-  gazirana_voda:"snimki/produkti/ГАЗИРАНА_ВОДА/gaziranavoda_snimka.jpg",
-  fanta:"snimki/produkti/ФАНТА/fanta_logo.jpg",
-  studen_chai:"snimki/produkti/СТУДЕН_ЧАЙ/studen_chai_logo.jpg",
-  kola:"snimki/produkti/КОЛА/kola_logo.jpg",
-  sok:"snimki/produkti/СОК/cappy_logo.jpg",
-  airqn:"snimki/produkti/АЙРАН/vereq_logo.jpg",
-  xixo:"snimki/produkti/ХИХО/xixo_logo.jpg"
-};
-
-/* === ДОБАВКИ (универсални) === */
-const ADDONS = {
-  pitka:   { code:"pitka",   label:"Питка",          price:1.50 },
-  raz:     { code:"raz",     label:"Разядка 100 гр", price:1.50 },
-  ketchup: { code:"ketchup", label:"Кетчуп",      price:0 },
-  mayo:    { code:"mayo",    label:"Майонеза",    price:0 },
-  mustard: { code:"mustard", label:"Горчица",     price:0 },
-  chili:   { code:"chili",   label:"Люто",        price:0 },
-  sharena: { code:"sharena", label:"Шарена сол",  price:0 },
-};
-
-/* Каталог с цени в лв. */
-const CATALOG = {
-  burgeri:{title:"САНДВИЧИ",items:[
-    {name:"КОНСКА ПЛЕСКАВИЦА", price:9.00, img:"snimki/produkti/2menu/konski.jpg",
-      desc:"Конско месо на жар със свежи зеленчуци, три вида сосове (кетчуп, майонеза, горчица), пресни картофки и прясна питка (самун)."},
-    {name:"ТЕЛЕШКА ПЛЕСКАВИЦА", price:9.00, img:"snimki/produkti/2menu/sharska.jpg",
-      desc:"Телешко мляно месо на жар със свежи зеленчуци, три вида сосове (кетчуп, майонеза, горчица), пресни картофки и прясна питка (самун)."},
-    {name:"ШАРСКА ПЛЕСКАВИЦА", price:9.50, img:"snimki/produkti/2menu/sharska.jpg",
-      desc:"Телешко мляно месо с кашкавал на жар със свежи зеленчуци, три вида сосове (кетчуп, майонеза, горчица), пресни картофки и прясна питка (самун)."},
-    {name:"СВИНСКА ВЕШАЛИЦА", price:9.00, img:"snimki/produkti/2menu/sharska.jpg",
-      desc:"Крехко свинско контрафиле на жар със свежи зеленчуци, три вида сосове (кетчуп, майонеза, горчица), пресни картофки и прясна питка (самун)."},
-    {name:"ПИЛЕШКИ СТЕК", price:9.00, img:"snimki/produkti/2menu/pileshkistek.jpg",
-      desc:"Пилешко филе на жар със свежи зеленчуци, три вида сосове (кетчуп, майонеза, горчица), пресни картофки и прясна питка (самун)."},
-    {name:"ВЕГЕТАРИАНСКИ", price:5.00, img:"snimki/produkti/2menu/vegan.jpg",
-      desc:"Свежи зеленчуци , пресни картофки и прясна питка (самун)."},
-    {name:"ДВОЙНА ШАРСКА ПЛЕСКАВИЦА", price:12.50, img:"snimki/produkti/2menu/sharska.jpg",
-      desc:"Двойна телешка плескавица с кашкавал на жар със свежи зеленчуци, пресни картофки и прясна питка (самун)."},
-    {name:"ДВОЙНА КОНСКА ПЛЕСКАВИЦА", price:12.00, img:"snimki/produkti/2menu/konski.jpg",
-      desc:"Мляно конско месо на жар със свежи зеленчуци, пресни картофки и прясна питка (самун)."},
-    {name:"ДВОЙНА СВИНСКА ВЕШАЛИЦА", price:12.00, img:"snimki/produkti/2menu/sharska.jpg",
-      desc:"Двойно свинско контрафиле на жар със свежи зеленчуци, пресни картофки и прясна питка (самун)."},
-    {name:"ДВОЕН ПИЛЕШКИ СТЕК", price:12.00, img:"snimki/produkti/2menu/pileshkistek.jpg",
-      desc:"Двойно пилешко филе на жар със свежи зеленчуци, пресни картофки и прясна питка (самун)."},
-    {name:"ДВОЙНА ТЕЛЕШКА ПЛЕСКАВИЦА", price:12.00, img:"snimki/produkti/2menu/sharska.jpg",
-      desc:"Двойна телешка плескавица на жар със свежи зеленчуци, пресни картофки и прясна питка (самун)."},
-    {name:"БУРГЕР С ДЪРПАНО ТЕЛЕШКО", price:12.50, img:"snimki/produkti/2menu/durpano.jpg",
-      desc:"Дърпано телешко на жар със свежи зеленчуци, пресни картофки и прясна питка (самун)."}
-  ]},
-  palachinki:{
-    title:"ПАЛАЧИНКИ",
-    groups:[
-      { heading:"СЛАДКИ", items:[
-        {name:"ПАЛАЧИНКА СЪС NUCREMA ШОКОЛАД",price:5.00,img:"snimki/produkti/ПАЛАЧИНКИ/shokolad.jpg"},
-        {name:"ПАЛАЧИНКА СЪС NUCREMA ШОКОЛАД И БАНАН",price:6.00,img:"snimki/produkti/ПАЛАЧИНКИ/shokoladibanan.png"},
-        {name:"ПАЛАЧИНКА С МЕД И ОРЕХИ",price:5.50,img:"snimki/produkti/ПАЛАЧИНКИ/mediorehi.png"},
-        {name:"ПАЛАЧИНКА СЪС СЛАДКО ОТ БОРОВИНКИ",price:5.00,img:"snimki/produkti/ПАЛАЧИНКИ/borovinki.png"},
-        {name:"ПАЛАЧИНКА СЪС СЛАДКО ОТ ПРАСКОВА",price:5.00,img:"snimki/produkti/ПАЛАЧИНКИ/praskovi.png"},
-        {name:"ПАЛАЧИНКА СЪС СЛАДКО ОТ ЯГОДИ",price:5.00,img:"snimki/produkti/ПАЛАЧИНКИ/qgodi.png"}
-      ]},
-      { heading:"СОЛЕНИ", items:[
-        {name:"ПАЛАЧИНКА С КАШКАВАЛ И БЕКОН",price:6.00,img:"snimki/produkti/ПАЛАЧИНКИ/kashkavalibekon.png"},
-        {name:"СИРЕНЕ И СЛАДКО",price:5.50,img:"snimki/produkti/ПАЛАЧИНКИ/sirene.png"},
-        {name:"ПАЛАЧИНКА СЪС СИРЕНЕ",price:5.00,img:"snimki/produkti/ПАЛАЧИНКИ/sirene.png"},
-        {name:"ПАЛАЧИНКА СЪС КАШКАВАЛ",price:5.50,img:"snimki/produkti/ПАЛАЧИНКИ/kashkaval.png"},
-        {name:"ПАЛАЧИНКА СЪС СИРЕНЕ И КАШКАВАЛ",price:6.00,img:"snimki/produkti/ПАЛАЧИНКИ/kashkavalisirene.png"},
-        {name:"ПАЛАЧИНКА С МАСЛО",price:4.50,img:"snimki/produkti/ПАЛАЧИНКИ/maslo.png"}
-      ]}
-    ]
-  },
-  strandzhanki:{ title:"СТРАНДЖАНКИ", items:[
-    {name:"ТЕЛЕШКА СТРАНДЖАНКА",price:5.00,img:CAT_THUMBS.strandzhanki},
-    {name:"СВИНСКА СТРАНДЖАНКА",price:5.00,img:CAT_THUMBS.strandzhanki}
-  ]},
-  kartofi:{ title:"КАРТОФИ", items:[
-    {name:"ПЪРЖЕНИ КАРТОФИ 200 ГРАМА",price:4.00,img:"snimki/produkti/КАРТОФИ/kartofi.jpg"},
-    {name:"КАРТОФИ С ЧЕДЪР И БЕКОН",price:6.50,img:"snimki/produkti/КАРТОФИ/kartofisbekonichedur.jpg"},
-    {name:"КАРТОФИ С ЧЕДЪР",price:5.00,img:"snimki/produkti/КАРТОФИ/kartofischedur.jpg"}
-  ]},
-  salati:{
-    title:"САЛАТИ",
-    items:[
-      {name:"САЛАТА ЦЕЗАР",price:8.50,img:CAT_THUMBS.salati,
-       desc:"Айсберг, чери домати, крутони, сос Цезар, пилешко филе, пармезан"}
-    ]
-  },
-  portsii:{ title:"ПОРЦИИ", items:[
-    {name:"ТЕЛЕШКА ПЛЕСКАВИЦА ПОРЦИЯ",price:11.50,img:"snimki/produkti/ПОРЦИИ/sharsko.jpg",
-      desc:"Мляно телешко месо на скара, със свежи зеленчуци и пресни картофи. Без питка и без разядка. ~550 г."},
-    {name:"КОНСКА ПЛЕСКАВИЦА ПОРЦИЯ",price:11.50,img:"snimki/produkti/ПОРЦИИ/sharsko.jpg",
-      desc:"Прясно мляно конско на жар, със свежи зеленчуци и картофи. Без питка и без разядка. ~550 г."},
-    {name:"ПИЛЕШКО ФИЛЕ ПОРЦИЯ",price:11.00,img:"snimki/produkti/ПОРЦИИ/pileshko.jpg",
-      desc:"Прясно пилешко филе на жар с гарнитура пресни картофи и свежи зеленчуци. Без питка и без разядка. ~550 г."},
-    {name:"СВИНСКО ФИЛЕ ПОРЦИЯ",price:11.00,img:"snimki/produkti/ПОРЦИИ/svinsko.jpg",
-      desc:"Крехко свинско контра филе на жар с картофи и свежа гарнитура. Без питка и без разядка. ~550 г."},
-    {name:"ТЕЛЕШКИ КЕБАПЧЕТА ПОРЦИЯ",price:9.50,img:"snimki/produkti/ПОРЦИИ/kebapche.jpg",
-      desc:"Ароматни телешки кебапчета на жар с пресни картофи и салата. Без питка и без разядка. ~550 г."},
-    {name:"ШАРСКА ПЛЕСКАВИЦА ПОРЦИЯ",price:12.50,img:"snimki/produkti/ПОРЦИИ/sharsko.jpg",
-      desc:"Телешка плескавица с кашкавал, гарнирана с пресни картофи и зеленчуци. Без питка и без разядка. ~550 г."}
-  ]},
-  dobavki:{ title:"ДОБАВКИ", items:[
-    {name:"СИРЕНЕ 100 ГРАМА",   price:1.50, img:"snimki/produkti/ДОБАВКИ/sirene100grama.png"},
-    {name:"КАШКАВАЛ 100 ГРАМА", price:1.50, img:"snimki/produkti/ДОБАВКИ/kashkaval100grama.png"},
-    {name:"РАЗЯТКА",            price:1.00, img:"snimki/produkti/ДОБАВКИ/razqtka.png"},
-    {name:"МЕСО ДОБАВКА",       price:4.00, img:"snimki/produkti/ДОБАВКИ/meso.jpg"},
-    {name:"ПИТКА",              price:1.50, img:"snimki/produkti/ДОБАВКИ/pitka2.jpg"}
-  ]},
-  sosove:{ title:"СОСОВЕ", items:[
-    {name:"ДОМАШНА РАЗЯДКА 100ГР", price:1.50, img:CAT_THUMBS.sosove},
-    {name:"ДОМАШНА МАЙОНЕЗА",     price:1.50, img:CAT_THUMBS.sosove},
-    {name:"ЛЮТЕНИЦА",             price:1.50, img:CAT_THUMBS.sosove},
-    {name:"КЕТЧУП",               price:1.00, img:CAT_THUMBS.sosove},
-    {name:"ГОРЧИЦА",              price:1.00, img:CAT_THUMBS.sosove},
-    {name:"СОС ЦЕЗАР",            price:1.50, img:CAT_THUMBS.sosove}
-  ]},
-  deserti:{ title:"ДЕСЕРТИ", items:[
-    {name:"ЛЕК ДЕСЕРТ С ЧИЯ, МЮСЛИ И СУШЕНИ ПЛОДОВЕ",price:4.50,img:CAT_THUMBS.deserti},
-    {name:"ЛЕК ДЕСЕРТ С ЧИЯ, МЮСЛИ И СЛАДКО ОТ БОРОВИНКИ",price:4.50,img:CAT_THUMBS.deserti}
-  ]},
-  bezalkoholni:{ title:"БЕЗАЛКОХОЛНИ", items:[
-    {name:"КОЛА КЕН",price:2.00,img:CAT_THUMBS.bezalkoholni},
-    {name:"ФАНТА ПОРТОКАЛ КЕН",price:2.00,img:CAT_THUMBS.bezalkoholni},
-    {name:"КОКА КОЛА БУТИЛКА",price:2.50,img:CAT_THUMBS.bezalkoholni},
-    {name:"ФАНТА ПОРТОКАЛ БУТИЛКА",price:2.50,img:CAT_THUMBS.bezalkoholni},
-    {name:"СПРАЙТ БУТИЛКА",price:2.50,img:CAT_THUMBS.bezalkoholni},
-    {name:"СТУДЕН ЧАЙ",price:2.50,img:CAT_THUMBS.bezalkoholni},
-    {name:"КАПИ ПЪЛПИ",price:2.50,img:CAT_THUMBS.bezalkoholni},
-    {name:"КАПИ КУТИЯ",price:1.70,img:CAT_THUMBS.bezalkoholni},
-    {name:"СОДА БУТИЛКА",price:1.90,img:CAT_THUMBS.bezalkoholni},
-    {name:"МАЛКА МИНЕРАЛНА ВОДА",price:1.50,img:CAT_THUMBS.bezalkoholni},
-    {name:"ГОЛЯМА МИНЕРАЛНА ВОДА",price:2.00,img:CAT_THUMBS.bezalkoholni},
-    {name:"КАПИ ЛИМОНАДА",price:2.50,img:CAT_THUMBS.bezalkoholni},
-    {name:"ТОНИК БУТИЛКА",price:1.90,img:CAT_THUMBS.bezalkoholni}
-  ]},
-  bira:{ title:"БИРА", items:[
-    {name:"БИРА КОРОНА",price:3.50,img:CAT_THUMBS.bira},
-    {name:"ХАЙНИКЕН",price:4.00,img:CAT_THUMBS.bira},
-    {name:"СТЕЛА АРТОА",price:4.50,img:CAT_THUMBS.bira}
-  ]},
-  hell:{
-    title:"HELL",
-    view:"gallery",
-    hellPrice:2.00,
-    groups:[
-      { heading:"HELL -250мл", images:[
-          "snimki/hell_sminki/normal/hell_apple.jpg",
-          "snimki/hell_sminki/normal/hell_clasic.jpg",
-          "snimki/hell_sminki/normal/hell_classic.jpg",
-          "snimki/hell_sminki/normal/hell_redgrape.jpg",
-          "snimki/hell_sminki/normal/hell_watermelon.jpg"
-      ]},
-      { heading:"ICE COFFE HELL -250 мл", images:[
-          "snimki/hell_sminki/ice_coffe/ice_coffe_capochino.png",
-          "snimki/hell_sminki/ice_coffe/ice_coffe_caramel.png",
-          "snimki/hell_sminki/ice_coffe/ice_coffe_coconut.png",
-          "snimki/hell_sminki/ice_coffe/ice_coffe_doubleespresso.png",
-          "snimki/hell_sminki/ice_coffe/ice_coffe_late.png",
-          "snimki/hell_sminki/ice_coffe/ice_coffe_pinklatte.png",
-          "snimki/hell_sminki/ice_coffe/ice_coffe_vanilia.png",
-          "snimki/hell_sminki/ice_hell_distachio.png"
-      ]}
-    ]
-  },
-  voda:{
-    title:"ВОДА",
-    view:"water2",
-    groups:[
-      { heading:"Devin", pair:[
-          {src:"snimki/produkti/ВОДА/golqma_devin.jpg", label:"Голяма Девин -1,5Л", price:2.00},
-          {src:"snimki/produkti/ВОДА/malka_devin.jpg", label:"Малка Девин -500мл",  price:1.50}
-      ]},
-      { heading:"Банкя", pair:[
-          {src:"snimki/produkti/ВОДА/golqma_bankq.jpg", label:"Голяма Банкя -1,5Л", price:2.00},
-          {src:"snimki/produkti/ВОДА/malka_bankq.jpg", label:"Малка Банкя -500мл",  price:1.50}
-      ]}
-    ]
-  },
-  gazirana_voda:{
-    title:"ГАЗИРАНА ВОДА",
-    view:"water2",
-    groups:[
-      { heading:"Марки", pair:[
-          {src:"snimki/produkti/ГАЗИРАНА_ВОДА/shveps.jpg",  label:"Schweppes -500мл", price:1.90},
-          {src:"snimki/produkti/ГАЗИРАНА_ВОДА/sprait.jpg",  label:"Sprite -500мл",    price:1.90}
-      ]}
-    ]
-  },
-  fanta:{
-    title:"ФАНТА",
-    items:[
-      {name:"Фанта Портокал -330мл",      price:2.00, img:"snimki/produkti/ФАНТА/fanta_portokal.jpg"},
-      {name:"Фанта Лимон -330мл",         price:2.00, img:"snimki/produkti/ФАНТА/fanta_lemon.jpg"},
-      {name:"Фанта Лайчи -330мл",         price:2.00, img:"snimki/produkti/ФАНТА/fanta_laici.jpg"},
-      {name:"Фанта Tutti Frutti -330мл",  price:2.00, img:"snimki/produkti/ФАНТА/fanta_tutti.jpg"},
-      {name:"Фанта Зелена ябълка 330мл", price:2.00, img:"snimki/produkti/ФАНТА/fanta_greenapple.jpg"},
-      {name:"Фанта Боровинка -330мл",     price:2.00, img:"snimki/produkti/ФАНТА/sinq_blueberry.jpg"}
-    ]
-  },
-  studen_chai:{
-    title:"СТУДЕН ЧАЙ",
-    items:[
-      { name:"Fuze Tea Горски плод -500мл", price:2.50, img:"snimki/produkti/СТУДЕН_ЧАЙ/fuze_tea_forest_frut.jpg" },
-      { name:"Fuze Tea Праскова -500мл",    price:2.50, img:"snimki/produkti/СТУДЕН_ЧАЙ/fuze_tea_praskova.jpg" }
-    ]
-  },
-  kola:{
-    title:"КОЛА",
-    items:[
-      {name:"Кола Кен -330мл",        price:2.00, img:"snimki/produkti/КОЛА/kolaken.jpg"},
-      {name:"Кола Кен Zero -330мл",   price:2.00, img:"snimki/produkti/КОЛА/kolakenzero.jpg"},
-      {name:"Кола ПВЦ -500мл",        price:2.50, img:"snimki/produkti/КОЛА/kolapvc.jpg"},
-      {name:"Кола ПВЦ Zero -500мл",   price:2.50, img:"snimki/produkti/КОЛА/kolapvczero.jpg"}
-    ]
-  },
-  sok:{
-    title:"СОК",
-    items:[
-      {name:"Cappy Портокал -500мл", price:2.50, img:"snimki/produkti/СОК/cappy_orange.jpg"},
-      {name:"Cappy Лимон -500мл",    price:2.50, img:"snimki/produkti/СОК/cappy_lemon.jpg"}
-    ]
-  },
-  airqn:{
-    title:"АЙРЯН",
-    groups:[
-      { heading:"Верея", items:[
-          {name:"Айрян Верея Голям -480мл", price:2.00, img:"snimki/produkti/АЙРАН/airan_vereq_golqm.jpg"},
-          {name:"Айрян Верея Малък -300мл", price:1.50, img:"snimki/produkti/АЙРАН/airan_vereq_maluk.jpg"}
-      ]},
-      { heading:"Meggle", items:[
-          {name:"Голям Айрян Meggle Бутилка 500 мл", price:2.80, img:"snimki/produkti/АЙРАН/megle_airan_butilka.jpg"},
-          {name:"Айрян Meggle Кофичка -300мл",    price:2.00, img:"snimki/produkti/АЙРАН/megle_airan_kofa.jpg"},
-          {name:"Айрян Meggle Плодов Кофичка -330мл",  price:3.00, img:"snimki/produkti/АЙРАН/mwgle_airan_plodov.jpg"}
-      ]}
-    ]
-  },
-  xixo:{
-    title:"XIXO",
-    items:[
-      {name:"XIXO Cola -250мл",               price:1.10, img:"snimki/produkti/ХИХО/xixo_cola.jpg"},
-      {name:"XIXO Cherry Cola -250мл",        price:1.10, img:"snimki/produkti/ХИХО/xixo_cherry_cola.jpg"},
-      {name:"XIXO Диня -250мл",               price:1.10, img:"snimki/produkti/ХИХО/xixo_dinq.jpg"},
-      {name:"XIXO Горски плод -250мл",        price:1.10, img:"snimki/produkti/ХИХО/xixo_gorski_plod.jpg"},
-      {name:"XIXO Green Fusion -250мл",       price:1.10, img:"snimki/produkti/ХИХО/xixo_green_fusion.jpg"},
-      {name:"XIXO Круша -250мл",              price:1.10, img:"snimki/produkti/ХИХО/xixo_krusha.jpg"},
-      {name:"XIXO Лимон -250мл",              price:1.10, img:"snimki/produkti/ХИХО/xixo_limon.jpg"},
-      {name:"XIXO Манго и ананас -250мл",     price:1.10, img:"snimki/produkti/ХИХО/xixo_mango_and_pineapple.jpg"},
-      {name:"XIXO Розова лимонада -250мл",    price:1.10, img:"snimki/produkti/ХИХО/xixo_pink_lemonade.jpg"},
-      {name:"XIXO Праскова -250мл",           price:1.10, img:"snimki/produkti/ХИХО/xixo_praskova.jpg"},
-      {name:"XIXO Ягода",                      price:1.10, img:"snimki/produkti/ХИХО/xixo_qgoda.jpg"},
-      {name:"XIXO Tutti Frutti -250мл",       price:1.10, img:"snimki/produkti/ХИХО/xixo_tuti_fruity.jpg"}
-    ]
-  }
-};
-
-
-const BASE_CATALOG = typeof structuredClone === "function"
-  ? structuredClone(CATALOG)
-  : JSON.parse(JSON.stringify(CATALOG));
-
-
-/* Подредба на категориите */
-const ORDER = [
-  "promocii",
-  "burgeri","palachinki","strandzhanki","kartofi","salati","portsii","dobavki",
-  "hell","voda","gazirana_voda","fanta","studen_chai","kola"
-];
-
-
-/* ==========================================================
-   APPLY CATALOG STATE – задължително за Firestore зареждане
-   Стабилен FIX → запазва САМО addons, без да нарушава структурата
-   ========================================================== */
-function applyCatalogState(data) {
+const applySaved = (data) => {
   if (!data || typeof data !== "object") return;
 
-  // 1) CATALOG – ПЪЛЕН override (но поправяме само items→addons)
-  if (data.CATALOG && typeof data.CATALOG === "object") {
+  // order
+  if (Array.isArray(data.order)) {
+    ORDER.length = 0;
+    data.order.forEach((k) => ORDER.push(k));
+  }
 
-    // изчистваме старото (както си било)
-    Object.keys(CATALOG).forEach((k) => { delete CATALOG[k]; });
+  // catalog (включително groups)
+  if (data.catalog && typeof data.catalog === "object") {
+    Object.entries(data.catalog).forEach(([key, val]) => {
+      if (!CATALOG[key]) CATALOG[key] = { title: val.title || "", items: [] };
 
-    for (const [key, value] of Object.entries(data.CATALOG)) {
-      // копираме цялата структура
-      CATALOG[key] = { ...value };
+      CATALOG[key].title     = val.title     || CATALOG[key].title;
+      CATALOG[key].view      = val.view      ?? CATALOG[key].view;
+      CATALOG[key].hellPrice = val.hellPrice ?? CATALOG[key].hellPrice;
 
-      /* 🔥 FIX #1: ITEMS – винаги връщаме addons */
-      if (Array.isArray(value.items)) {
-        CATALOG[key].items = value.items.map(it => ({
+      if (Array.isArray(val.items)) {
+        CATALOG[key].items = val.items.map((it) => ({
           ...it,
           addons: Array.isArray(it.addons) ? it.addons : []
         }));
       }
 
-      /* 🔥 FIX #2: GROUPS → items вътре също пазим addons */
-      if (Array.isArray(value.groups)) {
-        CATALOG[key].groups = value.groups.map(g => ({
-          ...g,
-          items: Array.isArray(g.items)
-            ? g.items.map(it => ({
-                ...it,
-                addons: Array.isArray(it.addons) ? it.addons : []
-              }))
-            : g.items
+      // 🔥 ВРЪЩАМЕ И GROUPS (подзаглавията) + position
+      if (Array.isArray(val.groups)) {
+        CATALOG[key].groups = val.groups.map((g) => ({
+          heading: g.heading || "",
+          position: g.position === "after" ? "after" : "before",
+          items:   Array.isArray(g.items)   ? g.items.map((it) => ({
+            ...it,
+            addons: Array.isArray(it.addons) ? it.addons : []
+          })) : undefined,
+          images:  Array.isArray(g.images)  ? [...g.images]  : undefined,
+          pair:    Array.isArray(g.pair)    ? g.pair.map((p) => ({
+            ...p,
+            price: Number(p.price) || 0
+          })) : undefined,
+          prices:  Array.isArray(g.prices)  ? g.prices.map((pr) => Number(pr) || 0) : undefined,
+          labels:  Array.isArray(g.labels)  ? [...g.labels] : undefined
         }));
       }
-    }
+    });
   }
 
-  // 2) ORDER
-  if (Array.isArray(data.ORDER)) {
-    ORDER.length = 0;
-    ORDER.push(...data.ORDER);
-  }
-
-  // 3) ADDONS – само merge (не трием нищо)
-  if (data.ADDONS && typeof data.ADDONS === "object") {
-    Object.assign(ADDONS, data.ADDONS);
-  }
-
-  // 4) Миниатюри
-  if (data.cat_thumbs && typeof data.cat_thumbs === "object") {
+  if (data.cat_thumbs) {
     Object.assign(CAT_THUMBS, data.cat_thumbs);
   }
-}
 
-/* ==========================================================
-   🔥 ADDONS DEBUG MODE
-   Активира се с ?debugAddons=1
-   ========================================================== */
-(function addonsDebugMode() {
-  const params = new URLSearchParams(location.search);
-  if (!params.get("debugAddons")) return;
+  if (data.addons_labels) {
+    const mem = getMemory();
+    mem.addons_labels = data.addons_labels;
+    setMemory(mem);
+  }
+};
 
-  console.log("%c🔥 ADDONS DEBUG MODE ACTIVATED", "color:#ff7a00; font-size:16px; font-weight:900;");
+/* draft в LocalStorage – за авто-възстановяване в модератора */
+const persistDraft = () => {
+  const snap = snapshotRuntime();
+  const mem = getMemory();
+  snap.addons_labels = mem.addons_labels || {};
+  save(LS_MOD_DRAFT, snap);
+};
 
-  // ===== VISUAL OVERLAY =====
-  const box = document.createElement("div");
-  box.style.position = "fixed";
-  box.style.bottom = "20px";
-  box.style.right = "20px";
-  box.style.background = "rgba(0,0,0,0.85)";
-  box.style.border = "2px solid #ff7a00";
-  box.style.color = "#fff";
-  box.style.padding = "14px 18px";
-  box.style.fontSize = "14px";
-  box.style.borderRadius = "12px";
-  box.style.zIndex = "999999";
-  box.style.maxWidth = "380px";
-  box.style.backdropFilter = "blur(4px)";
-  box.style.boxShadow = "0 0 18px rgba(255, 140, 0, 0.4)";
-  box.innerHTML = `
-    <div style="font-weight:900; color:#ffb347; margin-bottom:6px;">
-      🔥 Addons Debug
-    </div>
-    <button id="btnPrintAddons" style="
-      padding:6px 12px; border:none; background:#ff7a00;
-      border-radius:6px; color:#fff; cursor:pointer; margin-bottom:8px;">
-      Print Addons
-    </button>
-    <button id="btnPrintCatalog" style="
-      padding:6px 12px; border:none; background:#2aa2ff;
-      border-radius:6px; color:#fff; cursor:pointer;">
-      Print Full Catalog
-    </button>
-  `;
-  document.body.appendChild(box);
+/* permanent backup в LocalStorage */
+const savePermanent = () => {
+  save(LS_MOD_DATA, snapshotRuntime());
+};
 
-  document.getElementById("btnPrintAddons").onclick = () => {
-    console.log("%c🔍 ADDONS CHECK", "color:#ffb347; font-size:14px; font-weight:700;");
+/* ===========================================================
+ * БЛОК 3 (END)
+ * =========================================================== */
 
-    ORDER.forEach(catKey => {
-      const cat = CATALOG[catKey];
-      if (!cat) return;
 
-      console.log(
-        `%c📂 Category: ${catKey}`,
-        "color:#ffdd99; font-size:13px; font-weight:700;"
-      );
+  /* ===========================================================
+   * БЛОК 4: КОШЧЕ (TRASH) ЗА ПРОДУКТИ И КАТЕГОРИИ
+   * (START)
+   * =========================================================== */
 
-      if (!Array.isArray(cat.items)) {
-        console.log(`   ❌ cat.items missing`);
+  const trashPush = (entry) => {
+    const arr = read(LS_MOD_TRASH, []);
+    arr.unshift({ ...entry, ts: Date.now() });
+    save(LS_MOD_TRASH, arr);
+  };
+
+  const trashList = () => read(LS_MOD_TRASH, []);
+  const trashDel = (i) => {
+    const arr = trashList();
+    arr.splice(i, 1);
+    save(LS_MOD_TRASH, arr);
+  };
+  const trashPurge = () => save(LS_MOD_TRASH, []);
+
+  const openTrashUI = () => {
+    const items = trashList();
+
+    const overlay = document.createElement("div");
+    Object.assign(overlay.style, {
+      position: "fixed",
+      inset: "0",
+      zIndex: "100000",
+      background: "rgba(0,0,0,.55)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "22px"
+    });
+
+    const box = document.createElement("div");
+    Object.assign(box.style, {
+      background: "#fff",
+      borderRadius: "14px",
+      width: "min(900px,96vw)",
+      maxHeight: "86vh",
+      overflow: "auto",
+      boxShadow: "0 18px 60px rgba(0,0,0,.35)",
+      padding: "14px"
+    });
+
+    box.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h3 style="margin:0">🗑 Кошче</h3>
+        <div>
+          <button data-a="purge" style="margin-right:8px">Изчисти</button>
+          <button data-a="close">Затвори</button>
+        </div>
+      </div>
+      <div class="tlist">
+        ${
+          !items.length
+            ? '<div style="opacity:.7;padding:8px 0">Празно</div>'
+            : ""
+        }
+      </div>
+    `;
+
+    const list = box.querySelector(".tlist");
+
+    items.forEach((it, idx) => {
+      const when = new Date(it.ts || Date.now()).toLocaleString();
+      const row = document.createElement("div");
+      Object.assign(row.style, {
+        border: "1px solid #eee",
+        borderRadius: "10px",
+        padding: "10px 12px",
+        margin: "8px 0",
+        display: "grid",
+        gridTemplateColumns: "1fr auto",
+        gap: "8px"
+      });
+
+      row.innerHTML = `
+        <div>
+          <div><b>${esc(it.kind.toUpperCase())}</b> • ${esc(
+        it.title || it.catKey || ""
+      )}</div>
+          <div style="opacity:.7;font-size:12px">${when}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button data-i="${idx}" data-a="restore">Възстанови</button>
+          <button data-i="${idx}" data-a="del">Премахни</button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+
+    box.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+
+      const action = btn.dataset.a;
+
+      if (action === "close") return close();
+
+      if (action === "purge") {
+        if (askPass("Парола за изчистване")) {
+          trashPurge();
+          close();
+          toast("Кошчето е изчистено");
+        }
         return;
       }
 
-      cat.items.forEach((item, i) => {
-        if (!item) return;
+      const i = Number(btn.dataset.i);
+      const arr = trashList();
+      const entry = arr[i];
+      if (!entry) return;
 
-        if (!Array.isArray(item.addons) || item.addons.length === 0) {
-          console.log(`   ⚠️ [${i}] ${item.name} → No addons`);
-        } else {
-          console.log(`   ✅ [${i}] ${item.name} → ${item.addons.length} addons`, item.addons);
+      if (action === "restore") {
+        const entry = arr[i];
+        if (!entry) return;
+
+        if (entry.kind === "product") {
+          const { catKey, index, item, groupIndex, isHell } = entry;
+
+          // ако няма категория – създаваме я
+          if (!CATALOG[catKey]) {
+            CATALOG[catKey] = { title: catKey.toUpperCase(), items: [] };
+          }
+
+          // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL / gallery продукт (плочка)
+          if (isHell && typeof groupIndex === "number") {
+            const cat = CATALOG[catKey];
+            cat.view = cat.view || "gallery";
+            cat.groups = cat.groups || [];
+
+            if (!cat.groups[groupIndex]) {
+              cat.groups[groupIndex] = {
+                heading: "",
+                images: [],
+                prices: [],
+                items: []
+              };
+            }
+
+            const g = cat.groups[groupIndex];
+
+            if (!Array.isArray(g.images)) g.images = [];
+            if (!Array.isArray(g.prices)) g.prices = [];
+            if (!Array.isArray(g.items))  g.items  = [];
+
+            const len = g.images.length;
+            const pos = Math.max(0, Math.min(index ?? len, len));
+
+            const priceNum =
+              typeof item.price === "number"
+                ? item.price
+                : (cat.hellPrice ?? 0);
+
+            const imgUrl = item.img || "";
+
+            g.images.splice(pos, 0, imgUrl);
+            g.prices.splice(pos, 0, priceNum);
+            g.items.splice(pos, 0, {
+              name: item.name || "Продукт",
+              desc: "",
+              price: priceNum,
+              img: imgUrl
+            });
+
+            persistDraft();
+            trashDel(i);
+            activate(catKey, { replace: true });
+            toast("Възстановен продукт (HELL)");
+            return;
+          }
+
+          // 🧊 Нормален продукт (не HELL gallery)
+          const L = CATALOG[catKey].items || (CATALOG[catKey].items = []);
+          const pos = Math.max(0, Math.min(index ?? L.length, L.length));
+          L.splice(pos, 0, item);
+
+          persistDraft();
+          trashDel(i);
+          activate(catKey, { replace: true });
+          toast("Възстановен продукт");
+        } else if (entry.kind === "category") {
+          const { catKey, title, items, thumb, index } = entry;
+
+          if (!ORDER.includes(catKey)) {
+            const pos = Math.max(
+              0,
+              Math.min(index ?? ORDER.length, ORDER.length)
+            );
+            ORDER.splice(pos, 0, catKey);
+          }
+
+          CATALOG[catKey] = {
+            title: title || catKey.toUpperCase(),
+            items: items || []
+          };
+          if (thumb) CAT_THUMBS[catKey] = thumb;
+
+          persistDraft();
+          trashDel(i);
+          rebuildSidebar();
+          popThenActivate(null, catKey);
+          toast("Възстановена категория");
         }
-      });
+      }
+
+      if (action === "del") {
+        trashDel(i);
+        btn.closest("div[style]").remove();
+      }
+    });
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close();
     });
   };
 
-  document.getElementById("btnPrintCatalog").onclick = () => {
-    console.log("%c📘 FULL CATALOG STATE", "color:#2aa2ff; font-size:14px; font-weight:700;");
-    console.log(JSON.parse(JSON.stringify(CATALOG))); // deep clone for clarity
+  /* ===========================================================
+   * БЛОК 4 (END)
+   * =========================================================== */
+
+
+  /* ===========================================================
+   * БЛОК 5: ADDONS LABELS – ЗАРЕЖДАНЕ/ЗАПИС + ПРИЛАГАНЕ В DOM
+   * (START)
+   * =========================================================== */
+
+  const getAddonsFor = (catKey) => {
+    const mem = read(LS_MOD_DRAFT, {});
+    return (mem.addons_labels && mem.addons_labels[catKey]) || null;
   };
 
-  // ===== MARK PRODUCTS WITH/WITHOUT ADDONS =====
-  window.addEventListener("activate", () => {
-    setTimeout(() => {
-      document.querySelectorAll(".product").forEach((card, index) => {
-        const catKey = params.get("cat") || ORDER[0];
-        const cat = CATALOG[catKey];
-        if (!cat || !cat.items || !cat.items[index]) return;
+  const putAddonsFor = (catKey, data) => {
+    const mem = read(LS_MOD_DRAFT, {});
+    mem.addons_labels = mem.addons_labels || {};
+    mem.addons_labels[catKey] = data;
+    setMemory(mem);
+    persistDraft();
+  };
 
-        const item = cat.items[index];
-        const badge = document.createElement("div");
-        badge.style.position = "absolute";
-        badge.style.top = "6px";
-        badge.style.right = "6px";
-        badge.style.padding = "3px 6px";
-        badge.style.borderRadius = "6px";
-        badge.style.fontSize = "11px";
-        badge.style.fontWeight = "900";
-        badge.style.zIndex = "999";
+  const applyAddonsLabelsToDOM = (catKey) => {
+    const def = getAddonsFor(catKey);
+    if (!def) return;
 
-        if (!Array.isArray(item.addons) || item.addons.length === 0) {
-          badge.style.background = "#ff4747";
-          badge.textContent = "NO ADDONS";
-        } else {
-          badge.style.background = "#4CAF50";
-          badge.textContent = item.addons.length + " ADDONS";
+    // Групи без цена (veg / sauce)
+    ["veg", "sauce"].forEach((groupName) => {
+      const arr = def[groupName];
+      if (!Array.isArray(arr)) return;
+
+      const boxes = [
+        ...document.querySelectorAll(
+          `.addon-checkbox[data-group="${groupName}"]`
+        )
+      ];
+
+      boxes.forEach((box, i) => {
+        const label = box.closest("label");
+        if (label && arr[i]) {
+          label.childNodes[label.childNodes.length - 1].nodeValue =
+            " " + arr[i];
         }
-
-        card.appendChild(badge);
       });
-    }, 350);
-  });
+    });
 
-})();
+    // Платени добавки (paid)
+    if (Array.isArray(def.paid)) {
+      const paid = def.paid;
+      const boxes = [
+        ...document.querySelectorAll(
+          `.product .addon-checkbox:not([data-group])`
+        )
+      ];
+      boxes.forEach((box, i) => {
+        const labelEl = box.closest("label");
+        if (!labelEl || !paid[i]) return;
+        const { label, price } = paid[i];
+        box.setAttribute("data-price", Number(price) || 0);
+        labelEl.childNodes[labelEl.childNodes.length - 1].nodeValue =
+          ` + ${label}`;
+      });
+    }
+  };
 
 
-/* =====================================================
-   ☁️ Зареждане от облака (Firestore / API / localStorage)
-   ===================================================== */
-(async function loadFromCloud(){
-  try {
-    // 1) Firestore през BBQ_STORE
-    if (window.BBQ_STORE && typeof window.BBQ_STORE.load === "function") {
-      const data = await window.BBQ_STORE.load();
-      if (data && typeof data === "object") {
-        applyCatalogState(data);                 // ⬅️ ТУК ползваме helper-а
-        console.log("✅ Данните са заредени през BBQ_STORE.");
+  /* ===========================================================
+   * БЛОК 5 (END)
+   * =========================================================== */
+  // Текуща категория – взимаме ?cat= от URL или падaме към глобалния current
+  const currentCat = () =>
+    new URLSearchParams(location.search).get("cat") ||
+    (typeof current !== "undefined" ? current : "burgeri");
 
-        if (typeof window.__bbqAfterCloud === "function") {
-          window.__bbqAfterCloud("firestore");
+
+  const rebuildSidebar = () => {
+    if (!sidebar) return;
+
+    sidebar.innerHTML =
+      ORDER.map((key) => {
+        const label =
+          key === "promocii"
+            ? "ПРОМОЦИИ"
+            : CATALOG[key]?.title || key.toUpperCase();
+        const img = CAT_THUMBS[key] || DEFAULT_CAT_THUMB;
+
+        return `
+        <a class="cat" draggable="true" data-cat="${esc(
+          key
+        )}" role="link" tabindex="0" aria-label="${esc(label)}">
+          <div class="box cat-box" style="background-image:url('${img}')" data-label="${esc(
+          label
+        )}">
+            <span class="cat-hover-tools" aria-hidden="true">
+              <button class="cat-pic" title="Смени картинка">📁</button>
+              <button class="cat-rename" title="Преименувай">🖊</button>
+              <button class="cat-delete" title="Изтрий">🗑</button>
+            </span>
+          </div>
+          <div class="cat-label">${esc(label)}</div>
+        </a>`;
+      }).join("") +
+      `
+      <a class="cat cat--add" role="button" tabindex="0" aria-label="Добави категория">
+        <div class="box" style="display:flex;align-items:center;justify-content:center">
+          <span style="font-size:42px">+</span>
+        </div>
+        <div class="cat-label">Добави категория</div>
+      </a>`;
+
+    // Навигация – клик върху категория
+    sidebar.querySelectorAll(".cat").forEach((el) => {
+      const key = el.dataset.cat;
+
+      el.addEventListener("click", (e) => {
+        if (el.classList.contains("cat--add")) return;
+        // ако цъкаме върху бутоните 📁 / 🖊 / 🗑 – не сменяме категорията
+        if (e.target.closest(".cat-hover-tools")) return;
+        if (typeof shouldBypassDelay === "function" && shouldBypassDelay(e)) return;
+
+        e.preventDefault();
+        if (!key || key === current) return;
+
+        if (typeof popThenActivate === "function") {
+          popThenActivate(el, key);
+          return;
         }
+
+        if (typeof activate === "function") {
+          activate(key, { replace: true });
+          const url = new URL(location.href);
+          url.searchParams.set("cat", key);
+          history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        const url = new URL(location.href);
+        url.searchParams.set("cat", key);
+        location.href = url.toString();
+      });
+    });
+
+    // инструменти (смяна на снимка, rename, delete) – ВИНАГИ видими в MOD
+    sidebar.querySelectorAll(".cat-box").forEach((box) => {
+      box.style.position = "relative";
+    });
+
+    sidebar.querySelectorAll(".cat-hover-tools").forEach((tools) => {
+      Object.assign(tools.style, {
+        position: "absolute",
+        top: "6px",
+        right: "6px",
+        display: "inline-flex",   // <- ключово: да се виждат постоянно
+        gap: "6px",
+        zIndex: "10"
+      });
+
+      tools.querySelectorAll("button").forEach((btn) => {
+        Object.assign(btn.style, {
+          border: "none",
+          borderRadius: "8px",
+          padding: "4px 6px",
+          background: "rgba(0,0,0,.70)",
+          color: "#fff",
+          cursor: "pointer",
+          fontSize: "13px",
+          fontWeight: "700",
+          boxShadow: "0 2px 6px rgba(0,0,0,.35)"
+        });
+      });
+    });
+
+// Смяна на картинка (категории) през Vercel /api/upload-image
+sidebar.querySelectorAll(".cat-pic").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const catKey = e.target.closest(".cat")?.dataset?.cat;
+    if (!catKey) return;
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+
+    input.onchange = async (ev) => {
+      const file = ev.target.files?.[0];
+      if (!file) return;
+
+      try {
+        // 🔥 качваме във Vercel / GitHub
+        const url = await uploadImageViaApi(file, catKey, "thumb");
+
+        // 1) записваме URL в CAT_THUMBS
+        CAT_THUMBS[catKey] = url;
+
+        // 2) обновяваме визуално бокса
+        const catEl = sidebar.querySelector(`.cat[data-cat="${catKey}"] .cat-box`);
+        if (catEl) {
+          catEl.style.backgroundImage = `url('${url}')`;
+        }
+
+        // 3) пазим чернова
+        persistDraft();
+        toast("📸 Картинката на категорията е качена!");
+
+      } catch (err) {
+        console.error("Upload error (cat thumb):", err);
+        toast("❌ Грешка при качване на картинка");
+      }
+    };
+
+    input.click();
+  });
+});
+
+    // Преименуване на категория
+    sidebar.querySelectorAll(".cat-rename").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const catKey = e.target.closest(".cat")?.dataset?.cat;
+        if (!catKey) return;
+
+        const oldTitle = CATALOG[catKey]?.title || catKey.toUpperCase();
+        const newTitle = prompt("Ново име на категория:", oldTitle);
+        if (!newTitle) return;
+
+        if (!CATALOG[catKey]) {
+          CATALOG[catKey] = { title: newTitle, items: [] };
+        } else {
+          CATALOG[catKey].title = newTitle;
+        }
+
+        persistDraft();
+        rebuildSidebar();
+
+        if (currentCat() === catKey && titleEl) {
+          titleEl.textContent = newTitle;
+        }
+      });
+    });
+
+    // Изтриване на категория
+    sidebar.querySelectorAll(".cat-delete").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const catKey = e.target.closest(".cat")?.dataset?.cat;
+        if (!catKey) return;
+
+        if (catKey === "promocii") {
+          alert("ПРОМОЦИИ не може да се изтрива.");
+          return;
+        }
+
+        if (ORDER.length <= 1) {
+          alert("Трябва да има поне една категория.");
+          return;
+        }
+
+        if (!askPass("Парола за изтриване на категория")) return;
+
+        const idx = ORDER.indexOf(catKey);
+        trashPush({
+          kind: "category",
+          catKey,
+          title: CATALOG[catKey]?.title || catKey,
+          items: (CATALOG[catKey]?.items || []).map((x) => ({ ...x })),
+          thumb: CAT_THUMBS[catKey] || "",
+          index: idx
+        });
+
+        if (idx >= 0) ORDER.splice(idx, 1);
+        try {
+          delete CATALOG[catKey];
+        } catch {}
+
+        persistDraft();
+        rebuildSidebar();
+
+        const next = ORDER[0] || "burgeri";
+        popThenActivate(null, next);
+        toast("Категорията е в Кошчето");
+      });
+    });
+
+    // "+" плочка – добавя нова категория
+    sidebar.querySelector(".cat--add")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      let key = prompt("Слъг (латиница), напр. 'pizza':", "");
+      if (!key) return;
+
+      key = key
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+        .replace(/[^a-z0-9_]/g, "");
+
+      if (!key) {
+        alert("Невалиден ключ.");
         return;
       }
-    }
 
-    // 2) /api/catalog fallback
-    const r = await fetch("/api/catalog", { cache: "no-store" });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    const data = await r.json();
-
-    if (data && typeof data === "object") {
-      applyCatalogState(data);                  // ⬅️ пак helper
-      console.log("✅ Данните са заредени от облака (/api/catalog).");
-    }
-
-    if (typeof window.__bbqAfterCloud === "function") {
-      window.__bbqAfterCloud("api");
-    }
-  } catch (e) {
-    console.warn("☁️ Облакът е недостъпен, зареждам от localStorage:", e);
-    try {
-      const raw = localStorage.getItem("BBQ_MAIN_CATALOG");
-      if (raw) {
-        const data = JSON.parse(raw);
-        applyCatalogState(data);                // ⬅️ и тук
-        console.log("✅ Заредено локално копие (offline fallback).");
+      if (ORDER.includes(key)) {
+        alert("Вече има такава категория.");
+        return;
       }
-    } catch (e2) {
-      console.warn("⚠️ Local fallback също неуспешен:", e2);
+
+      const title = prompt("Заглавие:", "НОВА КАТЕГОРИЯ") || "НОВА КАТЕГОРИЯ";
+      ORDER.push(key);
+      CATALOG[key] = { title, items: [] };
+      CAT_THUMBS[key] = CAT_THUMBS[key] || DEFAULT_CAT_THUMB;
+
+      persistDraft();
+      rebuildSidebar();
+      popThenActivate(null, key);
+    });
+
+    // Drag&Drop подреждане на категориите
+    let dragged = null;
+
+    sidebar.querySelectorAll(".cat:not(.cat--add)").forEach((el) => {
+      el.addEventListener("dragstart", () => {
+        dragged = el;
+        el.style.opacity = ".5";
+      });
+
+      el.addEventListener("dragend", () => {
+        el.style.opacity = "1";
+        dragged = null;
+      });
+
+      el.addEventListener("dragover", (e) => e.preventDefault());
+
+      el.addEventListener("drop", (e) => {
+        e.preventDefault();
+        if (!dragged || dragged === el) return;
+
+        el.parentNode.insertBefore(dragged, el.nextSibling);
+
+        const keys = [
+          ...sidebar.querySelectorAll(".cat:not(.cat--add)")
+        ].map((x) => x.dataset.cat);
+
+        ORDER.length = 0;
+        keys.forEach((k) => ORDER.push(k));
+
+        persistDraft();
+        toast("Подредено");
+      });
+    });
+
+    // 🗑 икона "кошче" в сайдбара, ако имаш такава
+    const sidebarTrashIcon =
+      sidebar.querySelector(".sidebar-trash") ||
+      sidebar.querySelector("#sidebar-trash");
+
+    if (sidebarTrashIcon && !sidebarTrashIcon.dataset.boundTrash) {
+      sidebarTrashIcon.dataset.boundTrash = "1";
+      sidebarTrashIcon.style.cursor = "pointer";
+
+      sidebarTrashIcon.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openTrashUI();
+      });
+    }
+  };
+
+
+  /* ===========================================================
+   * БЛОК 6 (END)
+   * =========================================================== */
+
+
+/* ===========================================================
+ * БЛОК 7: INLINE РЕДАКЦИЯ НА ПРОДУКТИ (ТЕКСТ/ЦЕНИ/СНИМКИ)
+ * (START)
+ * =========================================================== */
+
+const enableInlineEditing = () => {
+  // Заглавие / описание / цена + caption за HELL
+  document
+    .querySelectorAll(
+      ".product .title, .product .desc, .price-badge .lv, .gallery .caption"
+    )
+    .forEach((el) => {
+      el.contentEditable = "true";
+      el.setAttribute("data-mod", "1");
+      el.style.outline = "1px dashed #ff7a00";
+      el.style.cursor = "text";
+
+      el.addEventListener("input", () => {
+        const key    = currentCat();
+        const catObj = CATALOG[key] || {};
+        const cards  = grid ? [...grid.querySelectorAll(".product")] : [];
+        const index  = cards.findIndex((x) => x.contains(el));
+
+        // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery')
+        if (index < 0 && catObj.view === "gallery") {
+          const tile = el.closest(".tile");
+          if (!tile) return;
+
+          const gIdx   = Number(tile.dataset.g);
+          const imgIdx = Number(tile.dataset.i);
+
+          if (!Array.isArray(catObj.groups) || !catObj.groups[gIdx]) return;
+          const group = catObj.groups[gIdx];
+
+          // 2а) Цена – .lv вътре в плочката
+          if (el.classList.contains("lv")) {
+            const newPrice = lvParse(el.textContent);
+
+            if (!Array.isArray(group.prices)) group.prices = [];
+            group.prices[imgIdx] = newPrice;
+
+            el.textContent = lvFormat(newPrice);
+            persistDraft();
+            applyEuroConversion();
+            return;
+          }
+
+
+          // 2б) Име под снимката – .caption (HELL)
+          if (el.classList.contains("caption")) {
+            const newName = ((el.textContent || "").trim()) || "Продукт";
+
+            // 🔥 1) Пазим името и в labels – това чете основният сайт
+            if (!Array.isArray(group.labels)) group.labels = [];
+            group.labels[imgIdx] = newName;
+
+            // 🔥 2) Пазим го и в items – за модератора / бъдещи функции
+            if (!Array.isArray(group.items)) group.items = [];
+
+            if (!group.items[imgIdx]) {
+              const priceFromGroup =
+                Array.isArray(group.prices)
+                  ? group.prices[imgIdx]
+                  : (catObj.hellPrice || 0);
+
+              const imgFromGroup =
+                Array.isArray(group.images)
+                  ? group.images[imgIdx]
+                  : "";
+
+              group.items[imgIdx] = {
+                name: newName,
+                desc: "",
+                price: priceFromGroup,
+                img: imgFromGroup
+              };
+            } else {
+              group.items[imgIdx].name = newName;
+            }
+
+            // 🔁 записваме черновата, после "Запази всичко" я праща към Firestore
+            persistDraft();
+            return;
+          }
+
+
+
+          // за gallery нямаме други editable елементи
+          return;
+        }
+
+        // === нормални категории с .product карти
+        if (index < 0) return;
+
+        const item = (catObj.items || [])[index];
+        if (!item) return;
+
+        if (el.classList.contains("title")) {
+          item.name = el.textContent.trim();
+        } else if (el.classList.contains("desc")) {
+          item.desc = el.textContent.trim();
+        } else if (el.classList.contains("lv")) {
+          item.price = lvParse(el.textContent);
+        }
+
+        persistDraft();
+      });
+    });
+
+  // 🔠 Заглавия на секциите (sec-title) – за всички категории с groups
+  const keyForGroups = currentCat();
+  if (CATALOG[keyForGroups] && Array.isArray(CATALOG[keyForGroups].groups)) {
+    document
+      .querySelectorAll(".sec-title[data-from='mod']")
+      .forEach((titleEl, idx) => {
+        const textSpan =
+          titleEl.querySelector(".sec-title-text") || titleEl;
+
+        textSpan.contentEditable = "true";
+        textSpan.setAttribute("data-mod", "1");
+        textSpan.style.outline = "1px dashed #ff7a00";
+        textSpan.style.cursor = "text";
+
+        textSpan.addEventListener("input", () => {
+          const cat = CATALOG[currentCat()];
+          if (!cat || !Array.isArray(cat.groups)) return;
+          if (!cat.groups[idx]) return;
+          cat.groups[idx].heading = textSpan.textContent.trim();
+          persistDraft(); // пазим черновата → после „Запази всичко“ я качва в Firestore
+        });
+      });
+  }
+
+
+  // Смяна на снимки (Vercel + GitHub upload)
+  document
+    .querySelectorAll(".product .photo, .tile img, .water-card img")
+    .forEach((img) => {
+      img.style.cursor = "pointer";
+
+      img.addEventListener("click", () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+
+        input.onchange = async (e) => {
+          const file = (e.target.files && e.target.files[0]);
+          if (!file) return;
+
+          const key    = currentCat();
+          const catObj = CATALOG[key] || {};
+
+          // по подразбиране търсим .product карта
+          const cards = grid ? [...grid.querySelectorAll(".product")] : [];
+          let index   = cards.findIndex((x) => x.contains(img));
+
+          try {
+            const productKey = index >= 0 ? `item_${index}` : "tile";
+
+            // 1) качваме файла към /api/upload-image -> GitHub
+            const url = await uploadImageViaApi(file, key, productKey);
+
+            // 2) обновяваме DOM
+            if (img.tagName === "IMG") {
+              img.src = url;
+            } else {
+              img.style.backgroundImage = `url('${url}')`;
+            }
+
+            // 3А) Нормален продукт – пазим в CATALOG[key].items[index].img
+            if (index >= 0 && catObj.items && catObj.items[index]) {
+              catObj.items[index].img = url;
+            }
+            // 3Б) HELL / GALLERY – update по група и индекс в галерията
+            else if (catObj.view === "gallery") {
+              const tileEl    = img.closest(".tile");
+              const galleryEl = tileEl ? tileEl.closest(".gallery") : null;
+              if (tileEl && galleryEl && Array.isArray(catObj.groups)) {
+                const galleries = [
+                  ...document.querySelectorAll(".gallery")
+                ];
+                const groupIdx = galleries.indexOf(galleryEl);
+                if (groupIdx >= 0 && catObj.groups[groupIdx]) {
+                  const imgsInGroup = [
+                    ...galleryEl.querySelectorAll(".tile img")
+                  ];
+                  const imgIdx = imgsInGroup.indexOf(img);
+                  const group  = catObj.groups[groupIdx];
+
+                  if (imgIdx >= 0) {
+                    if (!Array.isArray(group.images)) group.images = [];
+                    group.images[imgIdx] = url;
+
+                    if (!Array.isArray(group.items)) group.items = [];
+                    if (!group.items[imgIdx]) {
+                      group.items[imgIdx] = {
+                        name:
+                          (group.items[imgIdx]?.name) ||
+                          "Продукт",
+                        desc: "",
+                        price:
+                          (Array.isArray(group.prices)
+                            ? group.prices[imgIdx]
+                            : catObj.hellPrice) || 0,
+                        img: url
+                      };
+                    } else {
+                      group.items[imgIdx].img = url;
+                    }
+                  }
+                }
+              }
+            }
+
+            persistDraft();
+            toast("📸 Снимката е качена!");
+
+          } catch (err) {
+            console.error("Upload error:", err);
+            toast("❌ Грешка при качване на снимка");
+          }
+        };
+
+        input.click();
+      });
+    });
+
+  // Редакция на текстовете на добавките
+  document.querySelectorAll(".addons label").forEach((lbl) => {
+    const txtNode = [...lbl.childNodes].find((n) => n.nodeType === 3);
+    if (!txtNode) return;
+
+    lbl.setAttribute("contenteditable", "true");
+
+    lbl.addEventListener("blur", () => {
+      const key = currentCat();
+      const box = lbl.querySelector(".addon-checkbox");
+      if (!box) return;
+
+      const group = box.dataset.group || null;
+      const code  = box.dataset.code  || null;
+      const raw   = (lbl.textContent || "").trim().replace(/^\+\s*/, "");
+      const mem   = getMemory() || {};
+
+      if (group === "veg" || group === "sauce") {
+        const all = [
+          ...lbl.parentElement.parentElement.querySelectorAll(
+            `.addon-checkbox[data-group="${group}"]`
+          )
+        ];
+        const idx = all.findIndex((b) => b.closest("label") === lbl);
+        mem[group] = mem[group] || [];
+        mem[group][idx] = raw;
+      } else {
+        mem.paid = mem.paid || [];
+        const all = [
+          ...lbl.parentElement.parentElement.querySelectorAll(
+            `.addon-checkbox:not([data-group])`
+          )
+        ];
+        const idx   = all.findIndex((b) => b === box);
+        const price = Number(all[idx].getAttribute("data-price") || 0);
+        mem.paid[idx] = { code, label: raw, price };
+      }
+
+      putAddonsFor(key, mem);
+    });
+  });
+
+  // Двоен клик – бърза смяна на цена на платени добавки
+  document
+    .querySelectorAll(".addons .addon-checkbox:not([data-group])")
+    .forEach((box) => {
+      const lbl = box.closest("label");
+      if (!lbl) return;
+
+      lbl.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        const cur = Number(box.getAttribute("data-price") || 0);
+        const p   = prompt("Цена за тази добавка:", cur);
+        if (p == null) return;
+
+        const val = Number(String(p).replace(",", "."));
+        if (!Number.isFinite(val)) return;
+
+        box.setAttribute("data-price", val);
+
+        const key = currentCat();
+        const mem = getMemory() || {};
+        mem.paid = mem.paid || [];
+
+        const all = [
+          ...lbl.parentElement.parentElement.querySelectorAll(
+            `.addon-checkbox:not([data-group])`
+          )
+        ];
+        const idx = all.findIndex((b) => b === box);
+
+        const labelText = (lbl.textContent || "")
+          .trim()
+          .replace(/^\+\s*/, "");
+        const code = box.getAttribute("data-code") || "";
+
+        mem.paid[idx] = { code, label: labelText, price: val };
+        putAddonsFor(key, mem);
+
+        toast("Цена обновена");
+      });
+    });
+};
+
+/* ===========================================================
+ * БЛОК 7 (END)
+ * =========================================================== */
+
+
+/* ===========================================================
+ * БЛОК 8: DnD НА ПРОДУКТИ + ИЗТРИВАНЕ С ПАРОЛА
+ * (START)
+ * =========================================================== */
+
+const domProductsToArray = () => {
+  const list = [];
+  if (!grid) return list;
+
+  const key      = currentCat();
+  const srcItems = (CATALOG[key]?.items) || [];
+
+  grid.querySelectorAll(".product").forEach((p, idx) => {
+    const name =
+      p.querySelector(".title")?.textContent.trim() || "Продукт";
+    const desc = p.querySelector(".desc")?.textContent.trim() || "";
+    const lvEl = p.querySelector(".price-badge .lv");
+    const price = lvEl ? lvParse(lvEl.textContent) : 0;
+
+    let img = "";
+    const bg = p.querySelector(".photo")?.style?.backgroundImage || "";
+    const m = bg.match(/url\(['"]?(.*?)['"]?\)/i);
+    if (m && m[1]) img = m[1];
+
+    const src = srcItems[idx];
+    let addons;
+    if (src && Array.isArray(src.addons) && src.addons.length) {
+      addons = src.addons.map(a => ({ ...a }));
     }
 
-    if (typeof window.__bbqAfterCloud === "function") {
-      window.__bbqAfterCloud("local");
+    const item = { name, desc, price, img };
+    if (addons) item.addons = addons;
+
+    list.push(item);
+  });
+
+  return list;
+};
+
+
+const enableProductDnd = () => {
+  if (!grid) return;
+
+  let dragged = null;
+
+  grid.querySelectorAll(".product").forEach((card) => {
+    card.draggable = true;
+
+    card.addEventListener("dragstart", () => {
+      dragged = card;
+      card.style.opacity = ".4";
+    });
+
+    card.addEventListener("dragend", () => {
+      card.style.opacity = "1";
+      dragged = null;
+    });
+
+    card.addEventListener("dragover", (e) => e.preventDefault());
+
+    card.addEventListener("drop", (e) => {
+      e.preventDefault();
+      if (!dragged || dragged === card) return;
+
+      card.parentNode.insertBefore(dragged, card.nextSibling);
+
+      const key = currentCat();
+      const arr = domProductsToArray();
+      if (CATALOG[key]) {
+        CATALOG[key].items = arr;
+        persistDraft();
+        toast("Подредено");
+      }
+    });
+  });
+};
+
+
+/* 🔥 Универсално кошче за всички .product карти (всички категории) */
+const injectDeleteButtons = () => {
+  if (!grid) return;
+
+  const key = currentCat();
+  const cat = CATALOG[key] || {};
+  if (!Array.isArray(cat.items)) return;
+
+  const cards = [...grid.querySelectorAll(".product")];
+  if (!cards.length) return;
+
+  cards.forEach((card) => {
+    // вече има кошче → не пипаме
+    if (card.querySelector(".mod-del")) return;
+
+    const btn = document.createElement("button");
+    btn.className = "mod-del";
+    btn.textContent = "🗑";
+
+    Object.assign(btn.style, {
+      position: "absolute",
+      top: "8px",
+      right: "8px",
+      zIndex: "5",
+      background: "rgba(0,0,0,0.6)",
+      color: "#fff",
+      border: "none",
+      borderRadius: "10px",
+      padding: "4px 8px",
+      cursor: "pointer"
+    });
+
+    // за да стоят правилно бутоните
+    if (!card.style.position || card.style.position === "static") {
+      card.style.position = "relative";
     }
-  }
-})();
+
+    card.appendChild(btn);
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (typeof askPass === "function") {
+        if (!askPass("Парола за изтриване на продукт")) return;
+      }
+
+      const keyNow = currentCat();
+      const catNow = CATALOG[keyNow] || {};
+      const curCards = [...(grid?.querySelectorAll(".product") || [])];
+      const realIndex = curCards.indexOf(card);
+      if (realIndex < 0 || !Array.isArray(catNow.items)) return;
+
+      const item = catNow.items[realIndex] || {};
+      const name =
+        item.name ||
+        card.querySelector(".title")?.textContent.trim() ||
+        "Продукт";
+
+      const lvEl = card.querySelector(".price-badge .lv");
+      const price =
+        typeof item.price === "number"
+          ? item.price
+          : lvEl
+          ? lvParse(lvEl.textContent)
+          : 0;
+
+      let img = item.img || item.image || "";
+      if (!img) {
+        const bg =
+          card.querySelector(".photo")?.style?.backgroundImage || "";
+        const m = bg.match(/url\(['"]?(.*?)['"]?\)/i);
+        if (m && m[1]) img = m[1];
+      }
+
+      // 🗑 пращаме в глобалното кошче
+      trashPush({
+        kind: "product",
+        catKey: keyNow,
+        index: realIndex,
+        item: { name, price, img },
+        title: name
+      });
+
+      // махаме от данните
+      catNow.items.splice(realIndex, 1);
+
+      persistDraft();
+      activate(keyNow, { replace: true });
+      toast("В кошчето");
+    });
+  });
+};
 
 
-function ensureShape(key, shape){
-  const c = CATALOG[key] || {};
-  if (shape === "water2") {
-    if (c.view !== "water2" || !Array.isArray(c.groups)) CATALOG[key] = BASE_CATALOG[key];
-  } else if (shape === "gallery") {
-    if (c.view !== "gallery" || !Array.isArray(c.groups)) CATALOG[key] = BASE_CATALOG[key];
-  } else if (shape === "groups") {
-    if (!Array.isArray(c.groups)) CATALOG[key] = BASE_CATALOG[key];
-  }
-}
-ensureShape("voda","water2");
-ensureShape("gazirana_voda","water2");
-ensureShape("hell","gallery");
-ensureShape("palachinki","groups");
+// 🔥 Специално кошче / delete за HELL (gallery плочки)
+const injectHellDeleteButtons = () => {
+  const key = currentCat();
+  const cat = CATALOG[key] || {};
+  if (cat.view !== "gallery" || !Array.isArray(cat.groups)) return;
+
+  const galleries = [...document.querySelectorAll(".gallery")];
+  if (!galleries.length) return;
+
+  galleries.forEach((galleryEl, gIdx) => {
+    const group = cat.groups[gIdx];
+    if (!group) return;
+
+    const tiles = [...galleryEl.querySelectorAll(".tile")];
+
+    tiles.forEach((tile) => {
+      // ако вече има бутон – не добавяме втори
+      if (tile.querySelector(".mod-del")) return;
+
+      const btn = document.createElement("button");
+      btn.className = "mod-del";
+      btn.textContent = "🗑";
+
+      Object.assign(btn.style, {
+        position: "absolute",
+        top: "8px",
+        right: "8px",
+        zIndex: "5",
+        background: "rgba(0,0,0,.6)",
+        color: "#fff",
+        border: "none",
+        borderRadius: "10px",
+        padding: "4px 8px",
+        cursor: "pointer"
+      });
+
+      tile.style.position = "relative";
+      tile.appendChild(btn);
+
+      btn.addEventListener("click", () => {
+        if (typeof askPass === "function") {
+          if (!askPass("Парола за изтриване на продукт")) return;
+        }
+
+        // 💡 пресмятаме индекса по текущия DOM
+        const curGallery   = tile.closest(".gallery");
+        const allGalleries = [...document.querySelectorAll(".gallery")];
+        const curGIdx      = allGalleries.indexOf(curGallery);
+        if (curGIdx < 0 || !cat.groups[curGIdx]) return;
+
+        const curGroup = cat.groups[curGIdx];
+        const tilesNow = [...curGallery.querySelectorAll(".tile")];
+        const imgIdx   = tilesNow.indexOf(tile);
+        if (imgIdx < 0) return;
+
+        const img =
+          Array.isArray(curGroup.images) ? curGroup.images[imgIdx] : "";
+        const price =
+          Array.isArray(curGroup.prices) &&
+          typeof curGroup.prices[imgIdx] === "number"
+            ? curGroup.prices[imgIdx]
+            : curGroup.hellPrice ?? cat.hellPrice ?? 0;
+        const name =
+          Array.isArray(curGroup.items) && curGroup.items[imgIdx]
+            ? curGroup.items[imgIdx].name || "Продукт"
+            : "Продукт";
+
+        // 🗑 пращаме в глобалното кошче
+        trashPush({
+          kind: "product",
+          catKey: key,
+          index: imgIdx,
+          groupIndex: curGIdx,
+          isHell: true,
+          item: { name, price, img },
+          title: name
+        });
+
+        // махаме от данните
+        if (Array.isArray(curGroup.images)) curGroup.images.splice(imgIdx, 1);
+        if (Array.isArray(curGroup.prices)) curGroup.prices.splice(imgIdx, 1);
+        if (Array.isArray(curGroup.items))  curGroup.items.splice(imgIdx, 1);
+
+        persistDraft();
+        activate(key, { replace: true });
+        toast("В кошчето");
+      });
+    });
+  });
+};
 
 
-
-const sidebar = document.getElementById("sidebar");
-const grid    = document.getElementById("productGrid");
-const titleEl = document.getElementById("catTitle");
-
-
-
-// 🔸 Публични подзаглавия (видими извън MOD) – текстови, без drag&drop
-function clearPublicSubheadings() {
-  if (!titleEl || !titleEl.parentElement) return;
-  titleEl.parentElement
-    .querySelectorAll(".sec-title[data-from='public']")
-    .forEach((el) => el.remove());
-}
-
-function renderPublicSubheadings(catKey) {
-  const key = catKey || (typeof current !== "undefined" ? current : "burgeri");
+/* ===========================================================
+ * БЛОК 8 (END)
+ * =========================================================== */
+// =====================================================
+// Рендер на подзаглавията (groups) – с кошче + DnD
+// =====================================================
+function renderSubheadingsForModerator(catKey) {
+  const key = catKey || currentCat();
   const cat = CATALOG[key];
-
-  if (!cat || !Array.isArray(cat.groups) || !cat.groups.length) {
-    clearPublicSubheadings();
-    return;
-  }
+  if (!cat) return;
+  if (!Array.isArray(cat.groups) || !cat.groups.length) return;
   if (!titleEl) return;
 
   const parent = titleEl.parentElement || document.body;
-  const gridEl = typeof grid !== "undefined" ? grid : parent.querySelector(".grid");
 
-  // чистим стари
-  parent
-    .querySelectorAll(".sec-title[data-from='public']")
-    .forEach((el) => el.remove());
+  // ❗ Махаме всички стари мод подзаглавия, за да няма дублиране
+  parent.querySelectorAll(".sec-title[data-from='mod']").forEach((el) => el.remove());
 
-  const before = [];
-  const after  = [];
+  let ref = titleEl;
 
   cat.groups.forEach((g, idx) => {
-    if (!g) return;
-    if (g.position === "after") after.push({ g, idx });
-    else before.push({ g, idx });
-  });
-
-  const makeHeading = ({ g, idx }) => {
     const h = document.createElement("div");
     h.className = "sec-title";
-    h.dataset.from = "public";
-    h.dataset.gIndex = String(idx);
-    h.textContent = g.heading || `Подзаглавие ${idx + 1}`;
+    h.dataset.from = "mod";
+    h.dataset.groupIndex = idx;
+
+    // Текст
+    const textSpan = document.createElement("span");
+    textSpan.className = "sec-title-text";
+    textSpan.textContent = g.heading || `Подзаглавие ${idx + 1}`;
+
+    // 🗑 Кошче
+    const delBtn = document.createElement("button");
+    delBtn.className = "sec-title-del";
+    delBtn.innerHTML = "🗑";
+
+    // Стилове
     Object.assign(h.style, {
       margin: "10px 0 6px",
       fontWeight: "900",
       fontSize: "20px",
-      color: "#ff7a00"
+      color: "#ff7a00",
+      position: "relative",
+      paddingRight: "32px",
+      display: "inline-block"
     });
-    return h;
+
+    Object.assign(delBtn.style, {
+      position: "absolute",
+      top: "-4px",
+      right: "-4px",
+      width: "26px",
+      height: "26px",
+      borderRadius: "50%",
+      border: "none",
+      background: "#555",
+      color: "#fff",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      boxShadow: "0 2px 6px rgba(0,0,0,.3)",
+      fontSize: "14px",
+      padding: "0",
+      zIndex: 99999
+    });
+
+    // ❌ Триене
+    delBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const keyNow = currentCat();
+      const catNow = CATALOG[keyNow];
+      if (!catNow) return;
+
+      if (!confirm("Да изтрия ли това подзаглавие?")) return;
+
+      catNow.groups.splice(idx, 1);
+      persistDraft();
+      activate(keyNow, { replace: true }); // ❗ това винаги рисува само веднъж
+    });
+
+    // Сглобяване
+    h.appendChild(textSpan);
+    h.appendChild(delBtn);
+
+    // Вмъкване под заглавието
+    parent.insertBefore(h, ref.nextSibling);
+    ref = h;
+  });
+}
+
+
+
+// =====================================================
+// Подреждане на групите след drag & drop
+// =====================================================
+let draggedSub = null;
+
+function syncSubheadingOrder() {
+  const key = currentCat();
+  const cat = CATALOG[key];
+  if (!cat || !Array.isArray(cat.groups)) return;
+
+  const parent = titleEl.parentElement || document.body;
+  const els = [...parent.querySelectorAll(".sec-title[data-from='mod']")];
+
+  const old = cat.groups.slice();
+  const reordered = [];
+
+  els.forEach((el, idx) => {
+    const oldIdx = Number(el.dataset.groupIndex);
+    reordered.push(old[oldIdx]);
+    el.dataset.groupIndex = idx;
+  });
+
+  cat.groups = reordered;
+  persistDraft();
+}
+
+
+
+// =====================================================
+// Drag & Drop на подзаглавията
+// =====================================================
+function enableSubheadingDnd() {
+  if (!titleEl) return;
+
+  const parent = titleEl.parentElement || document.body;
+  const headings = [...parent.querySelectorAll(".sec-title[data-from='mod']")];
+
+  headings.forEach((h) => {
+    h.draggable = true;
+
+    h.addEventListener("dragstart", () => {
+      draggedSub = h;
+      h.style.opacity = ".4";
+    });
+
+    h.addEventListener("dragend", () => {
+      if (draggedSub) draggedSub.style.opacity = "1";
+      draggedSub = null;
+    });
+
+    h.addEventListener("dragover", (e) => e.preventDefault());
+
+    // Drop върху друго подзаглавие
+    h.addEventListener("drop", (e) => {
+      e.preventDefault();
+      if (!draggedSub || draggedSub === h) return;
+
+      parent.insertBefore(draggedSub, h.nextSibling);
+      syncSubheadingOrder();
+    });
+  });
+
+  // Drop върху grid (над/под продуктите)
+  if (grid) {
+    grid.addEventListener("dragover", (e) => {
+      if (!draggedSub) return;
+      e.preventDefault();
+    });
+
+    grid.addEventListener("drop", (e) => {
+      if (!draggedSub) return;
+      e.preventDefault();
+
+      const rect = grid.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+
+      if (e.clientY < midY) {
+        parent.insertBefore(draggedSub, grid);
+      } else {
+        if (grid.nextSibling)
+          parent.insertBefore(draggedSub, grid.nextSibling);
+        else
+          parent.appendChild(draggedSub);
+      }
+
+      syncSubheadingOrder();
+    });
+  }
+}
+
+
+  /* ===========================================================
+   * БЛОК 9: HOOK КЪМ activate() + КОНВЕРСИЯ BGN → EUR
+   * (START)
+   * =========================================================== */
+
+const _activate = activate;
+activate = function (cat, opts) {
+  _activate(cat, opts);
+
+  const key = cat || currentCat();
+
+  renderSubheadingsForModerator(key); // рисуване
+  enableSubheadingDnd();              // 👉 drag & drop за тях
+
+  applyAddonsLabelsToDOM(key);
+  enableInlineEditing();
+  enableProductDnd();
+  injectDeleteButtons();
+  injectHellDeleteButtons();
+  renderAddonsSidePanels(key);
+
+  if (typeof ensurePlusRightUniversal === "function")
+    ensurePlusRightUniversal();
+  if (typeof ensureMobilePlusRight === "function")
+    ensureMobilePlusRight();
+
+  applyEuroConversion();
+};
+
+
+
+  // Динамичен курс BGN → EUR
+  async function updateEuroRatesAndPrices() {
+    try {
+      const res = await fetch(
+        "https://api.exchangerate.host/latest?base=BGN&symbols=EUR"
+      );
+      const data = await res.json();
+      window.BGN_TO_EUR = data?.rates?.EUR || 1.95583;
+    } catch {
+      window.BGN_TO_EUR = 1.95583;
+    }
+  }
+
+  function applyEuroConversion() {
+    document.querySelectorAll(".price-badge").forEach((badge) => {
+      const lvEl = badge.querySelector(".lv");
+      if (!lvEl) return;
+
+      const lvValue = parseFloat(lvEl.textContent.replace(",", "."));
+      const eurValue = (
+        lvValue / (window.BGN_TO_EUR || 1.95583)
+      ).toFixed(2);
+
+      let eurEl = badge.querySelector(".eur");
+      if (!eurEl) {
+        eurEl = document.createElement("span");
+        eurEl.className = "eur";
+        eurEl.style.marginLeft = "6px";
+        eurEl.style.fontSize = "0.9em";
+        eurEl.style.opacity = "0.85";
+        badge.appendChild(eurEl);
+      }
+
+      eurEl.textContent = `${eurValue} €`;
+    });
+  }
+
+  updateEuroRatesAndPrices().then(applyEuroConversion);
+
+  document.body.addEventListener("input", (e) => {
+    if (e.target.classList.contains("lv")) applyEuroConversion();
+  });
+
+  /* ===========================================================
+   * БЛОК 9 (END)
+   * =========================================================== */
+
+
+  /* ===========================================================
+   * БЛОК 10: ПЛАВАЩИ БУТОНИ – КОШЧЕ, НОВ ПРОДУКТ, НОВА КАТЕГОРИЯ,
+   * ДОБАВКИ, ЗАПИС КЪМ ОСНОВНИЯ САЙТ
+   * (START)
+   * =========================================================== */
+
+  const addBtn = (label, bottom, onClick, extraStyle = {}) => {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+
+    Object.assign(
+      btn.style,
+      {
+        position: "fixed",
+        right: "20px",
+        bottom: `${bottom}px`,
+        background: "#ff7a00",
+        color: "#fff",
+        border: "none",
+        borderRadius: "12px",
+        padding: "10px 16px",
+        fontWeight: "900",
+        cursor: "pointer",
+        zIndex: "9999",
+        boxShadow: "0 6px 20px rgba(0,0,0,.3)",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease"
+      },
+      extraStyle
+    );
+
+    btn.addEventListener("mouseenter", () => {
+      btn.style.transform = "translateY(-2px)";
+      btn.style.boxShadow = "0 8px 24px rgba(0,0,0,.4)";
+    });
+
+    btn.addEventListener("mouseleave", () => {
+      btn.style.transform = "translateY(0)";
+      btn.style.boxShadow = "0 6px 20px rgba(0,0,0,.3)";
+    });
+
+    btn.addEventListener("click", onClick);
+    document.body.appendChild(btn);
+
+    return btn;
   };
 
-  let refBefore = titleEl;
+  // 🗑 – Кошче
+  addBtn("🗑 Кошче", 320, openTrashUI, { background: "#333" });
 
-  // BEFORE – над box-овете
-  before.forEach((obj) => {
-    const h = makeHeading(obj);
-    parent.insertBefore(h, refBefore.nextSibling);
-    refBefore = h;
-  });
-
-  // AFTER – под box-овете
-  if (gridEl) {
-    let refAfter = gridEl;
-    after.forEach((obj) => {
-      const h = makeHeading(obj);
-      if (refAfter.nextSibling) {
-        parent.insertBefore(h, refAfter.nextSibling);
-      } else {
-        parent.appendChild(h);
-      }
-      refAfter = h;
-    });
-  } else {
-    // fallback ако няма grid
-    let ref = refBefore;
-    after.forEach((obj) => {
-      const h = makeHeading(obj);
-      parent.insertBefore(h, ref.nextSibling);
-      ref = h;
-    });
-  }
-}
-
-function showPromosIframe(show){
-  // винаги махаме/слагаме класа САМО тук
-  if (show) {
-    document.body.classList.add('is-promos');
-  } else {
-    document.body.classList.remove('is-promos');
+// ➕ – Нов продукт
+addBtn("➕ Добави продукт", 260, () => {
+  const key = currentCat();
+  if (!CATALOG[key]) {
+    CATALOG[key] = { title: key.toUpperCase(), items: [] };
   }
 
-  // ако имаш контейнер за промо секцията – покажи/скрий го
-  const sec = document.getElementById('promosSection');
-  if (sec) sec.style.display = show ? 'block' : 'none';
+  const cat = CATALOG[key];
 
-  // fail-safe: когато НЕ сме в промо изглед,
-  // увери се, че критичните бутони/елементи са видими
-  if (!show) {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) sidebar.style.display = ''; // reset
-    const cartOverlay = document.getElementById('cartOverlay');
-    const cartBtn = document.getElementById('cartBtn');
-    if (cartOverlay) cartOverlay.style.display = 'none';
-    if (cartBtn)      cartBtn.setAttribute('aria-expanded','false');
-  }
-}
+  // 🔥 СПЕЦИАЛЕН СЛУЧАЙ: HELL (view:'gallery') – създаваме нова плочка
+  if (cat.view === "gallery" && Array.isArray(cat.groups) && cat.groups.length) {
+    const defaultImg   = "snimki/produkti/hell/default.jpg";  // по твой вкус
+    const defaultPrice = cat.hellPrice ?? 0;
+    const defaultName  = "Default";
 
+    // помощник – добавя плочка в дадена група
+    const addTileToGroup = (g) => {
+      if (!g) return;
 
+      if (!Array.isArray(g.images)) g.images = [];
+      if (!Array.isArray(g.prices)) g.prices = [];
+      if (!Array.isArray(g.items))  g.items  = [];
+      if (!Array.isArray(g.labels)) g.labels = [];
 
-/* Делегиран клик за „Всичко“ (veg/sauce) — стабилно за desktop и mobile */
-if (grid){
-  grid.addEventListener("click", (e) => {
-    const btn = e.target.closest("button.btn-all");
-    if (!btn) return;
+      const idx = g.images.length;
 
-    e.preventDefault();
-    e.stopPropagation();
+      g.images[idx] = defaultImg;
+      g.prices[idx] = defaultPrice;
+      g.labels[idx] = defaultName;
+      g.items[idx]  = {
+        name: defaultName,
+        desc: "",
+        price: defaultPrice,
+        img: defaultImg
+      };
+    };
 
-    const group = btn.dataset.target;            // "veg" или "sauce"
-    const card  = btn.closest(".product");       // цялата карта
-    if (!group || !card) return;
+    // 1) основната секция – HELL -250мл (обикновено е първата група)
+    const mainGroup = cat.groups[0];
 
-    const boxes = Array.from(card.querySelectorAll(`input.addon-checkbox[data-group="${group}"]`));
-    if (!boxes.length) return;
+    // 2) ICE COFFE HELL -250 мл – търсим по heading
+    const coffeeGroup = cat.groups.find(
+      (g, idx) =>
+        idx !== 0 &&
+        typeof g.heading === "string" &&
+        g.heading.toLowerCase().includes("ice coffe")
+    );
 
-    const shouldCheck = !boxes.every(b => b.checked); // ако не са всички чекнати → чекваме всички
-    for (const b of boxes) {
-      b.checked = shouldCheck;
-      b.dispatchEvent(new Event("change", { bubbles: true })); // подсигури логика по change
+    addTileToGroup(mainGroup);
+    if (coffeeGroup && coffeeGroup !== mainGroup) {
+      addTileToGroup(coffeeGroup);
     }
+
+    persistDraft();
+    activate(key, { replace: true });
+    toast("Нов HELL продукт добавен");
+    return;
+  }
+
+  // 🧊 Нормални категории – старото поведение
+  cat.items = cat.items || [];
+  cat.items.push({
+    name: "Нов продукт",
+    desc: "Описание...",
+    price: 0,
+    img: "snimki/default.jpg"
   });
-}
 
-/* Сайдбар рендер – извиква се и първоначално, и след Firestore */
-function renderSidebar(){
-  if (!sidebar) return;
-  sidebar.innerHTML = ORDER.map(key=>{
-    const cat = CATALOG[key];
-    if (!cat) return "";
-    const label = (key === "promocii") ? "ПРОМОЦИИ" : cat.title;
-    const img   = CAT_THUMBS[key];
-    return `<a class="cat" data-cat="${key}" role="link" tabindex="0" aria-label="${esc(label)}">
-              <div class="box" style="background-image:url('${img}')" data-label="${esc(label)}"></div>
-            </a>`;
-  }).join("");
-}
-
-/* 🧰 Инструменти върху категориите в сайдбара (редакция/изтриване и т.н.) */
-function setupSidebarHoverTools() {
-  if (!sidebar) return;
-
-  const hosts = sidebar.querySelectorAll(".cat");
-  hosts.forEach(host => {
-    host.style.position = "relative";
-
-    // да не закачаме по 100 пъти едни и същи слушатели
-    if (host.dataset.toolsBound === "1") return;
-
-    const tools = host.querySelector(".cat-hover-tools");
-    if (!tools) return;
-
-Object.assign(tools.style, {
-  position: "absolute",
-  top: "6px",
-  right: "6px",
-  display: "inline-flex",     // ❗ винаги inline-flex, не го крий тук
-  gap: "6px",
-  zIndex: "10"
+  persistDraft();
+  activate(key, { replace: true });
 });
 
 
-    tools.querySelectorAll("button").forEach((btn) => {
-      Object.assign(btn.style, {
-        border: "none",
-        borderRadius: "8px",
-        padding: "4px 6px",
-        background: "rgba(0,0,0,.70)",
-        color: "#fff",
-        cursor: "pointer",
-        fontSize: "13px",
-        fontWeight: "700",
-        boxShadow: "0 2px 6px rgba(0,0,0,.35)"
-      });
-    });
 
-    // 🖱️ hover поведение – само когато НЕ сме в MOD
-    if (!IS_MOD) {
-      host.addEventListener("mouseenter", () => {
-        tools.style.display = "inline-flex";
-      });
-      host.addEventListener("mouseleave", () => {
-        tools.style.display = "none";
-      });
-    }
 
-    host.dataset.toolsBound = "1";
+
+// ➕ – Ново подзаглавие (group) за всяка категория
+addBtn("➕ Добави подзаглавие", 230, () => {
+  const key = currentCat();
+
+  // ако няма категорията – създаваме я
+  if (!CATALOG[key]) {
+    CATALOG[key] = { title: key.toUpperCase(), items: [] };
+  }
+
+  const cat = CATALOG[key];
+
+  let heading = prompt("Име на подзаглавие (например 'Ice Coffee Hell'):", "");
+  if (!heading) return;
+
+  // гарантираме, че има масив groups
+  cat.groups = Array.isArray(cat.groups) ? cat.groups : [];
+
+  // създаваме нов group (празен box, в който после ще добавяш продукти)
+  cat.groups.push({
+    heading: heading.trim(),
+    images: [],
+    prices: [],
+    items: [],
+    labels: [],
+    pair: []
   });
-}
 
-// първоначален рендер (преди да дойдат данните от Firestore)
-if (!IS_MOD) {
-  renderSidebar();          // в нормален режим си го рисуваме от JS
-}
-// в MOD само закачаме инструментите върху HTML-а от index2.html
-setupSidebarHoverTools();
+  persistDraft();
+  activate(key, { replace: true });
+  toast("✅ Ново подзаглавие е добавено");
+}, {
+  background: "#ff7a00",
+  color: "#fff"
+});
 
-/* pretty label за HELL */
-function prettyLabel(src){
-  let f = src.split("/").pop().split(".")[0].toLowerCase();
-  f = f.replace(/^hell_/,"").replace(/^ice_coffe_/,"").replace(/^ice_hell_/,"");
-  const map = {
-    apple:"Apple", clasic:"Classic", classic:"Black Cherry",
-    redgrape:"Red Grape", watermelon:"Watermelon",
-    capochino:"Cappuccino", cappuccino:"Cappuccino", caramel:"Salted Caramel",
-    coconut:"Coconut", doubleespresso:"Double Espresso", doublespresso:"Double Espresso",
-    late:"Latte", latte:"Latte", pinklatte:"Pink Latte",
-    vanilia:"Vanilla", vanilla:"Vanilla", distachio:"Pistachio", pistachio:"Pistachio",
-    slimvanilla:"Vanilla"
-  };
-  if (map[f]) return map[f];
-  return f.replace(/[_-]+/g," ").replace(/\b\w/g, m=>m.toUpperCase());
-}
 
-const catHasAddons = (cat) => (cat === "portsii" || cat === "burgeri" || cat === "strandzhanki");
+  // ➕ – Добави добавка (само за храни)
+  addBtn(
+    "➕ Добави добавка",
+    220,
+    () => {
+      const key = currentCat().toLowerCase();
 
-/* === РЕНДЕР НА ПРОДУКТ === */
-function productCardHTML(it, i, withAddons = false) {
-  const desc = it.desc ? `<p class="desc">${esc(it.desc)}</p>` : "";
-
-  const pricePlusRow = `
-    <div class="price-plus">
-      <div class="price-badge">
-        <div class="lv">${fmtLv(it.price)}</div>
-        <div class="eur">${fmtEur(it.price)}</div>
-      </div>
-      <button class="add-btn"
-        data-name="${(it.name || "").replace(/"/g,"&quot;")}"
-        data-price="${it.price}"
-        data-img="${it.img}">+</button>
-    </div>
-  `;
-
-  const mobileTitle = `<h3 class="mobile-title">${esc(it.name)}</h3>`;
-
-  // --- десен блок с добавки + единствен "+" до цената ---
-  let addonsBlock = "";
-  let wholeAddonsBlock = "";
-
-  if (withAddons) {
-    if (current === "burgeri") {
-      const isPulled = /ДЪРПАНО/i.test(it.name || "");
-      const vegList = isPulled
-        ? [
-            { c:"cheddar", t:"Течен чедър" },
-            { c:"bbq",     t:"Барбекю сос" },
-            { c:"car_on",  t:"Карамелизиран лук" },
-            { c:"pickles", t:"Кисели краставички" },
-            { c:"mayo_h",  t:"Домашна майонеза" },
-            { c:"fries",   t:"Картофки" }
-          ]
-        : [
-            { c:"tomato",   t:"Домат" },
-            { c:"fries",    t:"Пресни картофки" },
-            { c:"onion",    t:"Червен лук" },
-            { c:"iceberg",  t:"Айсберг" },
-            { c:"razyadka", t:"Разядка" }
-          ];
-
-      const sauces = [
-        { c:"ketchup", t:"Кетчуп" },
-        { c:"mayo",    t:"Майонеза" },
-        { c:"mustard", t:"Горчица" },
-        { c:"chili",   t:"Люто" }
+      const blockedCats = [
+        "napitki",
+        "drinks",
+        "vodi",
+        "voda",
+        "hell",
+        "hiho",
+        "fanta",
+        "cola",
+        "pepsi",
+        "chai",
+        "studeni_chai",
+        "gazirana_voda",
+        "kola",
+        "palachinki"
       ];
 
-      addonsBlock = `
-        <div class="addons">
-          <div class="hdr">
-            Изберете с какво да бъде
-            <button type="button" class="btn-all" data-target="veg">Всичко</button>
-          </div>
-          ${vegList.map(x => `
-            <label>
-              <input type="checkbox" class="addon-checkbox" data-group="veg" data-code="${x.c}" data-price="0"> ${x.t}
-            </label>
-          `).join("")}
-        </div>
-
-        <div class="addons">
-          <div class="hdr">
-            Сосове
-            <button type="button" class="btn-all" data-target="sauce">Всичко</button>
-          </div>
-          ${sauces.map(x => `
-            <label>
-              <input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="${x.c}" data-price="0"> ${x.t}
-            </label>
-          `).join("")}
-        </div>
-      `;
-    } else if (current === "portsii") {
-      // платени добавки – в дясната колона, без втори "+" бутон
-      wholeAddonsBlock = `
-        <div class="addons">
-          <div class="hdr">Добавки</div>
-          <label><input type="checkbox" class="addon-checkbox" data-code="pitka" data-price="1.5"> + Питка</label>
-          <label><input type="checkbox" class="addon-checkbox" data-code="raz"   data-price="1.5"> + Разядка 100 гр</label>
-        </div>
-      `;
-    } else if (current === "strandzhanki") {
-      // сосове – в дясната колона, без втори "+" бутон
-      wholeAddonsBlock = `
-        <div class="addons">
-          <div class="hdr">
-            Сосове
-            <button type="button" class="btn-all" data-target="sauce">Всичко</button>
-          </div>
-          <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="ketchup" data-price="0"> Кетчуп</label>
-          <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="mayo"    data-price="0"> Майонеза</label>
-          <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="mustard" data-price="0"> Горчица</label>
-          <label><input type="checkbox" class="addon-checkbox" data-group="sauce" data-code="chili"   data-price="0"> Люто</label>
-        </div>
-      `;
-    }
-  }
-
-  // 🔶 Custom добавки, идващи от Firestore (it.addons)
-  let customAddonsBlock = "";
-  if (Array.isArray(it.addons) && it.addons.length) {
-    customAddonsBlock = `
-      <div class="addons">
-        <div class="hdr">Добавки</div>
-        ${
-          it.addons.map(a => {
-            const code  = (a.code || a.label || a.name || "").replace(/"/g, "&quot;");
-            const label = esc(a.label || a.name || "Добавка");
-            const price = Number(a.price || 0);
-
-            return `
-              <label class="addon-row">
-                <input
-                  type="checkbox"
-                  class="addon-checkbox"
-                  data-code="${code}"
-                  data-price="${price}"
-                >
-                <span class="addon-icon">+</span>
-                <span class="addon-name">${label}</span>
-                <span class="addon-price">${price ? fmtLv(price) : ""}</span>
-              </label>
-            `;
-          }).join("")
-        }
-      </div>
-    `;
-  }
-
-
-  return `
-    <article class="product ${i % 2 ? "even" : ""}">
-      <div class="leftcol">
-        <div class="photo" style="background-image:url('${it.img}')"></div>
-      </div>
-
-      <div class="pad">
-        <h3 class="title">${esc(it.name)}</h3>
-        ${desc}
-
-        ${ current === "burgeri" ? addonsBlock : (wholeAddonsBlock || "") }
-        ${ customAddonsBlock }
-
-        ${pricePlusRow}
-      </div>
-
-    </article>`;
-}
-
-
-// 🚗 "Достави" → Google Maps навигация (origin = моето местоположение, dest = адрес от поръчката)
-function getPosition(opts = { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }) {
-  return new Promise((resolve, reject) => {
-    if (!('geolocation' in navigator)) return reject(new Error('no-geo'));
-    navigator.geolocation.getCurrentPosition(resolve, reject, opts);
-  });
-}
-
-document.addEventListener('click', async (e) => {
-  const btn = e.target.closest('button.btn[data-action="maps"]');
-  if (!btn) return;
-
-  // 1) Дестинация (адрес на клиента)
-  let destination = (btn.dataset.address || localStorage.getItem('bbq_last_address') || '').trim();
-  if (!destination) { alert('Няма адрес за доставка.'); return; }
-
-  // 2) Origin: GPS → My Location → (по избор) фиксиран адрес
-  let originParam = '';
-  try {
-    const pos = await getPosition();
-    originParam = `&origin=${pos.coords.latitude},${pos.coords.longitude}`;
-  } catch {
-    // ако няма HTTPS/разрешение
-    originParam = `&origin=My+Location`;
-    // ако искаш винаги от обекта, разкоментирай реда отдолу и махни горния:
-    // originParam = `&origin=${encodeURIComponent('Corner BBQ, Хасково')}`;
-  }
-
-  // 3) URL за навигация
-  const url = 'https://www.google.com/maps/dir/?api=1'
-            + originParam
-            + '&destination=' + encodeURIComponent(destination)
-            + '&travelmode=driving'
-            + '&dir_action=navigate';
-
-  // 4) Отваряне (на мобилно – директно в текущия таб)
-  if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
-    // iOS/Android – опитай app, после web
-    // window.location.href = `comgooglemaps://?daddr=${encodeURIComponent(destination)}&directionsmode=driving`;
-    // setTimeout(() => { window.location.href = url; }, 300); // fallback към web
-    window.location.href = url; // прост и стабилен вариант
-  } else {
-    window.open(url, '_blank', 'noopener');
-  }
-});
-
-/* --- Увеличаване при двоен клик (desktop) --- */
-document.addEventListener("dblclick", e => {
-  const imgEl = e.target.closest(".photo");
-  if (!imgEl) return;
-  const alreadyZoomed = imgEl.classList.contains("zoomed");
-  document.querySelectorAll(".photo.zoomed").forEach(el => el.classList.remove("zoomed"));
-  if (alreadyZoomed) {
-    document.body.style.overflow = "";
-  } else {
-    imgEl.classList.add("zoomed");
-    document.body.style.overflow = "hidden";
-  }
-});
-
-/* --- Double-tap за мобилни --- */
-document.addEventListener("touchend", (e) => {
-  const imgEl = e.target.closest(".photo");
-  if (!imgEl) return;
-  const now = Date.now();
-  const last = imgEl._lastTap || 0;
-  if (now - last < 280) {
-    const already = imgEl.classList.contains("zoomed");
-    document.querySelectorAll(".photo.zoomed").forEach(el => el.classList.remove("zoomed"));
-    if (!already) {
-      imgEl.classList.add("zoomed");
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    imgEl._lastTap = 0;
-  } else {
-    imgEl._lastTap = now;
-  }
-}, { passive: true });
-
-/* помощник за изреченията при бележката */
-function groupPhrase(card, group, kind){
-  if (!card) return "";
-  const all = [...card.querySelectorAll(`.addon-checkbox[data-group="${group}"]`)];
-  if (!all.length) return "";
-
-  const labelOf = (b) => (b.closest("label")?.textContent || "")
-                          .trim()
-                          .replace(/^\+\s*/, "");
-
-  const allNames = all.map(labelOf);
-  const sel      = all.filter(b => b.checked);
-  const selNames = sel.map(labelOf);
-
-  if (sel.length === all.length && sel.length > 0) {
-    return kind === "veg" ? "с всичко" : "всички сосове";
-  }
-  if (sel.length > 0) {
-    const missing = allNames.filter(n => !selNames.includes(n));
-    const base = kind === "veg" ? "всичко без — " : "всички сосове без — ";
-    return base + (missing.length ? missing.join(", ") : "(нищо)");
-  }
-  return "";
-}
-
-/* Добавяне – слушатели за стандартните продукти */
-function bindAddButtons(){
-  if (!grid) return;
-  grid.querySelectorAll(".add-btn").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const card = btn.closest(".product, .tile, .water-card");
-
-      const baseName  = btn.getAttribute("data-name")?.trim();
-      const basePrice = Number(btn.getAttribute("data-price"));
-      const img       = btn.getAttribute("data-img") || "";
-
-      if (!baseName || !(basePrice >= 0)) {
-        // няма валидни данни – игнорираме
+      if (blockedCats.some((b) => key.includes(b))) {
+        toast("❌ Тази категория няма добавки (напитки)");
         return;
       }
 
-      const checks = card ? [...card.querySelectorAll(".addon-checkbox:checked")] : [];
-      const addons = checks.map(ch => {
-        const code  = ch.getAttribute("data-code");
-        const def   = ADDONS[code] || {};
-        const price = Number(ch.getAttribute("data-price")) || def.price || 0;
-        const labelFromDOM = (ch.closest("label")?.textContent || "").trim();
-        const labelClean = (labelFromDOM || def.label || "Добавка").replace(/^\+\s*/, "");
-        return { code, label: labelClean, price };
-      });
+      toast("Избери продукт, към който да добавиш добавки 👇");
+      isAddonsEditMode = true;
 
-      const addonsTotal = addons.reduce((s,a)=>s+a.price,0);
-      const fullPrice   = basePrice + addonsTotal;
+      document.querySelectorAll(".product").forEach((card, i) => {
+        card.style.position = "relative";
 
-      const nameWithAddons = addons.length
-        ? `${baseName} (+ ${addons.map(a=>a.label).join(", ")})`
-        : baseName;
+        const mark = document.createElement("div");
+        mark.className = "select-mark";
 
-      addToCart({
-        _id: Date.now()+""+Math.random(),
-        name: nameWithAddons,
-        baseName,
-        price: fullPrice,
-        basePrice,
-        addons,
-        img
-      });
+        Object.assign(mark.style, {
+          position: "absolute",
+          top: "8px",
+          left: "8px",
+          width: "26px",
+          height: "26px",
+          borderRadius: "50%",
+          border: "2px solid #ffb300",
+          background: "#fff",
+          boxShadow: "0 2px 6px rgba(0,0,0,.2)",
+          cursor: "pointer",
+          zIndex: "9999",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: "900",
+          color: "#ffb300",
+          transition: "all 0.15s ease",
+          userSelect: "none"
+        });
 
-      const vegLine   = card ? groupPhrase(card, "veg",   "veg")   : "";
-      const sauceLine = card ? groupPhrase(card, "sauce", "sauce") : "";
-      const parts = [vegLine, sauceLine].filter(Boolean);
-      if (parts.length && orderNoteEl) {
-        const line = `${baseName}: ${parts.join("; ")}`;
-        const cur  = (orderNoteEl.value || "").trim();
-        orderNoteEl.value = cur ? (cur + "\n" + line) : line;
-        localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
-      }
-
-      const was = btn.textContent;
-      btn.textContent = "✓";
-      setTimeout(()=> btn.textContent = was || "+", 450);
-
-      checks.forEach(ch => ch.checked = false);
-    });
-  });
-}
-
-
-function onPromoMessage(e){
-  const d = e?.data || {};
-  if (d.type !== "bbq:addPromo") return;
-
-  // Поддръжка на НОВ формат: {name, price, img, items}
-  if (d.name || d.items) {
-    const displayName = String(d.name || "Промо пакет").trim();
-    const price = Number(d.price || 0);
-    const img   = d.img || d.image || "";
-
-    // Записваме вложените продукти като "addons" (само за инфо)
-    const addons = Array.isArray(d.items)
-      ? d.items.map(x => ({ code: x.name || "", label: x.name || "", price: 0 }))
-      : [];
-
-    addToCart({
-      _id: Date.now() + "" + Math.random(),
-      name: displayName,
-      baseName: displayName,
-      price, basePrice: price,
-      img, addons
-    });
-
-    if (orderNoteEl){
-      const line = `${displayName} (${fmtLv(price)} / ${fmtEur(price)})`;
-      const cur  = (orderNoteEl.value || "").trim();
-      orderNoteEl.value = cur ? (cur + "\n" + line) : line;
-      localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
-    }
-    return;
-  }
-
-  // Поддръжка на СТАР формат: {a:{name,img}, b:{name,img}, price, hero}
-  const aName = d.a?.name?.trim() || "A";
-  const bName = d.b?.name?.trim() || "B";
-  const displayName = (d.name && String(d.name).trim()) || `ПРОМО: ${aName} + ${bName}`;
-  const price = Number(d.price || 0);
-  const img   = d.hero || d.a?.img || d.b?.img || "";
-  const itemsLine = `${aName} + ${bName}`;
-
-  addToCart({
-    _id: Date.now() + "" + Math.random(),
-    name: displayName,
-    baseName: displayName,
-    price, basePrice: price,
-    img,
-    addons: [{ code: "promo", label: itemsLine, price: 0 }]
-  });
-
-  if (orderNoteEl){
-    const line = `${displayName} (${fmtLv(price)} / ${fmtEur(price)})`;
-    const cur  = (orderNoteEl.value || "").trim();
-    orderNoteEl.value = cur ? (cur + "\n" + line) : line;
-    localStorage.setItem(LS_ORDER_NOTE, orderNoteEl.value);
-  }
-}
-
-
-
-/* === Приемане на ПРОМО елементи от index7 чрез postMessage (ако ползваш iframe) === */
-window.addEventListener("message", onPromoMessage, false);
-
-
-
-// Алиас за категории – sandvichi да отива към burgeri
-const KEY_ALIAS = { sandvichi: "burgeri" };
-
-/* ===== Активиране на категория + рендер ===== */
-let current = null;
-
-function activate(cat, { fromNav = false, replace = false } = {}) {
-  // realCat може да се пренастройва по-надолу
-  let realCat = KEY_ALIAS[cat] || cat;
-
-  /* 🧡 ПРОМОЦИИ — промо страница */
-  if (cat === "promocii") {
-    current = "promocii";
-    showPromosIframe(true);
-
-    if (sidebar) {
-      sidebar
-        .querySelectorAll(".cat")
-        .forEach((c) =>
-          c.classList.toggle("active", c.dataset.cat === "promocii")
+        mark.addEventListener(
+          "mouseenter",
+          () => (mark.style.transform = "scale(1.1)")
         );
+        mark.addEventListener(
+          "mouseleave",
+          () => (mark.style.transform = "scale(1)")
+        );
+
+        mark.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (!isAddonsEditMode) return;
+
+          mark.innerHTML = "✓";
+          mark.style.background = "#ffb300";
+          mark.style.color = "#fff";
+
+          openAddonsEditor(i, card);
+
+          isAddonsEditMode = false;
+          document.querySelectorAll(".select-mark").forEach((m) => {
+            if (m !== mark) m.remove();
+          });
+        });
+
+        card.appendChild(mark);
+      });
+    },
+    {
+      background: "#ffb300",
+      color: "#fff",
+      fontWeight: "900",
+      border: "none",
+      borderRadius: "14px",
+      padding: "10px 16px",
+      position: "fixed",
+      right: "20px",
+      zIndex: "10000"
     }
+  );
 
-    const url = new URL(location.href);
-    if (url.searchParams.get("cat") !== "promocii") {
-      url.searchParams.set("cat", "promocii");
-      if (replace) history.replaceState({ cat: "promocii" }, "", url);
-      else if (fromNav) history.pushState({ cat: "promocii" }, "", url);
-    }
+  // 📁 – Нова категория
+  addBtn("📁 Нова категория", 140, () => {
+    let key = prompt("Слъг (латиница), напр. 'pizza':", "");
+    if (!key) return;
 
-    if (titleEl) titleEl.textContent = "ПРОМОЦИИ";
-    if (grid) grid.innerHTML = "";
+    key = key
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "");
 
-    // ако сме в режим модератор – включваме редакторските функции
-    if (new URLSearchParams(location.search).get("mode") === "moderator") {
-      setTimeout(() => {
-        window.enableInlineEditing?.();
-        window.enableProductDnd?.();
-        window.injectDeleteButtons?.();
-        window.fixEditLayers?.();
-        window.ensurePlusRightUniversal?.();
-        window.ensureMobilePlusRight?.();
-      }, 0);
-    }
-
-    recalcMobileOffsets();
-    ensurePlusRightUniversal();
-    return;
-  }
-
-  // === останалите категории ===
-  showPromosIframe(false);
-
-  // ако няма такава категория – падане към burgeri
-  const exists = !!CATALOG[realCat];
-  if (!exists) {
-    cat = "burgeri";
-    realCat = "burgeri";
-  }
-
-  current = realCat;
-
-  if (sidebar) {
-    sidebar
-      .querySelectorAll(".cat")
-      .forEach((c) =>
-        c.classList.toggle("active", c.dataset.cat === realCat)
-      );
-  }
-
-  if (titleEl)
-    titleEl.textContent =
-      CATALOG[realCat]?.title || realCat.toUpperCase();
-
-
-  // 🔸 Публични подзаглавия (извън MOD)
-  if (!IS_MOD) {
-    const catData = CATALOG[realCat];
-    // за gallery / water2 си имаме отделен layout, там не слагаме допълнителни заглавия
-    if (!catData || catData.view === "gallery" || catData.view === "water2") {
-      clearPublicSubheadings();
-    } else {
-      renderPublicSubheadings(realCat);
-    }
-  }
-
-
-  const url2 = new URL(location.href);
-  if (url2.searchParams.get("cat") !== cat) {
-    // пазим оригиналния slug (?cat=sandvichi)
-    url2.searchParams.set("cat", cat);
-    if (replace) history.replaceState({ cat }, "", url2);
-    else if (fromNav) history.pushState({ cat }, "", url2);
-  }
-
-  const data = CATALOG[cat];
-  if (!grid) return;
-
-  // 🧩 Fallback: ако категорията няма items, вземи burgeri
-  if (!data || !Array.isArray(data.items)) {
-    const alias = { strandjanki: "burgeri", sandvichi: "burgeri" };
-    const fallback = alias[cat];
-    if (fallback && CATALOG[fallback]) {
-      current = fallback;
-      activate(fallback, { fromNav, replace });
-      return;
-    }
-  }
-
-  // === view: water2 (вода) ===
-  if (data.view === "water2") {
-    grid.innerHTML = `
-      <div class="water-wrapper">
-        ${data.groups
-          .map(
-            (g) => `
-          <section class="water-block">
-            <h2>${g.heading}</h2>
-            <div class="water-grid">
-              ${(g.pair || [])
-                 .map(
-                   (p) => `
-                <div class="water-card">
-                  <img src="${p.src}" alt="${esc(p.label)}">
-                  <div class="water-name">${esc(p.label)}</div>
-                  ${
-                    typeof p.price === "number"
-                      ? `
-                    <div class="price-badge">
-                      <div class="lv">${fmtLv(p.price)}</div>
-                      <div class="eur">${fmtEur(p.price)}</div>
-                    </div>
-                    <button class="add-btn"
-                            data-name="${p.label.replace(/"/g, "&quot;")}"
-                            data-price="${p.price}"
-                            data-img="${p.src}">+</button>
-                  `
-                      : ``
-                  }
-                </div>
-              `
-                )
-                .join("")}
-            </div>
-          </section>
-        `
-          )
-          .join("")}
-      </div>
-    `;
-    bindAddButtons();
-    recalcMobileOffsets();
-    ensurePlusRightUniversal();
-    return;
-  }
-
-// === view: gallery ===
-if (data.view === "gallery") {
-  const hellPrice = data.hellPrice ?? 2.0;
-
-  grid.innerHTML = (data.groups || [])
-    .map((group, gIdx) => {
-      const pics = (group.images || [])
-        .map((src, imgIdx) => {
-          // име под снимката – ако имаме запазен item, ползваме него,
-          // иначе prettyLabel(src)
-          const itemName =
-            Array.isArray(group.items) &&
-            group.items[imgIdx] &&
-            group.items[imgIdx].name
-              ? group.items[imgIdx].name
-              : prettyLabel(src);
-
-          const label = esc(itemName);
-
-          // индивидуална цена за тази снимка, ако има такава
-          const rawPrice = Array.isArray(group.prices)
-            ? group.prices[imgIdx]
-            : undefined;
-
-          const price =
-            typeof rawPrice === "number" && !Number.isNaN(rawPrice)
-              ? rawPrice
-              : hellPrice;
-
-          return `
-          <div>
-            <div class="tile" data-g="${gIdx}" data-i="${imgIdx}">
-              <img src="${src}" alt="${label}">
-              <div class="price-badge">
-                <div class="lv">${fmtLv(price)}</div>
-                <div class="eur">${fmtEur(price)}</div>
-              </div>
-              <button class="add-btn"
-                      data-name="${label.replace(/"/g, "&quot;")}"
-                      data-price="${price}"
-                      data-img="${src}">+</button>
-            </div>
-            <div class="caption" data-g="${gIdx}" data-i="${imgIdx}">${label}</div>
-          </div>`;
-        })
-        .join("");
-
-      return `
-        <h2 class="sec-title">${esc(group.heading || "")}</h2>
-        <div class="gallery">${pics}</div>
-      `;
-    })
-    .join("");
-
-  bindAddButtons();
-  recalcMobileOffsets();
-  ensureMobilePlusRight();
-  return;
-}
-
-
-
-  // === стандартен списък с продукти + подзаглавия ===
-
-  // 1) има ли групи с вътрешни items (палчинки, айрян и т.н.)
-  const hasGroupedItems =
-    Array.isArray(data.groups) &&
-    data.groups.some(g => Array.isArray(g.items) && g.items.length);
-
-  if (hasGroupedItems) {
-    // рендер по групи: Подзаглавие → продуктите от тази група
-    grid.innerHTML = (data.groups || [])
-      .map((g, gIdx) => {
-        const gItems = Array.isArray(g.items) ? g.items : [];
-        if (!gItems.length) return "";
-
-        return `
-          <section class="group-block">
-            <h2 class="sec-title">
-              ${esc(g.heading || `Подзаглавие ${gIdx + 1}`)}
-            </h2>
-            <div class="grid-products">
-              ${gItems
-                .map((it, i) => productCardHTML(it, i, catHasAddons(current)))
-                .join("")}
-            </div>
-          </section>
-        `;
-      })
-      .join("");
-  } else {
-    // 2) стандартна категория: продукти са в data.items,
-    //    а groups са само текстови подзаглавия (ГИРОС, БУРГЕРИ и т.н.)
-    const items = data?.items || [];
-
-    if (items.length === 0) {
-      grid.innerHTML =
-        `<p style="padding:16px;font-weight:700">Няма продукти в тази категория.</p>`;
-      recalcMobileOffsets();
+    if (!key) {
+      alert("Невалиден ключ.");
       return;
     }
 
-    // блок с подзаглавията – ще стоят над всички продукти
-    let subHeadingsHTML = "";
-// ❗ НЕ РЕНДЕРИРАМЕ ПОДЗАГЛАВИЯ В MODERATOR MODE
-if (!window.IS_MODERATOR) {
-  if (Array.isArray(data.groups) && data.groups.length) {
-    subHeadingsHTML = data.groups
-      .map((g, idx) => `
-        <h2 class="sec-title">
-          ${esc(g.heading || `Подзаглавие ${idx + 1}`)}
-        </h2>
-      `)
-      .join("");
-  }
-}
+    if (ORDER.includes(key)) {
+      alert("Вече съществува.");
+      return;
+    }
 
+    const title = prompt("Заглавие:", "НОВА КАТЕГОРИЯ") || "НОВА КАТЕГОРИЯ";
 
+    ORDER.push(key);
+    CATALOG[key] = { title, items: [] };
+    CAT_THUMBS[key] = CAT_THUMBS[key] || DEFAULT_CAT_THUMB;
 
-    grid.innerHTML = `
-      <div class="grid-products">
-        ${subHeadingsHTML}
-        ${items
-          .map((it, i) => productCardHTML(it, i, catHasAddons(current)))
-          .join("")}
-      </div>
-    `;
-  }
-
-  bindAddButtons();
-  recalcMobileOffsets();
-  ensureMobilePlusRight();
-  renderAddonsSidePanels(realCat);
-}
+    persistDraft();
+    rebuildSidebar();
+    popThenActivate(null, key);
+  });
 
 
 
 
 
 
+  // 💾 – Запази ВСИЧКО в основния сайт (Firestore + кеш)
+  addBtn("💾 Запази всичко в основния сайт", 50, () => {
+    saveToCloud();
+  });
 
+  /* ===========================================================
+   * БЛОК 10 (END)
+   * =========================================================== */
 
+/* ===========================================================
+ * БЛОК 11А: РЕНДЕР НА ЗАПИСАНИТЕ ДОБАВКИ ОТ CATALOG
+ * (ПАНЕЛЧЕТА ВДЯСНО НА КАРТИТЕ)
+ * =========================================================== */
 
-
-
-// 🌶 ПАНЕЛ С ИЗБРАНИ ДОБАВКИ ДО КАРТАТА
 function renderAddonsSidePanels(catKey) {
-  if (!grid) return;
-
-  const key = (catKey || current || "").toLowerCase();
+  const key = (catKey || currentCat()).toLowerCase();
   const category = CATALOG[key];
   if (!category || !Array.isArray(category.items)) return;
+  if (!grid) return;
 
   const cards = [...grid.querySelectorAll(".product")];
 
@@ -1734,16 +2126,16 @@ function renderAddonsSidePanels(catKey) {
     const cardEl = cards[idx];
     if (!cardEl) return;
 
-    // махаме стар панел
+    // махаме стар панел, ако има
     const oldPanel = cardEl.querySelector(".addons-side");
     if (oldPanel) oldPanel.remove();
 
     if (!item || !Array.isArray(item.addons)) return;
 
-    // само добавките, които са маркирани (checked: true)
     const selected = item.addons.filter(a => a && a.checked);
     if (!selected.length) return;
 
+    // създаваме нов панел
     const sidePanel = document.createElement("div");
     sidePanel.className = "addons-side";
 
@@ -1753,28 +2145,21 @@ function renderAddonsSidePanels(catKey) {
     sidePanel.appendChild(titleDiv);
 
     selected.forEach((a) => {
-      const row   = document.createElement("div");
+      const row = document.createElement("div");
       row.className = "addon-row";
 
-      const icon  = document.createElement("span");
-      icon.className = "addon-icon";
-      icon.textContent = "+";
-
-      const name  = document.createElement("span");
-      name.className = "addon-name";
-      name.textContent = a.label || "";
-
-      const priceWrap = document.createElement("div");
-      priceWrap.className = "addon-right";
+      const lbl = document.createElement("span");
+      lbl.textContent = `+ ${a.label}`;
 
       const price = document.createElement("span");
-      price.className = "addon-price";
-      const priceNum = parseFloat(a.price || 0) || 0;
-      price.textContent = priceNum ? fmtLv(priceNum) : "";
+      const priceNum = parseFloat(a.price || 0);
+      price.textContent = `${priceNum.toFixed(2)} лв`;
 
-      priceWrap.append(price);
+      const right = document.createElement("div");
+      right.className = "addon-right";
+      right.append(price);
 
-      row.append(icon, name, priceWrap);
+      row.append(lbl, right);
       sidePanel.appendChild(row);
     });
 
@@ -1784,9 +2169,240 @@ function renderAddonsSidePanels(catKey) {
 }
 
 
-// еднократно CSS за панела с добавки
-(function ensureAddonsSideCSS() {
-  const css = `
+
+  /* ===========================================================
+   * БЛОК 11: POPUP РЕДАКТОР ЗА ДОБАВКИ + CSS ЗА ДЯСНОТО ПАНЕЛЧЕ
+   * (START)
+   * =========================================================== */
+
+  function openAddonsEditor(index, cardEl) {
+    const key = currentCat().toLowerCase();
+    const category = CATALOG[key];
+    if (!category) return toast("⚠️ Категорията не е намерена");
+
+    let allItems = [];
+    if (category.items) allItems = category.items;
+    else if (category.groups)
+      category.groups.forEach(
+        (g) => (allItems = allItems.concat(g.items || []))
+      );
+
+    const item = allItems[index];
+    if (!item) return;
+
+    if (!item.addons) item.addons = [];
+
+    document.querySelector(".addons-popup")?.remove();
+
+    const overlay = document.createElement("div");
+    Object.assign(overlay.style, {
+      position: "fixed",
+      inset: "0",
+      background: "rgba(0,0,0,0.55)",
+      zIndex: "100000",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      animation: "fadeIn .2s ease"
+    });
+    overlay.className = "addons-popup";
+
+    const box = document.createElement("div");
+    Object.assign(box.style, {
+      background: "#fff",
+      borderRadius: "16px",
+      width: "min(420px, 95%)",
+      padding: "20px",
+      boxShadow: "0 10px 40px rgba(0,0,0,.3)",
+      fontFamily: "Segoe UI, sans-serif",
+      position: "relative"
+    });
+
+    const title = document.createElement("h3");
+    title.textContent = "Добавки към продукта";
+    title.style.color = "#ff7a00";
+    box.appendChild(title);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "✖";
+    Object.assign(closeBtn.style, {
+      position: "absolute",
+      top: "10px",
+      right: "10px",
+      background: "none",
+      border: "none",
+      fontSize: "18px",
+      cursor: "pointer"
+    });
+    closeBtn.onclick = () => overlay.remove();
+    box.appendChild(closeBtn);
+
+    const list = document.createElement("div");
+    box.appendChild(list);
+
+    const addRowBtn = document.createElement("button");
+    addRowBtn.textContent = "+ Добави нова добавка";
+    Object.assign(addRowBtn.style, {
+      display: "block",
+      margin: "10px auto",
+      background: "#eee",
+      border: "1px solid #ccc",
+      borderRadius: "8px",
+      padding: "6px 12px",
+      cursor: "pointer"
+    });
+    addRowBtn.onclick = () => {
+      item.addons.push({ label: "", price: "0.00", checked: false });
+      renderList();
+    };
+    box.appendChild(addRowBtn);
+
+    function renderList() {
+      list.innerHTML = "";
+      item.addons.forEach((a) => {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.marginBottom = "8px";
+        row.style.gap = "6px";
+
+        const chk = document.createElement("input");
+        chk.type = "checkbox";
+        chk.checked = !!a.checked;
+        chk.onchange = () => (a.checked = chk.checked);
+
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.placeholder = "име на добавка";
+        nameInput.value = a.label || "";
+        Object.assign(nameInput.style, {
+          flex: "1",
+          padding: "5px 8px",
+          border: "1px solid #ccc",
+          borderRadius: "6px"
+        });
+        nameInput.oninput = () => (a.label = nameInput.value);
+
+        const priceInput = document.createElement("input");
+        priceInput.type = "number";
+        priceInput.min = "0";
+        priceInput.step = "0.10";
+        priceInput.placeholder = "цена";
+        priceInput.value = a.price || "";
+        Object.assign(priceInput.style, {
+          width: "70px",
+          padding: "4px 6px",
+          border: "1px solid #ccc",
+          borderRadius: "6px",
+          textAlign: "right"
+        });
+        priceInput.oninput = () => (a.price = priceInput.value);
+
+        const lvLabel = document.createElement("span");
+        lvLabel.textContent = "лв";
+        lvLabel.style.fontWeight = "600";
+        lvLabel.style.color = "#444";
+
+        row.append(chk, nameInput, priceInput, lvLabel);
+        list.appendChild(row);
+      });
+    }
+
+    renderList();
+
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "💾 Запази";
+    Object.assign(saveBtn.style, {
+      display: "block",
+      margin: "12px auto 0",
+      background: "#ff7a00",
+      color: "#fff",
+      fontWeight: "900",
+      border: "none",
+      borderRadius: "8px",
+      padding: "8px 16px",
+      cursor: "pointer"
+    });
+
+    saveBtn.onclick = () => {
+      const selectedAddons = item.addons.filter((a) => a.checked);
+
+if (!CATALOG[key].items[index]) CATALOG[key].items[index] = item;
+CATALOG[key].items[index].addons = item.addons;
+
+// 🧩 записваме в черновата → после „💾 Запази всичко“ ще го прати към Firestore
+persistDraft();
+
+      if (selectedAddons.length === 0) {
+        toast("⚠️ Не си избрал добавки!");
+        overlay.remove();
+        return;
+      }
+
+      toast("✅ Добавките са записани");
+
+      let sidePanel = cardEl.querySelector(".addons-side");
+      if (!sidePanel) {
+        sidePanel = document.createElement("div");
+        sidePanel.className = "addons-side";
+        cardEl.style.position = "relative";
+        cardEl.appendChild(sidePanel);
+      } else {
+        sidePanel.innerHTML = "";
+      }
+
+      const titleDiv = document.createElement("div");
+      titleDiv.className = "title";
+      titleDiv.textContent = "Добавки";
+      sidePanel.appendChild(titleDiv);
+
+      selectedAddons.forEach((a) => {
+        const row = document.createElement("div");
+        row.className = "addon-row";
+
+        const lbl = document.createElement("span");
+        lbl.textContent = `+ ${a.label}`;
+
+        const price = document.createElement("span");
+        price.textContent = `${parseFloat(a.price).toFixed(2)} лв`;
+
+        const del = document.createElement("button");
+        del.textContent = "✖";
+        del.onclick = () => {
+          const pass = prompt("🔒 Въведи парола за изтриване:");
+          if (pass === MOD_PASSWORD) {
+item.addons = item.addons.filter((x) => x !== a);
+toast(`🗑️ ${a.label} премахната`);
+row.remove();
+CATALOG[key].items[index].addons = item.addons;
+
+// 🧩 пак пазим в черновата
+persistDraft();
+
+          } else {
+            alert("❌ Грешна парола!");
+          }
+        };
+
+        const right = document.createElement("div");
+        right.className = "addon-right";
+        right.append(price, del);
+
+        row.append(lbl, right);
+        sidePanel.appendChild(row);
+      });
+
+      overlay.remove();
+    };
+
+    box.appendChild(saveBtn);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  }
+
+  // CSS за панела с добавки вдясно – инжектираме веднъж
+  (function ensureAddonsSideCSS() {
+    const css = `
     .product, .menu-item, .item-card {
       overflow: visible !important;
       position: relative !important;
@@ -1824,87 +2440,166 @@ function renderAddonsSidePanels(catKey) {
       font-size: 14px;
     }
 
-    .addons-side .addon-right {
-      display: flex;
-      align-items: center;
-      gap: 4px;
+    .addons-side button {
+      background: none;
+      border: none;
+      color: #ff4d4d;
+      font-weight: 900;
+      cursor: pointer;
+      margin-left: 6px;
     }
 
     @keyframes slideInRight {
       from { opacity: 0; transform: translateX(10px); }
       to   { opacity: 1; transform: translateX(0); }
     }
-  `;
-  const style = document.createElement("style");
-  style.textContent = css;
-  document.head.appendChild(style);
-})();
+    `;
+    const style = document.createElement("style");
+    style.textContent = css;
+    document.head.appendChild(style);
+  })();
 
+/* ===========================================================
+ * БЛОК 11: SAVE към FIRESTORE + локален бекъп
+ * Този блок изпраща snapshotRuntime() → Firestore чрез BBQ_STORE.save()
+ * Поддържа groups, подкатегории, галерии, двойни продукти (pair) и всичко останало.
+ * =========================================================== */
 
-
-
-
-
-
-
-
-
-
-
-/* ===== Инициализация ===== */
-function shouldBypassDelay(evt){ return evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey || evt.button === 1; }
-const POP_DELAY = 100;
-function popThenActivate(el, key){
-  if (!el) return activate(key, {fromNav:true});
-  el.classList.remove("is-pressed"); el.classList.add("is-popping"); el.dataset.locked = "1";
-  setTimeout(()=>{ activate(key, {fromNav:true}); el.classList.remove("is-popping"); delete el.dataset.locked; }, POP_DELAY);
-}
-function initFromURL(){
-  const params = new URLSearchParams(location.search);
-  const cat = params.get("cat") || "burgeri";
-  activate(cat, {replace:true});
+function cleanUndefined(obj) {
+  try {
+    return JSON.parse(JSON.stringify(obj)); // премахва undefined safely
+  } catch (e) {
+    console.warn("cleanUndefined failed:", e);
+    return obj;
+  }
 }
 
-// 🔁 Hook: вика се когато каталогът се зареди/обнови от Firestore / API / localStorage
-window.__bbqAfterCloud = function(from){
-  console.log("♻️ Ререндер след зареждане на каталога от:", from);
+async function saveToCloud() {
+  const snap = snapshotRuntime(); // 🔥 вече включва groups вътре
+  const mem  = getMemory();
 
-  // ❗ В нормален режим обновяваме sidebar-а от Firestore.
-  // ❗ В MOD режим НЕ го пипаме, за да не трием бутоните от HTML-а.
-  if (!IS_MOD) {
-    renderSidebar();
+  // --- Целият payload, който качваме онлайн ---
+  let payload = {
+    // lowercase основни полета – това чете BBQ_STORE.load()
+    catalog: snap.catalog,            // ВКЛЮЧВА groups/подзаглавията
+    order: snap.order,
+    addons: window.ADDONS || {},
+    cat_thumbs: snap.cat_thumbs,
+    addons_labels: mem.addons_labels || {},
+    savedAt: new Date().toISOString(),
+
+    // uppercase копия – нужно за стари функции / съвместимост
+    CATALOG: snap.catalog,
+    ORDER: snap.order,
+    ADDONS: window.ADDONS || {},
+    CAT_THUMBS: snap.cat_thumbs,
+    ADDONS_LABELS: mem.addons_labels || {}
+  };
+
+  payload = cleanUndefined(payload);
+
+  try {
+    console.log("🚀 BBQ SAVE PAYLOAD →", payload);
+
+    const res = await window.BBQ_STORE.save(payload);
+
+    if (!res || !res.ok) {
+      console.error("🔥 Save error:", res);
+      toast("❌ Грешка при записа в облака");
+      return;
+    }
+
+    save(LS_MOD_DATA, snap); // запазваме и локален официален snapshot
+    toast("✔ Записано в основния сайт (via " + res.via + ")");
+
+  } catch (err) {
+    console.error("❌ SaveToCloud Error:", err);
+    toast("⚠ Проблем при записването");
+  }
+}
+
+/* ===========================================================
+ * БЛОК 11 (END)
+ * =========================================================== */
+
+  /* ===========================================================
+   * БЛОК 12: ВИЗУАЛЕН БАНЕР "MODERATOR MODE" + BOOT
+   * (START)
+   * =========================================================== */
+
+  (function showModeratorBanner() {
+    if (document.querySelector("#moderator-banner")) return;
+
+    const banner = document.createElement("div");
+    banner.id = "moderator-banner";
+    banner.innerHTML = `
+      <span>🟠 MODERATOR MODE</span>
+      <button id="exitModeratorBtn" style="
+        margin-left:15px;
+        background:#fff;
+        color:#ff7a00;
+        font-weight:700;
+        border:none;
+        border-radius:8px;
+        padding:4px 10px;
+        cursor:pointer;
+      ">Изход</button>
+    `;
+
+    Object.assign(banner.style, {
+      position: "fixed",
+      top: "0",
+      left: "50%",
+      transform: "translateX(-50%)",
+      background: "linear-gradient(90deg, #ff7a00, #ffb300)",
+      color: "#fff",
+      fontWeight: "900",
+      fontSize: "18px",
+      padding: "10px 30px",
+      borderRadius: "0 0 14px 14px",
+      zIndex: "1000000",
+      textShadow: "0 2px 5px rgba(0,0,0,0.3)",
+      boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+      letterSpacing: "1px",
+      userSelect: "none"
+    });
+
+    document.body.appendChild(banner);
+
+    document.getElementById("exitModeratorBtn").onclick = exitModeratorMode;
+  })();
+
+  // BOOT: при стартиране прилагаме запазените данни и активираме текущата категория
+  applySaved(read(LS_MOD_DATA, null));
+  applySaved(read(LS_MOD_DRAFT, null));
+  rebuildSidebar();
+
+  const cur = currentCat();
+  if (typeof titleEl !== "undefined" && titleEl && CATALOG[cur]?.title) {
+    titleEl.textContent = CATALOG[cur].title;
   }
 
-  setupSidebarHoverTools();
-  initFromURL();
-};
+  activate(cur, { replace: true });
 
-
-// първо възстановяваме количката и бележката
-restoreCartFromLS();
-restoreOrderNote?.();
-
-// първоначално активиране на категорията по URL (ще се презапише след Firestore)
-initFromURL();
-
-// кликове в сайдбара
-// кликове в сайдбара – делегиране, работи и след renderSidebar()/rebuildSidebar()
-if (sidebar) {
-  sidebar.addEventListener("click", (e) => {
-    const catEl = e.target.closest(".cat");
-    if (!catEl || !sidebar.contains(catEl)) return;
-
-    const key = catEl.dataset.cat;
-    if (!key) return;
-
-    if (shouldBypassDelay(e)) return;
-    e.preventDefault();
-    if (catEl.dataset.locked === "1" || key === current) return;
-
-    popThenActivate(catEl, key);
-  });
-}
+  /* ===========================================================
+   * БЛОК 12 (END)
+   * =========================================================== */
 
 
 
 
+
+// ==========================================================
+// 🔥 СИНХРОНИЗАЦИЯ НА МОДЕРАТОРА С FIRESTORE
+// Изпраща snapshotRuntime() към Firestore чрез BBQ_STORE.save()
+// ==========================================================
+
+// 🔄 Свързваме бутона #mod-save с нашия глобален saveToCloud()
+document.addEventListener("click", (e) => {
+  const saveBtn = e.target.closest("#mod-save");
+  if (!saveBtn) return;
+  saveToCloud();   // използваме вече готовия payload { CATALOG, ORDER, ... }
+});
+
+
+});
