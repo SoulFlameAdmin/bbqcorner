@@ -1,5 +1,3 @@
-
-
 /* ===========================================================
  * E:\BBQ_SITE\novindex2\moderator.js
  * БЛОК 1: ИНИЦИАЛИЗАЦИЯ НА MODERATOR MODE И РЕЖИМ ФЛАГ
@@ -1664,41 +1662,29 @@ function enableSubheadingDnd() {
    * (START)
    * =========================================================== */
 
-// ===========================================
-// ХУК КЪМ activate() – MOD режим да помни текущата категория
-// ===========================================
-(function () {
-  function hookActivate() {
-    // Ако още няма window.activate – не правим нищо
-    if (typeof window.activate !== "function") {
-      console.warn("moderator.js: window.activate още не е дефинирана – пропускам hook.");
-      return;
-    }
+const _activate = activate;
+activate = function (cat, opts) {
+  _activate(cat, opts);
 
-    // ако вече сме hook-нали, не повтаряме
-    if (window.activate.__bbqHooked) return;
+  const key = cat || currentCat();
 
-    const originalActivate = window.activate;
+  renderSubheadingsForModerator(key); // рисуване
+  enableSubheadingDnd();              // 👉 drag & drop за тях
 
-    window.activate = function (catKey, opts = {}) {
-      if (isModerator) {
-        currentCategoryKey = catKey;
-      }
-      return originalActivate(catKey, opts);
-    };
+  applyAddonsLabelsToDOM(key);
+  enableInlineEditing();
+  enableProductDnd();
+  injectDeleteButtons();
+  injectHellDeleteButtons();
+  renderAddonsSidePanels(key);
 
-    window.activate.__bbqHooked = true;
-    console.log("moderator.js: hook-нахме activate() за MOD режим.");
-  }
+  if (typeof ensurePlusRightUniversal === "function")
+    ensurePlusRightUniversal();
+  if (typeof ensureMobilePlusRight === "function")
+    ensureMobilePlusRight();
 
-  // Пускаме hook-а, когато документът е готов
-  if (document.readyState === "complete" || document.readyState === "interactive") {
-    hookActivate();
-  } else {
-    document.addEventListener("DOMContentLoaded", hookActivate);
-  }
-})();
-
+  applyEuroConversion();
+};
 
 
 
