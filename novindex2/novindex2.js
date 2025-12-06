@@ -3,9 +3,6 @@
 
 
 
-
-
-
 /* E:\BBQ_SITE\novindex2\novindex2.js */
 "use strict";
 
