@@ -1664,29 +1664,41 @@ function enableSubheadingDnd() {
    * (START)
    * =========================================================== */
 
-const _activate = activate;
-activate = function (cat, opts) {
-  _activate(cat, opts);
+// ===========================================
+// ХУК КЪМ activate() – MOD режим да помни текущата категория
+// ===========================================
+(function () {
+  function hookActivate() {
+    // Ако още няма window.activate – не правим нищо
+    if (typeof window.activate !== "function") {
+      console.warn("moderator.js: window.activate още не е дефинирана – пропускам hook.");
+      return;
+    }
 
-  const key = cat || currentCat();
+    // ако вече сме hook-нали, не повтаряме
+    if (window.activate.__bbqHooked) return;
 
-  renderSubheadingsForModerator(key); // рисуване
-  enableSubheadingDnd();              // 👉 drag & drop за тях
+    const originalActivate = window.activate;
 
-  applyAddonsLabelsToDOM(key);
-  enableInlineEditing();
-  enableProductDnd();
-  injectDeleteButtons();
-  injectHellDeleteButtons();
-  renderAddonsSidePanels(key);
+    window.activate = function (catKey, opts = {}) {
+      if (isModerator) {
+        currentCategoryKey = catKey;
+      }
+      return originalActivate(catKey, opts);
+    };
 
-  if (typeof ensurePlusRightUniversal === "function")
-    ensurePlusRightUniversal();
-  if (typeof ensureMobilePlusRight === "function")
-    ensureMobilePlusRight();
+    window.activate.__bbqHooked = true;
+    console.log("moderator.js: hook-нахме activate() за MOD режим.");
+  }
 
-  applyEuroConversion();
-};
+  // Пускаме hook-а, когато документът е готов
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    hookActivate();
+  } else {
+    document.addEventListener("DOMContentLoaded", hookActivate);
+  }
+})();
+
 
 
 
