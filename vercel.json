@@ -2,10 +2,10 @@
   "functions": {
     "api/download.js": {
       "maxDuration": 300,
-      "includeFiles": ["bin/**", "node_modules/ffmpeg-static/**"]
+      "includeFiles": "bin/**"
     },
     "api/health.js": {
-      "includeFiles": ["bin/**"]
+      "includeFiles": "bin/**"
     }
   },
   "headers": [
