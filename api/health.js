@@ -1,0 +1,1 @@
+const fs=require("fs");const path=require("path");module.exports=(req,res)=>{const bin=path.join(process.cwd(),"bin",process.platform==="win32"?"yt-dlp.exe":"yt-dlp");res.status(200).json({ok:true,service:"SoulFlame Downloader",version:"0.2.0",engine:fs.existsSync(bin)?"ready":"missing",platforms:["youtube","instagram","facebook"],formats:["mp3","mp4"]})};

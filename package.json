@@ -1,9 +1,15 @@
 {
-  "name": "bbqcorner",
-  "version": "1.0.0",
+  "name": "soulflame-downloader",
+  "version": "0.2.0",
   "private": true,
-  "type": "commonjs",
+  "description": "SoulFlame Downloader — YouTube, Instagram and Facebook to MP3/MP4.",
+  "scripts": {
+    "postinstall": "node scripts/install-ytdlp.js"
+  },
   "dependencies": {
-    "@vercel/kv": "latest"
+    "ffmpeg-static": "5.3.0"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }
