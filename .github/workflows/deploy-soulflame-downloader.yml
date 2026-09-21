@@ -21,4 +21,5 @@ jobs:
           HOOK_URL="$(git show f6023df2eb6e2ea7c5e77147e3ba0d8bbc46a9f5:autopush.bat | tr -d '\r' | sed -n 's/^set "HOOK_URL=\(.*\)"$/\1/p')"
           test -n "$HOOK_URL"
           echo "::add-mask::$HOOK_URL"
-          curl --fail --silent --show-error -X POST "$HOOK_URL" >/dev/null
+          RESPONSE="$(curl --fail --silent --show-error -X POST "$HOOK_URL")"
+          echo "VERCEL_HOOK_RESPONSE=$RESPONSE"
