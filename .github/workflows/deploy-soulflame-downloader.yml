@@ -9,17 +9,27 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository history
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Trigger existing Vercel Deploy Hook safely
+      - name: Verify Vercel token
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "VERCEL_TOKEN_MISSING"
+            exit 3
+          fi
+          echo "VERCEL_TOKEN_PRESENT"
+
+      - name: Link existing Vercel project
         shell: bash
         run: |
-          set -euo pipefail
-          HOOK_URL="$(git show f6023df2eb6e2ea7c5e77147e3ba0d8bbc46a9f5:autopush.bat | tr -d '\r' | sed -n 's/^set "HOOK_URL=\(.*\)"$/\1/p')"
-          test -n "$HOOK_URL"
-          echo "::add-mask::$HOOK_URL"
-          RESPONSE="$(curl --fail --silent --show-error -X POST "$HOOK_URL")"
-          echo "VERCEL_HOOK_RESPONSE=$RESPONSE"
+          mkdir -p .vercel
+          printf '%s\n' '{"orgId":"team_cKaIZfnCMzoiiq80J0MhV0A2","projectId":"prj_nhuHgdGOTehZGMuabcMVzTPtvcJX"}' > .vercel/project.json
+
+      - name: Deploy production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
