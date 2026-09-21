@@ -1,8 +1,6 @@
-name: Deploy SoulFlame Downloader to Vercel
+name: Manual SoulFlame Downloader Vercel Deploy
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -21,13 +19,12 @@ jobs:
             echo "VERCEL_TOKEN_MISSING"
             exit 3
           fi
-          echo "VERCEL_TOKEN_PRESENT"
 
       - name: Link existing Vercel project
         shell: bash
         run: |
           mkdir -p .vercel
-          printf '%s\n' '{"orgId":"team_cKaIZfnCMzoiiq80J0MhV0A2","projectId":"prj_nhuHgdGOTehZGMuabcMVzTPtvcJX"}' > .vercel/project.json
+          printf '%s\n' '{"orgId":"team_cKaIZfnCMzoiiq80J0MhV0A2","projectId":"prj_S77epiPf489pS9AmhzrFYl2534FC"}' > .vercel/project.json
 
       - name: Deploy production
         env:
